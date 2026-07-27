@@ -22,6 +22,7 @@ interface ControlPanelProps {
   readonly map: GameMap;
   readonly match: MatchState;
   readonly selected: CountyId | null;
+  readonly onOpenReport: () => void;
 }
 
 const CASTLE_LABEL: Record<string, string> = {
@@ -31,7 +32,7 @@ const CASTLE_LABEL: Record<string, string> = {
   royalCastle: 'Royal Castle',
 };
 
-export function ControlPanel({ map, match, selected }: ControlPanelProps) {
+export function ControlPanel({ map, match, selected, onOpenReport }: ControlPanelProps) {
   const ix = indexMap(map);
   const turnPlayer = activePlayer(match);
   const county = selected ? ix.countyById.get(selected) : null;
@@ -186,6 +187,14 @@ export function ControlPanel({ map, match, selected }: ControlPanelProps) {
         <p className="treasury-note">
           Materials pool empire-wide. Food is held per county and must be shipped.
         </p>
+      </section>
+
+      <section className="panel-section">
+        {/* Combat is reachable before the turn loop exists, because the unit and
+            stance numbers are first-pass and need somewhere to be tuned. */}
+        <button className="panel-action" onClick={onOpenReport}>
+          Muster a battle
+        </button>
       </section>
     </aside>
   );

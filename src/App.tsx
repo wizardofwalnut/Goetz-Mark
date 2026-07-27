@@ -4,6 +4,7 @@ import { createSoloMatch } from './domain/match/createMatch';
 import { factionId, type CountyId } from './domain/ids';
 import { MapView } from './ui/MapView';
 import { ControlPanel } from './ui/ControlPanel';
+import { BattleReport } from './ui/BattleReport';
 import './ui/styles.css';
 
 /**
@@ -17,6 +18,7 @@ import './ui/styles.css';
 
 export default function App() {
   const [selected, setSelected] = useState<CountyId | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const match = useMemo(
     () =>
@@ -46,7 +48,13 @@ export default function App() {
           onSelect={(id) => setSelected((prev) => (prev === id ? null : id))}
         />
       </main>
-      <ControlPanel map={ALDERMARCH} match={match} selected={selected} />
+      <ControlPanel
+        map={ALDERMARCH}
+        match={match}
+        selected={selected}
+        onOpenReport={() => setReportOpen(true)}
+      />
+      {reportOpen && <BattleReport onClose={() => setReportOpen(false)} />}
     </div>
   );
 }
