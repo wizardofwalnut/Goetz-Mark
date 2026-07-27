@@ -325,30 +325,6 @@ for (const key of roadSet) {
   if (!seen.has(key)) throw new Error(`Road declared between non-adjacent counties: ${key}`);
 }
 
-// Mountain ridges flanking the pass. Decoration only — impassability is
-// expressed by the absence of a border, never by geometry.
-const pass = built.find((c) => c.id === 'ironthroat');
-const ridge = (x0, x1) => {
-  const { y0, y1 } = ROWS[pass.rIndex];
-  const midY = (y0 + y1) / 2;
-  const pts = [];
-  const steps = 7;
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    pts.push({ x: round(x0 + (x1 - x0) * t), y: round(y0 + 16 + jitter(9)) });
-  }
-  for (let i = steps; i >= 0; i--) {
-    const t = i / steps;
-    const peak = Math.sin(t * Math.PI) * 26;
-    pts.push({ x: round(x0 + (x1 - x0) * t), y: round(midY + 34 - peak + jitter(9)) });
-  }
-  return pts;
-};
-const scenery = [
-  { kind: 'ridge', shape: ridge(LEFT + 10, 388) },
-  { kind: 'ridge', shape: ridge(612, RIGHT - 10) },
-];
-
 // ---------------------------------------------------------------------------
 // EMIT
 // ---------------------------------------------------------------------------
@@ -379,10 +355,6 @@ const borderSrc = borders
 const startSrc = STARTS.map(
   (s) => `  { seat: ${s.seat}, county: countyId('${s.county}') },`,
 ).join('\n');
-
-const scenerySrc = scenery
-  .map((s) => `  { kind: '${s.kind}', shape: [${fmtPts(s.shape)}] },`)
-  .join('\n');
 
 const src = `// GENERATED FILE — do not edit by hand.
 // Produced by tools/generate-map-geometry.mjs (seed 0x${SEED.toString(16)}).
@@ -417,9 +389,6 @@ export const ALDERMARCH: GameMap = {
   counties,
   borders,
   starts,
-  scenery: [
-${scenerySrc}
-  ],
 };
 `;
 

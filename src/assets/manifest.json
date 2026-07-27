@@ -9,23 +9,19 @@
   "entries": {
     "terrain.open": {
       "path": "terrain/open.png",
-      "tile": true,
-      "pending": true
+      "tile": true
     },
     "terrain.forest": {
       "path": "terrain/forest.png",
-      "tile": true,
-      "pending": true
+      "tile": true
     },
     "terrain.hills": {
       "path": "terrain/hills.png",
-      "tile": true,
-      "pending": true
+      "tile": true
     },
     "terrain.chokepoint": {
       "path": "terrain/chokepoint.png",
-      "tile": true,
-      "pending": true
+      "tile": true
     },
     "castle.motteAndBailey": {
       "pending": true,

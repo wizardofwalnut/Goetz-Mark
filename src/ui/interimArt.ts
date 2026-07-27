@@ -32,16 +32,6 @@ export interface InterimVisual {
 
 export const INTERIM_VISUALS: readonly InterimVisual[] = [
   {
-    where: 'src/ui/MapView.tsx — terrain fill fallback',
-    what: 'Flat palette tint per terrain type, used while tiles are pending.',
-    replacedBy: [
-      'terrain.open',
-      'terrain.forest',
-      'terrain.hills',
-      'terrain.chokepoint',
-    ],
-  },
-  {
     where: 'src/ui/MapView.tsx — CastleGlyph',
     what: 'Hand-drawn SVG castle marker. Explicitly a stopgap, not final art.',
     replacedBy: [
@@ -54,11 +44,6 @@ export const INTERIM_VISUALS: readonly InterimVisual[] = [
     where: 'src/ui/MapView.tsx — ownership hatch patterns',
     what: 'SVG line hatching to distinguish seats without relying on hue alone.',
     replacedBy: ['banner.crimson', 'banner.steel', 'banner.gold', 'banner.verdigris'],
-  },
-  {
-    where: 'src/content/maps/aldermarch.generated.ts — scenery ridges',
-    what: 'Flat polygons flanking the pass, standing in for mountain tiles.',
-    replacedBy: ['terrain.chokepoint'],
   },
   {
     where: 'src/ui/styles.css — panel chrome',

@@ -75,11 +75,40 @@ async function callTool(name, args) {
     .join('\n');
   if (payload.result?.isError) throw new Error(`${name}: ${text}`);
 
-  // Results come back as a text block plus an inline base64 image block. The
-  // text carries `status:`/`id:` lines and a download URL that has NO file
-  // extension — do not try to spot it by looking for ".png".
-  const image = content.find((c) => c.type === 'image');
-  return { text, image: image?.data ?? null, fields: parseFields(text) };
+  // Results come back as a text block plus one or more inline base64 image
+  // blocks. The text carries `status:`/`id:` lines and a download URL that has
+  // NO file extension — do not try to spot it by looking for ".png".
+  // Tile tools return several images in one response, so keep them all.
+  const images = content.filter((c) => c.type === 'image').map((c) => c.data);
+  return {
+    text,
+    image: images[0] ?? null,
+    images,
+    fields: parseFields(text),
+    // Tile tools return no inline images at all — they list a `storage_urls`
+    // block of real .png links instead. Two different result shapes from the
+    // same API, so handle both rather than assuming.
+    storageUrls: parseStorageUrls(text),
+  };
+}
+
+/** Ordered tile_0..tile_N urls from the `storage_urls:` block. */
+function parseStorageUrls(text) {
+  const entries = [...text.matchAll(/^\s+(\w+):\s*(https?:\/\/\S+)$/gm)].map((m) => [
+    m[1],
+    m[2],
+  ]);
+  const index = (name) => {
+    const n = name.match(/(\d+)$/);
+    return n ? Number(n[1]) : Number.MAX_SAFE_INTEGER;
+  };
+  return entries.sort((a, b) => index(a[0]) - index(b[0])).map(([, url]) => url);
+}
+
+async function fetchImage(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`download ${url}: HTTP ${res.status}`);
+  return Buffer.from(await res.arrayBuffer()).toString('base64');
 }
 
 /** Parse the `key: value` lines the API returns as its text block. */
@@ -113,12 +142,15 @@ async function waitFor(getter, idArg, id, { tries = 60, delay = 5000 } = {}) {
     const res = await callTool(getter, { [idArg]: id });
     const status = (res.fields.status ?? '').toLowerCase();
 
-    if (res.image) return res.image;
+    if (res.images.length > 0) return res.images;
+    if (res.storageUrls.length > 0) {
+      return await Promise.all(res.storageUrls.map(fetchImage));
+    }
     if (/fail|error|cancel/.test(status)) {
       throw new Error(`${getter}: status=${status} ${res.text.slice(0, 160)}`);
     }
     if (status === 'completed') {
-      throw new Error(`${getter}: completed but returned no image block`);
+      throw new Error(`${getter}: completed but returned no image or urls`);
     }
     await sleep(delay);
   }
@@ -188,7 +220,7 @@ async function runBatch(batchPath) {
       }
       const res = await callTool(job.tool, withPalette(job));
       const id = res.fields.id ?? null;
-      started.push({ job, id, immediate: res.image });
+      started.push({ job, id, immediate: res.images.length ? res.images : null });
       console.log(`  queued  ${job.key.padEnd(24)} ${id ?? '(inline result)'}`);
     } catch (err) {
       console.error(`  FAILED  ${job.key.padEnd(24)} ${err.message}`);
@@ -203,16 +235,33 @@ async function runBatch(batchPath) {
     const { job, id, immediate } = entry;
     try {
       const [getter, idArg] = GETTERS[job.tool] ?? [];
-      let base64 = immediate;
-      if (!base64) {
+      let images = immediate;
+      if (!images) {
         if (!getter) throw new Error(`no getter registered for ${job.tool}`);
         if (!id) throw new Error('create returned neither an image nor an id');
-        base64 = await waitFor(getter, idArg, id);
+        images = await waitFor(getter, idArg, id);
       }
 
-      const bytes = save(base64, join(ART_DIR, job.out));
-      console.log(`  saved   ${job.key.padEnd(24)} public/art/${job.out} (${bytes}b)`);
-      done.push(job.key);
+      // Tile tools return a whole set — 16 variations for a four-terrain
+      // request. `tileIndex` records which one was chosen so a re-run
+      // reproduces the same selection rather than silently taking the first
+      // four; without it, entries map positionally.
+      if (job.outs) {
+        job.outs.forEach((target, i) => {
+          const pick = target.tileIndex ?? i;
+          const image = images[pick];
+          if (!image) {
+            throw new Error(`${target.key}: no tile at index ${pick} (got ${images.length})`);
+          }
+          const bytes = save(image, join(ART_DIR, target.out));
+          console.log(`  saved   ${target.key.padEnd(24)} public/art/${target.out} (${bytes}b)`);
+          done.push(target.key);
+        });
+      } else {
+        const bytes = save(images[0], join(ART_DIR, job.out));
+        console.log(`  saved   ${job.key.padEnd(24)} public/art/${job.out} (${bytes}b)`);
+        done.push(job.key);
+      }
     } catch (err) {
       console.error(`  FAILED  ${job.key.padEnd(24)} ${err.message}`);
     }

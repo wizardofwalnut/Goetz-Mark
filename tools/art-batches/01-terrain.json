@@ -1,50 +1,36 @@
 [
   {
-    "key": "terrain.open",
-    "tool": "create_image_pixflux",
-    "out": "terrain/open.png",
+    "_note": [
+      "Terrain tiles. create_tiles_pro is the right tool here, not",
+      "create_image_pixflux: pixflux composes SCENES, and asking it for a flat",
+      "top-down texture produced a hills tile with a sky and a horizon line.",
+      "This tool draws real tiles, so they are seamless and have no perspective.",
+      "",
+      "One call returns 16 variations across the four numbered terrains. The",
+      "chosen indices are recorded in `outs` below so the selection is",
+      "reproducible: re-running with this seed yields the same 16, and these",
+      "four are the ones wired into the manifest.",
+      "",
+      "`palette: false` because this tool takes no colour reference image — the",
+      "palette-forcing that fixed the pixflux runs does not apply to it."
+    ],
+    "key": "terrain.set",
+    "tool": "create_tiles_pro",
+    "palette": false,
+    "resume": "b246f1f5-87a5-486c-a00f-4eb335e40026",
+    "outs": [
+      { "key": "terrain.open", "out": "terrain/open.png", "tileIndex": 0 },
+      { "key": "terrain.forest", "out": "terrain/forest.png", "tileIndex": 6 },
+      { "key": "terrain.hills", "out": "terrain/hills.png", "tileIndex": 9 },
+      { "key": "terrain.chokepoint", "out": "terrain/chokepoint.png", "tileIndex": 14 }
+    ],
     "args": {
-      "description": "flat ground texture of open grassland and tilled farmland seen from directly overhead, uniform all-over pattern, faint furrow lines and sparse grass tufts, no roads, no paths, no buildings, no horizon, no sky, no perspective, evenly covers the whole square",
-      "width": 64, "height": 64, "no_background": false,
-      "shading": "flat shading", "outline": "lineless",
-      "detail": "low detail", "view": "high top-down",
-      "text_guidance_scale": 12, "seed": 5001
-    }
-  },
-  {
-    "key": "terrain.forest",
-    "tool": "create_image_pixflux",
-    "out": "terrain/forest.png",
-    "args": {
-      "description": "flat ground texture of woodland canopy seen from directly overhead, uniform all-over pattern of small round treetops, no clearings, no paths, no horizon, no sky, no perspective, evenly covers the whole square",
-      "width": 64, "height": 64, "no_background": false,
-      "shading": "flat shading", "outline": "lineless",
-      "detail": "low detail", "view": "high top-down",
-      "text_guidance_scale": 12, "seed": 5002
-    }
-  },
-  {
-    "key": "terrain.hills",
-    "tool": "create_image_pixflux",
-    "out": "terrain/hills.png",
-    "args": {
-      "description": "flat ground texture of rolling grassy hills seen from directly overhead, uniform all-over pattern of soft rounded contour mounds, dry ochre grass, no rocks, no horizon, no sky, no perspective, evenly covers the whole square",
-      "width": 64, "height": 64, "no_background": false,
-      "shading": "flat shading", "outline": "lineless",
-      "detail": "low detail", "view": "high top-down",
-      "text_guidance_scale": 12, "seed": 5003
-    }
-  },
-  {
-    "key": "terrain.chokepoint",
-    "tool": "create_image_pixflux",
-    "out": "terrain/chokepoint.png",
-    "args": {
-      "description": "flat ground texture of bare grey rock and loose scree seen from directly overhead, uniform all-over pattern of angular broken stone, no peaks, no horizon, no sky, no perspective, evenly covers the whole square",
-      "width": 64, "height": 64, "no_background": false,
-      "shading": "flat shading", "outline": "lineless",
-      "detail": "low detail", "view": "high top-down",
-      "text_guidance_scale": 12, "seed": 5004
+      "description": "1). open grassland and tilled farmland tile 2). dense woodland canopy tile 3). rolling grassy hills tile 4). bare grey rock and scree tile",
+      "tile_type": "square_topdown",
+      "tile_view": "top-down",
+      "tile_size": 64,
+      "outline_mode": "segmentation",
+      "seed": 6001
     }
   }
 ]

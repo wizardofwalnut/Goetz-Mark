@@ -15,12 +15,13 @@ import { terrainArt } from '../assets/assetManifest';
  * and SVG gives crisp borders at any zoom plus real hit targets for free when
  * interactivity lands.
  *
- * ART STATUS: the tinted terrain fills, ownership hatching and castle glyph in
- * this file are INTERIM stopgaps carrying the established palette, registered in
- * src/ui/interimArt.ts. All shipping art comes from PixelLab through the asset
- * manifest. Once tiles exist, `terrainArt()` returns a url and the same shapes
- * take a pattern fill — no structural change, which is the point of the
- * manifest.
+ * ART STATUS: terrain now renders real PixelLab tiles through the manifest. The
+ * ownership hatching and castle glyph in this file are still INTERIM stopgaps,
+ * registered in src/ui/interimArt.ts.
+ *
+ * The `terrainTint` fill remains as a defensive fallback for a manifest entry
+ * that resolves to nothing — it is error handling, not standing in as the art,
+ * which is why it is no longer in the interim register.
  */
 
 interface MapViewProps {
@@ -34,6 +35,15 @@ const toPath = (pts: readonly Point[]) =>
   `${pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')}Z`;
 
 const TERRAINS: readonly Terrain[] = ['open', 'forest', 'hills', 'chokepoint'];
+
+/**
+ * Size of one terrain tile in map units.
+ *
+ * Counties are roughly 300x200 units, so drawing the 64px tiles at their native
+ * size gives only ~5x3 repeats per county and the motif reads as wallpaper
+ * competing with the county labels. Smaller repeats read as texture instead.
+ */
+const TILE_UNITS = 30;
 
 export function MapView({ map, match, selected, onSelect }: MapViewProps) {
   const ix = useMemo(() => indexMap(map), [map]);
@@ -99,11 +109,11 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
             <pattern
               key={t}
               id={`tile-${t}`}
-              width="64"
-              height="64"
+              width={TILE_UNITS}
+              height={TILE_UNITS}
               patternUnits="userSpaceOnUse"
             >
-              <image href={art.url} width="64" height="64" />
+              <image href={art.url} width={TILE_UNITS} height={TILE_UNITS} />
             </pattern>
           );
         })}
@@ -188,18 +198,6 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
             );
           })}
         </g>
-
-        {/* Mountain ridges flanking the pass — decoration only. */}
-        {map.scenery?.map((s, i) => (
-          <path
-            key={i}
-            d={toPath(s.shape)}
-            fill={palette.parchmentShadow}
-            stroke={palette.inkLine}
-            strokeWidth="1.4"
-            opacity="0.75"
-          />
-        ))}
 
         {/* County markers */}
         {map.counties.map((county) => {
