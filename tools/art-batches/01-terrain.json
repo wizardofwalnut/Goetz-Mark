@@ -1,0 +1,50 @@
+[
+  {
+    "key": "terrain.open",
+    "tool": "create_image_pixflux",
+    "out": "terrain/open.png",
+    "args": {
+      "description": "flat ground texture of open grassland and tilled farmland seen from directly overhead, uniform all-over pattern, faint furrow lines and sparse grass tufts, no roads, no paths, no buildings, no horizon, no sky, no perspective, evenly covers the whole square",
+      "width": 64, "height": 64, "no_background": false,
+      "shading": "flat shading", "outline": "lineless",
+      "detail": "low detail", "view": "high top-down",
+      "text_guidance_scale": 12, "seed": 5001
+    }
+  },
+  {
+    "key": "terrain.forest",
+    "tool": "create_image_pixflux",
+    "out": "terrain/forest.png",
+    "args": {
+      "description": "flat ground texture of woodland canopy seen from directly overhead, uniform all-over pattern of small round treetops, no clearings, no paths, no horizon, no sky, no perspective, evenly covers the whole square",
+      "width": 64, "height": 64, "no_background": false,
+      "shading": "flat shading", "outline": "lineless",
+      "detail": "low detail", "view": "high top-down",
+      "text_guidance_scale": 12, "seed": 5002
+    }
+  },
+  {
+    "key": "terrain.hills",
+    "tool": "create_image_pixflux",
+    "out": "terrain/hills.png",
+    "args": {
+      "description": "flat ground texture of rolling grassy hills seen from directly overhead, uniform all-over pattern of soft rounded contour mounds, dry ochre grass, no rocks, no horizon, no sky, no perspective, evenly covers the whole square",
+      "width": 64, "height": 64, "no_background": false,
+      "shading": "flat shading", "outline": "lineless",
+      "detail": "low detail", "view": "high top-down",
+      "text_guidance_scale": 12, "seed": 5003
+    }
+  },
+  {
+    "key": "terrain.chokepoint",
+    "tool": "create_image_pixflux",
+    "out": "terrain/chokepoint.png",
+    "args": {
+      "description": "flat ground texture of bare grey rock and loose scree seen from directly overhead, uniform all-over pattern of angular broken stone, no peaks, no horizon, no sky, no perspective, evenly covers the whole square",
+      "width": 64, "height": 64, "no_background": false,
+      "shading": "flat shading", "outline": "lineless",
+      "detail": "low detail", "view": "high top-down",
+      "text_guidance_scale": 12, "seed": 5004
+    }
+  }
+]

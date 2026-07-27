@@ -68,41 +68,59 @@ async function callTool(name, args) {
   const payload = JSON.parse(line ? line.slice(5).trim() : raw);
   if (payload.error) throw new Error(`${name}: ${JSON.stringify(payload.error)}`);
 
-  const text = payload.result?.content?.map((c) => c.text).join('\n') ?? '';
+  const content = payload.result?.content ?? [];
+  const text = content
+    .filter((c) => c.type === 'text')
+    .map((c) => c.text)
+    .join('\n');
   if (payload.result?.isError) throw new Error(`${name}: ${text}`);
-  return text;
+
+  // Results come back as a text block plus an inline base64 image block. The
+  // text carries `status:`/`id:` lines and a download URL that has NO file
+  // extension — do not try to spot it by looking for ".png".
+  const image = content.find((c) => c.type === 'image');
+  return { text, image: image?.data ?? null, fields: parseFields(text) };
+}
+
+/** Parse the `key: value` lines the API returns as its text block. */
+function parseFields(text) {
+  const fields = {};
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\s*([a-z_]+):\s*(.+)$/i);
+    if (m) fields[m[1].toLowerCase()] = m[2].trim();
+  }
+  return fields;
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Pull the first http(s) URL out of a tool's text response. */
-const findUrl = (text) => text.match(/https?:\/\/\S+?\.png/i)?.[0] ?? null;
-
-/** Pull a job/asset id out of a tool's text response. */
-const findId = (text) =>
-  text.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i)?.[0] ?? null;
-
-async function download(url, outPath) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`download ${url}: HTTP ${res.status}`);
-  const buf = Buffer.from(await res.arrayBuffer());
+function save(base64, outPath) {
+  const buf = Buffer.from(base64, 'base64');
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, buf);
   return buf.length;
 }
 
 /**
- * Poll a getter until the asset is ready.
- * Generation is async — create returns an id, the getter returns progress
- * until a url appears.
+ * Poll a getter until the asset is ready and return its base64 image.
+ *
+ * Terminal states are read from the `status:` field rather than sniffed out of
+ * the prose, so a job that fails server-side surfaces immediately instead of
+ * burning the whole timeout.
  */
-async function waitFor(getter, idArg, id, { tries = 40, delay = 6000 } = {}) {
+async function waitFor(getter, idArg, id, { tries = 60, delay = 5000 } = {}) {
   for (let i = 0; i < tries; i++) {
+    const res = await callTool(getter, { [idArg]: id });
+    const status = (res.fields.status ?? '').toLowerCase();
+
+    if (res.image) return res.image;
+    if (/fail|error|cancel/.test(status)) {
+      throw new Error(`${getter}: status=${status} ${res.text.slice(0, 160)}`);
+    }
+    if (status === 'completed') {
+      throw new Error(`${getter}: completed but returned no image block`);
+    }
     await sleep(delay);
-    const text = await callTool(getter, { [idArg]: id });
-    const url = findUrl(text);
-    if (url) return url;
-    if (/fail|error/i.test(text)) throw new Error(`${getter}: ${text.slice(0, 200)}`);
   }
   throw new Error(`${getter}: timed out waiting for ${id}`);
 }
@@ -129,6 +147,28 @@ function markGenerated(keys) {
   console.log(`\nmanifest: cleared pending on ${keys.length} entr${keys.length === 1 ? 'y' : 'ies'}`);
 }
 
+/**
+ * Palette reference, base64.
+ *
+ * PixelLab samples only the COLOURS of this image and forces output onto them.
+ * Naming colours in the prompt is unreliable by comparison — the first pilot
+ * batch asked for muted parchment tones in words and came back fully saturated.
+ */
+const paletteBase64 = () => {
+  const p = join(HERE, 'palette-reference.png');
+  if (!existsSync(p)) throw new Error('Run: node tools/make-palette-png.mjs');
+  return readFileSync(p).toString('base64');
+};
+
+/** Jobs opt out with "palette": false (e.g. when matching an existing asset). */
+function withPalette(job) {
+  if (job.palette === false) return job.args;
+  if (job.tool.startsWith('create_image_')) {
+    return { ...job.args, color_image_base64: paletteBase64() };
+  }
+  return job.args;
+}
+
 async function runBatch(batchPath) {
   const jobs = JSON.parse(readFileSync(resolve(batchPath), 'utf8'));
   console.log(`Running ${jobs.length} job(s)\n`);
@@ -138,11 +178,18 @@ async function runBatch(batchPath) {
   const started = [];
   for (const job of jobs) {
     try {
-      const text = await callTool(job.tool, job.args);
-      const id = findId(text);
-      const immediate = findUrl(text);
-      started.push({ job, id, immediate });
-      console.log(`  queued  ${job.key.padEnd(24)} ${id ?? '(inline)'}`);
+      // `resume` re-collects an already-generated job by id instead of paying
+      // for it again — used when a run generated fine server-side but the
+      // client failed to read the result.
+      if (job.resume) {
+        started.push({ job, id: job.resume });
+        console.log(`  resume  ${job.key.padEnd(24)} ${job.resume}`);
+        continue;
+      }
+      const res = await callTool(job.tool, withPalette(job));
+      const id = res.fields.id ?? null;
+      started.push({ job, id, immediate: res.image });
+      console.log(`  queued  ${job.key.padEnd(24)} ${id ?? '(inline result)'}`);
     } catch (err) {
       console.error(`  FAILED  ${job.key.padEnd(24)} ${err.message}`);
       started.push({ job, error: err });
@@ -156,10 +203,14 @@ async function runBatch(batchPath) {
     const { job, id, immediate } = entry;
     try {
       const [getter, idArg] = GETTERS[job.tool] ?? [];
-      const url = immediate ?? (getter ? await waitFor(getter, idArg, id) : null);
-      if (!url) throw new Error('no image url in response');
+      let base64 = immediate;
+      if (!base64) {
+        if (!getter) throw new Error(`no getter registered for ${job.tool}`);
+        if (!id) throw new Error('create returned neither an image nor an id');
+        base64 = await waitFor(getter, idArg, id);
+      }
 
-      const bytes = await download(url, join(ART_DIR, job.out));
+      const bytes = save(base64, join(ART_DIR, job.out));
       console.log(`  saved   ${job.key.padEnd(24)} public/art/${job.out} (${bytes}b)`);
       done.push(job.key);
     } catch (err) {
