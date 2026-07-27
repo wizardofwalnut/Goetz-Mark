@@ -32,41 +32,29 @@ export interface InterimVisual {
 
 export const INTERIM_VISUALS: readonly InterimVisual[] = [
   {
-    where: 'src/ui/MapView.tsx — ownership hatch patterns',
-    what: 'SVG line hatching to distinguish seats without relying on hue alone.',
-    replacedBy: ['banner.crimson', 'banner.steel', 'banner.gold', 'banner.verdigris'],
-  },
-  {
     where: 'src/ui/styles.css — panel chrome',
     what:
       'CSS borders, gradients and the garrison pill, standing in for generated ' +
       'panel frames, buttons and UI chrome.',
     replacedBy: ['ui.panelFrame', 'ui.buttonPrimary', 'ui.scrollHeader'],
   },
-  {
-    where: 'index.html — no favicon / app icon',
-    what:
-      'No icon is declared, so browsers request /favicon.ico and get a 404. ' +
-      'Left absent deliberately rather than hand-drawing one.',
-    replacedBy: ['ui.appIcon'],
-  },
-  {
-    where: 'src/ui/ControlPanel.tsx — resource and faction labels',
-    what: 'Text labels where resource icons and faction crests should appear.',
-    replacedBy: [
-      'resource.wheat',
-      'resource.cows',
-      'resource.wood',
-      'resource.ore',
-      'resource.stone',
-      'resource.gold',
-      'crest.knight',
-      'crest.warden',
-      'crest.merchant',
-      'crest.steward',
-    ],
-  },
 ];
+
+/**
+ * Deliberately NOT in the register:
+ *
+ *  - The terrain tint fill and the per-seat ownership hatching in MapView.
+ *    Neither stands in for art. The tint is error handling for a manifest
+ *    entry that will not resolve, and the hatching is an accessibility
+ *    affordance so ownership survives colour-blindness and greyscale — a
+ *    banner sprite cannot do that job, so generating banners does not retire
+ *    it.
+ *
+ *  - The generated UI kit sheets (ui.kit.*). Those are real art, but each is a
+ *    sheet of many components rather than a usable frame, so the sliced
+ *    entries they feed (ui.panelFrame and friends) stay pending until someone
+ *    cuts them. The CSS panel chrome above is what stands in meanwhile.
+ */
 
 /** Every manifest key the interim visuals are waiting on. */
 export const awaitedArtKeys = (): string[] =>

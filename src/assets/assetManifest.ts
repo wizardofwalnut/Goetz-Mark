@@ -40,6 +40,15 @@ export interface AssetEntry {
   readonly tile?: boolean;
   /** Nine-slice insets [top, right, bottom, left] for stretchable UI chrome. */
   readonly nineSlice?: readonly number[];
+  /**
+   * A kit sheet holding many components in one image, not a single usable
+   * asset. PixelLab's UI generator returns these — a whole set of panels,
+   * buttons and bars together. A sheet must be sliced before anything can
+   * render it, so it is never handed straight to a component.
+   */
+  readonly sheet?: boolean;
+  /** For a sliced entry, the kit sheet it is cut from. */
+  readonly from?: string;
 }
 
 export interface AssetManifest {

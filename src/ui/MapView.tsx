@@ -5,7 +5,7 @@ import type { MatchState } from '../domain/match/matchState';
 import { isDefended, troopCount, garrisonOf } from '../domain/match/matchState';
 import { indexMap } from '../domain/map/mapQueries';
 import { palette, seatColor, terrainTint, type } from './theme';
-import { castleArt, terrainArt } from '../assets/assetManifest';
+import { bannerArt, castleArt, terrainArt } from '../assets/assetManifest';
 import type { CastleTier } from '../domain/match/matchState';
 
 /**
@@ -220,6 +220,8 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
                 />
               )}
 
+              {seat !== null && <BannerMarker seat={seat} x={county.centroid.x - 26} y={county.centroid.y - 14} />}
+
               <text
                 x={county.centroid.x}
                 y={county.centroid.y + 16}
@@ -269,6 +271,34 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
 
       <rect width={map.width} height={map.height} fill="url(#vignette)" pointerEvents="none" />
     </svg>
+  );
+}
+
+/** Seat index to banner id. Order matches `seatColors` in theme.ts. */
+const SEAT_BANNERS = ['crimson', 'steel', 'gold', 'verdigris'] as const;
+
+/**
+ * Owner's banner planted beside the castle.
+ *
+ * This is a second, redundant ownership cue on purpose. The hatch fill carries
+ * ownership for colour-blind and greyscale readers; the banner reads faster for
+ * everyone else. Neither is load-bearing alone.
+ */
+function BannerMarker({ seat, x, y }: { seat: number; x: number; y: number }) {
+  const art = bannerArt(SEAT_BANNERS[seat % SEAT_BANNERS.length] ?? 'crimson');
+  if (art.missing || !art.url) return null;
+
+  const w = 15;
+  const h = 25;
+  return (
+    <image
+      href={art.url}
+      x={x}
+      y={y - h / 2}
+      width={w}
+      height={h}
+      style={{ imageRendering: 'pixelated' }}
+    />
   );
 }
 

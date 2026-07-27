@@ -33,19 +33,15 @@
       "path": "castle/royal-castle.png"
     },
     "unit.militia": {
-      "pending": true,
       "path": "unit/militia.png"
     },
     "unit.archers": {
-      "pending": true,
       "path": "unit/archers.png"
     },
     "unit.knights": {
-      "pending": true,
       "path": "unit/knights.png"
     },
     "unit.mercenaries": {
-      "pending": true,
       "path": "unit/mercenaries.png"
     },
     "unit.militia.knight": {
@@ -57,97 +53,97 @@
       "path": "unit/knights-knight.png"
     },
     "banner.crimson": {
-      "pending": true,
       "path": "banner/crimson.png"
     },
     "banner.steel": {
-      "pending": true,
       "path": "banner/steel.png"
     },
     "banner.gold": {
-      "pending": true,
       "path": "banner/gold.png"
     },
     "banner.verdigris": {
-      "pending": true,
       "path": "banner/verdigris.png"
     },
     "crest.knight": {
-      "pending": true,
       "path": "crest/knight.png"
     },
     "crest.warden": {
-      "pending": true,
       "path": "crest/warden.png"
     },
     "crest.merchant": {
-      "pending": true,
       "path": "crest/merchant.png"
     },
     "crest.steward": {
-      "pending": true,
       "path": "crest/steward.png"
     },
     "resource.wheat": {
       "path": "resource/wheat.png"
     },
     "resource.cows": {
-      "pending": true,
       "path": "resource/cows.png"
     },
     "resource.wood": {
-      "pending": true,
       "path": "resource/wood.png"
     },
     "resource.ore": {
-      "pending": true,
       "path": "resource/ore.png"
     },
     "resource.stone": {
-      "pending": true,
       "path": "resource/stone.png"
     },
     "resource.gold": {
-      "pending": true,
       "path": "resource/gold.png"
+    },
+    "ui.waxStamp": {
+      "path": "ui/wax-stamp.png"
+    },
+    "ui.appIcon": {
+      "path": "ui/app-icon.png"
+    },
+    "ui.kit.panel": {
+      "path": "ui/panel-frame.png",
+      "sheet": true
+    },
+    "ui.kit.button": {
+      "path": "ui/button-primary.png",
+      "sheet": true
+    },
+    "ui.kit.scroll": {
+      "path": "ui/scroll-header.png",
+      "sheet": true
     },
     "ui.panelFrame": {
       "pending": true,
-      "path": "ui/panel-frame.png",
+      "path": "ui/sliced/panel-frame.png",
       "nineSlice": [
         16,
         16,
         16,
         16
-      ]
+      ],
+      "from": "ui.kit.panel"
     },
     "ui.buttonPrimary": {
       "pending": true,
-      "path": "ui/button-primary.png",
+      "path": "ui/sliced/button-primary.png",
       "nineSlice": [
         12,
         12,
         12,
         12
-      ]
+      ],
+      "from": "ui.kit.button"
     },
     "ui.scrollHeader": {
       "pending": true,
-      "path": "ui/scroll-header.png",
+      "path": "ui/sliced/scroll-header.png",
       "nineSlice": [
         24,
         24,
         24,
         24
-      ]
-    },
-    "ui.waxStamp": {
-      "pending": true,
-      "path": "ui/wax-stamp.png"
-    },
-    "ui.appIcon": {
-      "pending": true,
-      "path": "ui/app-icon.png"
+      ],
+      "from": "ui.kit.scroll"
     }
   }
 }
