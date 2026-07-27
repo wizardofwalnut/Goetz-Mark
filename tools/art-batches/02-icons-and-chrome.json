@@ -1,0 +1,294 @@
+[
+  {
+    "key": "castle.normanKeep",
+    "tool": "create_image_pixflux",
+    "out": "castle/norman-keep.png",
+    "args": {
+      "description": "medieval Norman stone keep castle icon, square stone tower with battlements, map marker symbol, dark ink outline, aged gold and grey stone, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "high top-down",
+      "text_guidance_scale": 10, "seed": 4011
+    }
+  },
+  {
+    "key": "castle.royalCastle",
+    "tool": "create_image_pixflux",
+    "out": "castle/royal-castle.png",
+    "args": {
+      "description": "grand medieval royal castle icon, multiple stone towers with banners and curtain wall, map marker symbol, dark ink outline, aged gold and grey stone, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "medium detail", "view": "high top-down",
+      "text_guidance_scale": 10, "seed": 4012
+    }
+  },
+
+  {
+    "key": "resource.cows",
+    "tool": "create_image_pixflux",
+    "out": "resource/cows.png",
+    "args": {
+      "description": "cow head icon, simple medieval livestock ledger symbol, dark ink outline, umber and cream, drawn on parchment, flat shading",
+      "width": 48, "height": 48, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4021
+    }
+  },
+  {
+    "key": "resource.wood",
+    "tool": "create_image_pixflux",
+    "out": "resource/wood.png",
+    "args": {
+      "description": "stacked timber logs icon, bundle of cut wood, medieval ledger symbol, dark ink outline, warm brown, drawn on parchment, flat shading",
+      "width": 48, "height": 48, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4022
+    }
+  },
+  {
+    "key": "resource.ore",
+    "tool": "create_image_pixflux",
+    "out": "resource/ore.png",
+    "args": {
+      "description": "iron ore chunks icon, raw dark metal nuggets, medieval ledger symbol, dark ink outline, cold steel grey with rust flecks, drawn on parchment, flat shading",
+      "width": 48, "height": 48, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4023
+    }
+  },
+  {
+    "key": "resource.stone",
+    "tool": "create_image_pixflux",
+    "out": "resource/stone.png",
+    "args": {
+      "description": "cut masonry stone blocks icon, stacked quarried blocks, medieval ledger symbol, dark ink outline, pale grey, drawn on parchment, flat shading",
+      "width": 48, "height": 48, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4024
+    }
+  },
+  {
+    "key": "resource.gold",
+    "tool": "create_image_pixflux",
+    "out": "resource/gold.png",
+    "args": {
+      "description": "pile of gold coins icon, stacked medieval coins, ledger symbol, dark ink outline, rich aged gold, drawn on parchment, flat shading",
+      "width": 48, "height": 48, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4025
+    }
+  },
+
+  {
+    "key": "unit.militia",
+    "tool": "create_image_pixflux",
+    "out": "unit/militia.png",
+    "args": {
+      "description": "medieval peasant militia soldier icon, simple spear and round wooden shield, plain tunic, dark ink outline, muted earth tones, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4030
+    }
+  },
+  {
+    "key": "unit.archers",
+    "tool": "create_image_pixflux",
+    "out": "unit/archers.png",
+    "args": {
+      "description": "medieval longbow archer icon, drawing a bow, leather jerkin and quiver, dark ink outline, muted green and leather brown, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4031
+    }
+  },
+  {
+    "key": "unit.knights",
+    "tool": "create_image_pixflux",
+    "out": "unit/knights.png",
+    "args": {
+      "description": "medieval armoured knight icon, plate armour with lance and heater shield, dark ink outline, polished steel and crimson surcoat, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "medium detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4032
+    }
+  },
+  {
+    "key": "unit.mercenaries",
+    "tool": "create_image_pixflux",
+    "out": "unit/mercenaries.png",
+    "args": {
+      "description": "medieval mercenary soldier icon, sword and coin purse at belt, mismatched armour, dark ink outline, muted steel and dull gold, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "medium detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4033
+    }
+  },
+
+  {
+    "key": "crest.knight",
+    "tool": "create_image_pixflux",
+    "out": "crest/knight.png",
+    "args": {
+      "description": "heraldic shield crest bearing a sword, medieval coat of arms, crimson field with dark ink outline, aged gold trim, drawn on parchment, flat shading, symmetrical",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 11, "seed": 4040
+    }
+  },
+  {
+    "key": "crest.warden",
+    "tool": "create_image_pixflux",
+    "out": "crest/warden.png",
+    "args": {
+      "description": "heraldic shield crest bearing a stone tower, medieval coat of arms, steel blue field with dark ink outline, aged gold trim, drawn on parchment, flat shading, symmetrical",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 11, "seed": 4041
+    }
+  },
+  {
+    "key": "crest.merchant",
+    "tool": "create_image_pixflux",
+    "out": "crest/merchant.png",
+    "args": {
+      "description": "heraldic shield crest bearing a balance scale and coin, medieval coat of arms, aged gold field with dark ink outline, drawn on parchment, flat shading, symmetrical",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 11, "seed": 4042
+    }
+  },
+  {
+    "key": "crest.steward",
+    "tool": "create_image_pixflux",
+    "out": "crest/steward.png",
+    "args": {
+      "description": "heraldic shield crest bearing a wheat sheaf, medieval coat of arms, verdigris green field with dark ink outline, aged gold trim, drawn on parchment, flat shading, symmetrical",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 11, "seed": 4043
+    }
+  },
+
+  {
+    "key": "banner.crimson",
+    "tool": "create_image_pixflux",
+    "out": "banner/crimson.png",
+    "args": {
+      "description": "medieval hanging war banner, deep crimson cloth with swallowtail lower edge on a wooden pole, dark ink outline, aged gold fringe, drawn on parchment, flat shading",
+      "width": 48, "height": 80, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4050
+    }
+  },
+  {
+    "key": "banner.steel",
+    "tool": "create_image_pixflux",
+    "out": "banner/steel.png",
+    "args": {
+      "description": "medieval hanging war banner, steel blue cloth with swallowtail lower edge on a wooden pole, dark ink outline, aged gold fringe, drawn on parchment, flat shading",
+      "width": 48, "height": 80, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4051
+    }
+  },
+  {
+    "key": "banner.gold",
+    "tool": "create_image_pixflux",
+    "out": "banner/gold.png",
+    "args": {
+      "description": "medieval hanging war banner, aged gold cloth with swallowtail lower edge on a wooden pole, dark ink outline, umber fringe, drawn on parchment, flat shading",
+      "width": 48, "height": 80, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4052
+    }
+  },
+  {
+    "key": "banner.verdigris",
+    "tool": "create_image_pixflux",
+    "out": "banner/verdigris.png",
+    "args": {
+      "description": "medieval hanging war banner, verdigris green cloth with swallowtail lower edge on a wooden pole, dark ink outline, aged gold fringe, drawn on parchment, flat shading",
+      "width": 48, "height": 80, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4053
+    }
+  },
+
+  {
+    "key": "ui.waxStamp",
+    "tool": "create_image_pixflux",
+    "out": "ui/wax-stamp.png",
+    "args": {
+      "description": "red wax seal stamp, round blob of dark crimson sealing wax with an impressed heraldic mark, dark ink outline, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "basic shading", "outline": "single color outline",
+      "detail": "medium detail", "view": "high top-down",
+      "text_guidance_scale": 10, "seed": 4060
+    }
+  },
+  {
+    "key": "ui.appIcon",
+    "tool": "create_image_pixflux",
+    "out": "ui/app-icon.png",
+    "args": {
+      "description": "app icon of a medieval stone castle keep silhouette over crossed banners, bold and readable at small size, aged gold on deep ink black, dark outline, flat shading, centred, square composition",
+      "width": 128, "height": 128, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 11, "seed": 4061
+    }
+  },
+
+  {
+    "key": "ui.panelFrame",
+    "tool": "create_ui_asset",
+    "out": "ui/panel-frame.png",
+    "args": {
+      "description": "medieval parchment ledger panel with dark ink border and aged gold corner trim, aged cream paper surface",
+      "color_palette": "aged cream parchment, dark ink brown, aged gold",
+      "width": 256, "height": 256, "no_background": true,
+      "name": "aldermarch-panel", "seed": 4070
+    }
+  },
+  {
+    "key": "ui.buttonPrimary",
+    "tool": "create_ui_asset",
+    "out": "ui/button-primary.png",
+    "args": {
+      "description": "medieval parchment button with aged gold border and dark ink outline, raised ledger card look",
+      "color_palette": "aged cream parchment, dark ink brown, aged gold",
+      "elements": ["button"],
+      "width": 256, "height": 192, "no_background": true,
+      "name": "aldermarch-button", "seed": 4071
+    }
+  },
+  {
+    "key": "ui.scrollHeader",
+    "tool": "create_ui_asset",
+    "out": "ui/scroll-header.png",
+    "args": {
+      "description": "medieval unrolled parchment scroll header banner with curled ends and dark ink border, aged gold trim",
+      "color_palette": "aged cream parchment, dark ink brown, aged gold",
+      "width": 688, "height": 384, "no_background": true,
+      "name": "aldermarch-scroll", "seed": 4072
+    }
+  }
+]

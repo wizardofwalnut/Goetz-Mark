@@ -1,0 +1,104 @@
+[
+  {
+    "key": "terrain.open",
+    "tool": "create_image_pixflux",
+    "out": "terrain/open.png",
+    "args": {
+      "description": "seamless repeating tileable texture of open farmland and grassy meadow, drawn as a medieval parchment map, muted sage green over aged cream paper, fine ink stippling, flat shading, no border, no frame",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 9,
+      "seed": 4001
+    }
+  },
+  {
+    "key": "terrain.forest",
+    "tool": "create_image_pixflux",
+    "out": "terrain/forest.png",
+    "args": {
+      "description": "seamless repeating tileable texture of dense woodland, tiny stylised ink trees drawn as a medieval parchment map, muted olive and moss green over aged cream paper, flat shading, no border, no frame",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "selective outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 9,
+      "seed": 4002
+    }
+  },
+  {
+    "key": "terrain.hills",
+    "tool": "create_image_pixflux",
+    "out": "terrain/hills.png",
+    "args": {
+      "description": "seamless repeating tileable texture of rolling hills, small stylised ink hill humps drawn as a medieval parchment map, muted tan and ochre over aged cream paper, flat shading, no border, no frame",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "selective outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 9,
+      "seed": 4003
+    }
+  },
+  {
+    "key": "terrain.chokepoint",
+    "tool": "create_image_pixflux",
+    "out": "terrain/chokepoint.png",
+    "args": {
+      "description": "seamless repeating tileable texture of a rocky mountain pass, jagged grey stone ridges drawn as a medieval parchment map, cold slate grey and stone over aged cream paper, flat shading, no border, no frame",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "selective outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 9,
+      "seed": 4004
+    }
+  },
+  {
+    "key": "castle.motteAndBailey",
+    "tool": "create_image_pixflux",
+    "out": "castle/motte-and-bailey.png",
+    "args": {
+      "description": "simple medieval motte and bailey castle icon, wooden palisade and timber keep on a small earthen mound, map marker symbol, dark ink outline, aged gold and umber, drawn on parchment, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 4010
+    }
+  },
+  {
+    "key": "resource.wheat",
+    "tool": "create_image_pixflux",
+    "out": "resource/wheat.png",
+    "args": {
+      "description": "wheat sheaf icon, bundle of golden grain stalks tied with cord, medieval ledger symbol, dark ink outline, aged gold, drawn on parchment, flat shading",
+      "width": 48,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "side",
+      "text_guidance_scale": 10,
+      "seed": 4020
+    }
+  }
+]

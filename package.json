@@ -11,7 +11,9 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:map": "node tools/generate-map-geometry.mjs"
+    "gen:map": "node tools/generate-map-geometry.mjs",
+    "art": "node tools/pixellab.mjs run",
+    "art:balance": "node tools/pixellab.mjs balance"
   },
   "dependencies": {
     "react": "^18.3.1",

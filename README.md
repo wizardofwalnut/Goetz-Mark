@@ -9,12 +9,28 @@ TESS and App Store / Google Play search before committing to it.
 
 ```bash
 npm install
-npm run dev        # dev server
-npm test           # domain + map + manifest tests
+cp .env.example .env   # then paste your PixelLab token in
+npm run dev            # dev server
+npm test               # domain + map + manifest tests
 npm run typecheck
 npm run build
-npm run gen:map    # regenerate map geometry from its layout spec
+npm run gen:map        # regenerate map geometry from its layout spec
+npm run art:balance    # PixelLab credits / generations remaining
+npm run art tools/art-batches/<batch>.json   # generate an art batch
 ```
+
+### PixelLab token
+
+`.mcp.json` reads the token from `${PIXELLAB_API_KEY}` so it is never
+committed. **If that variable is unset, every PixelLab call fails with
+`401: Invalid API token`** — the header ships with the placeholder unexpanded.
+That failure looks exactly like a bad token, so check the variable first.
+
+Set it in `.env` (gitignored). `tools/pixellab.mjs` reads `.env` directly, so
+art generation works even when the editor's MCP session started without the
+variable. Note that MCP servers initialise at session start: after setting the
+variable you must restart the session for the MCP tools themselves to pick it
+up.
 
 ## Where things live
 
