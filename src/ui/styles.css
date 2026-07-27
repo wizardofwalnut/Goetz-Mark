@@ -1,0 +1,343 @@
+/*
+ * Ink-and-parchment. Ink field, parchment surfaces, seat colours for sides,
+ * aged gold reserved for the things the player is meant to act on — it is the
+ * only colour that means "do this", so it never appears as decoration.
+ */
+
+:root {
+  --ink: #0d0b09;
+  --ink-soft: #17130f;
+  --ink-line: #2a231c;
+  --parchment: #e8dcc0;
+  --parchment-dim: #d3c4a2;
+  --parchment-deep: #bfae8a;
+  --parchment-shadow: #a4906c;
+  --gold: #c9a227;
+  --gold-bright: #e3bf4a;
+  --wax: #8c2f24;
+
+  --display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --numeric: 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+
+  --panel-w: 340px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: var(--display);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-w);
+  height: 100%;
+  gap: 0;
+}
+
+/* ---------------------------------------------------------------- map ---- */
+
+.map-stage {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 40%, #191410 0%, var(--ink) 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.map-svg {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  filter: drop-shadow(0 18px 40px rgb(0 0 0 / 0.55));
+}
+
+.county {
+  cursor: pointer;
+  outline: none;
+}
+
+.county:hover path:first-of-type {
+  filter: brightness(1.08);
+}
+
+.county:focus-visible path:nth-of-type(3) {
+  stroke: var(--gold-bright);
+  stroke-width: 4;
+}
+
+.county-selected {
+  animation: march 1.4s linear infinite;
+}
+
+@keyframes march {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.county-label {
+  font-size: 17px;
+  font-weight: 600;
+  fill: var(--ink);
+  letter-spacing: 0.02em;
+  paint-order: stroke;
+  stroke: rgb(232 220 192 / 0.75);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+
+.county-sub {
+  font-size: 11px;
+  fill: #4a3f31;
+  letter-spacing: 0.04em;
+  paint-order: stroke;
+  stroke: rgb(232 220 192 / 0.6);
+  stroke-width: 2.5px;
+}
+
+.garrison-count {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------- panel ---- */
+
+.panel {
+  background: linear-gradient(180deg, #14100c 0%, #100d0a 100%);
+  border-left: 1px solid var(--ink-line);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 0 0 20px;
+}
+
+.panel-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--ink-line);
+  background: linear-gradient(180deg, #1b1611 0%, #14100c 100%);
+}
+
+.panel-title {
+  font-size: 21px;
+  letter-spacing: 0.04em;
+  color: var(--parchment);
+}
+
+.panel-turn {
+  margin-top: 4px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--parchment-shadow);
+}
+
+.panel-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ink-line);
+}
+
+.panel-grow {
+  flex: 1 0 auto;
+}
+
+.section-heading {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* --------------------------------------------------------------- lords --- */
+
+.lord-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lord {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.lord-active {
+  background: rgb(201 162 39 / 0.1);
+  box-shadow: inset 2px 0 0 var(--gold);
+}
+
+.lord-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  flex: none;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.5);
+}
+
+.lord-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  flex: 1;
+}
+
+.lord-faction {
+  font-size: 11px;
+  color: var(--parchment-shadow);
+}
+
+.lord-meta {
+  font-family: var(--numeric);
+  font-size: 11px;
+  color: var(--parchment-shadow);
+}
+
+/* -------------------------------------------------------------- county --- */
+
+.empty-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--parchment-shadow);
+  font-style: italic;
+}
+
+.county-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.county-detail-name {
+  font-size: 19px;
+  color: var(--parchment);
+}
+
+.county-detail-owner {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 14px;
+  margin: 0 0 12px;
+  align-items: baseline;
+}
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--parchment-shadow);
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 13px;
+  color: var(--parchment-dim);
+  text-align: right;
+  font-family: var(--numeric);
+}
+
+.garrison-row,
+.neighbour-row {
+  padding-top: 10px;
+  border-top: 1px solid var(--ink-line);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.garrison-value {
+  font-size: 13px;
+  color: var(--parchment-dim);
+}
+
+.neighbour-list {
+  font-size: 12px;
+  color: var(--parchment-shadow);
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------ treasury --- */
+
+.treasury {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 12px;
+}
+
+.treasury-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.treasury-label {
+  color: var(--parchment-shadow);
+}
+
+.treasury-amount {
+  color: var(--gold-bright);
+}
+
+.treasury-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--parchment-shadow);
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------- mobile ---- */
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .panel {
+    border-left: none;
+    border-top: 1px solid var(--ink-line);
+    max-height: 46vh;
+  }
+
+  .map-svg {
+    height: auto;
+    width: 100%;
+    max-height: 100%;
+  }
+}

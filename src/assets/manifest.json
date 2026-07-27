@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "basePath": "/art",
+  "generator": "pixellab",
+  "style": {
+    "paletteRef": "parchment-ink-v1",
+    "note": "Every entry below is generated against the same style reference so sprites stay consistent across regeneration. Swap a file, not a call site."
+  },
+  "entries": {
+    "terrain.open": { "pending": true, "path": "terrain/open.png", "tile": true },
+    "terrain.forest": { "pending": true, "path": "terrain/forest.png", "tile": true },
+    "terrain.hills": { "pending": true, "path": "terrain/hills.png", "tile": true },
+    "terrain.chokepoint": { "pending": true, "path": "terrain/chokepoint.png", "tile": true },
+
+    "castle.motteAndBailey": { "pending": true, "path": "castle/motte-and-bailey.png" },
+    "castle.normanKeep": { "pending": true, "path": "castle/norman-keep.png" },
+    "castle.royalCastle": { "pending": true, "path": "castle/royal-castle.png" },
+
+    "unit.militia": { "pending": true, "path": "unit/militia.png" },
+    "unit.archers": { "pending": true, "path": "unit/archers.png" },
+    "unit.knights": { "pending": true, "path": "unit/knights.png" },
+    "unit.mercenaries": { "pending": true, "path": "unit/mercenaries.png" },
+
+    "unit.militia.knight": { "pending": true, "path": "unit/militia-knight.png" },
+    "unit.knights.knight": { "pending": true, "path": "unit/knights-knight.png" },
+
+    "banner.crimson": { "pending": true, "path": "banner/crimson.png" },
+    "banner.steel": { "pending": true, "path": "banner/steel.png" },
+    "banner.gold": { "pending": true, "path": "banner/gold.png" },
+    "banner.verdigris": { "pending": true, "path": "banner/verdigris.png" },
+
+    "crest.knight": { "pending": true, "path": "crest/knight.png" },
+    "crest.warden": { "pending": true, "path": "crest/warden.png" },
+    "crest.merchant": { "pending": true, "path": "crest/merchant.png" },
+    "crest.steward": { "pending": true, "path": "crest/steward.png" },
+
+    "resource.wheat": { "pending": true, "path": "resource/wheat.png" },
+    "resource.cows": { "pending": true, "path": "resource/cows.png" },
+    "resource.wood": { "pending": true, "path": "resource/wood.png" },
+    "resource.ore": { "pending": true, "path": "resource/ore.png" },
+    "resource.stone": { "pending": true, "path": "resource/stone.png" },
+    "resource.gold": { "pending": true, "path": "resource/gold.png" },
+
+    "ui.panelFrame": { "pending": true, "path": "ui/panel-frame.png", "nineSlice": [16, 16, 16, 16] },
+    "ui.buttonPrimary": { "pending": true, "path": "ui/button-primary.png", "nineSlice": [12, 12, 12, 12] },
+    "ui.scrollHeader": { "pending": true, "path": "ui/scroll-header.png", "nineSlice": [24, 24, 24, 24] },
+    "ui.waxStamp": { "pending": true, "path": "ui/wax-stamp.png" },
+    "ui.appIcon": { "pending": true, "path": "ui/app-icon.png" }
+  }
+}
