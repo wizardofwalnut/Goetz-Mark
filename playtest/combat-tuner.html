@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Aldermarch — Combat Tuner</title>
+<style>
+:root{
+  --ink:#0d0b09;--ink-soft:#17130f;--ink-line:#2a231c;
+  --parchment:#e8dcc0;--parchment-dim:#d3c4a2;--parchment-shadow:#a4906c;
+  --gold:#c9a227;--gold-bright:#e3bf4a;
+  --display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  --numeric:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--ink);color:var(--parchment);font-family:var(--display)}
+body{padding:0 0 40px;-webkit-text-size-adjust:100%}
+h1{font-size:19px;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:14px}
+header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,#1b1611,#14100c);
+  border-bottom:1px solid var(--ink-line);padding:12px 14px}
+.sub{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--parchment-shadow);margin-top:3px}
+.card{border:1px solid var(--ink-line);border-radius:4px;padding:12px;margin:12px 0;
+  background:linear-gradient(180deg,#191410,#120f0c)}
+.h2{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin:0 0 9px}
+button{font-family:var(--display);cursor:pointer}
+.btn{background:rgba(201,162,39,.1);border:1px solid var(--gold);color:var(--gold-bright);
+  padding:10px 12px;border-radius:3px;font-size:14px;width:100%}
+.btn:active{background:rgba(201,162,39,.25)}
+.chip{background:none;border:1px solid var(--ink-line);color:var(--parchment-shadow);
+  font-size:12px;padding:7px 10px;border-radius:3px}
+.chip.on{border-color:var(--gold);color:var(--gold-bright);background:rgba(201,162,39,.12)}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+label{font-size:12px}
+input[type=range]{width:100%;accent-color:var(--gold)}
+input[type=number]{background:#1d1813;border:1px solid var(--ink-line);color:var(--parchment-dim);
+  font-family:var(--numeric);font-size:13px;padding:6px;border-radius:3px;width:100%}
+select{background:#1d1813;border:1px solid var(--ink-line);color:var(--parchment-dim);
+  font-family:var(--display);font-size:14px;padding:8px;border-radius:3px;width:100%}
+.mono{font-family:var(--numeric)}
+.muted{color:var(--parchment-shadow)}
+.note{font-size:11px;line-height:1.5;color:var(--parchment-shadow);font-style:italic}
+img{image-rendering:pixelated}
+
+.muster{display:grid;grid-template-columns:22px 66px 1fr 30px;gap:8px;align-items:center;margin:9px 0;font-size:13px}
+.muster img{width:22px;height:22px;display:block}
+.mname{font-size:12px;color:var(--parchment-dim)}
+.cnt{font-family:var(--numeric);font-size:12px;text-align:right;color:var(--parchment-shadow)}
+.verdict{display:flex;gap:12px;align-items:center;border:1px solid var(--ink-line);
+  border-left:3px solid var(--gold);background:rgba(201,162,39,.07);padding:12px;border-radius:3px;margin:12px 0}
+.verdict img{width:40px;height:40px;flex:none}
+.vtext{font-size:17px;color:var(--gold-bright)}
+.vsub{font-size:11px;color:var(--parchment-shadow);font-family:var(--numeric);margin-top:2px}
+.round{border-top:1px solid var(--ink-line);padding:9px 0}
+.rn{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.side{margin-bottom:9px}
+.sh{display:flex;justify-content:space-between;font-size:12px;color:var(--parchment-dim)}
+.out{font-family:var(--numeric);color:var(--gold-bright)}
+.mods{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0}
+.mod{font-family:var(--numeric);font-size:10px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.04);color:var(--parchment-shadow)}
+.up{color:#8fbf7f}.down{color:#c98a7f}
+.loss{font-size:11px;color:var(--parchment-shadow);font-style:italic}
+.tune{display:grid;grid-template-columns:1fr 62px 62px 62px 62px;gap:6px;align-items:center;font-size:12px;margin:5px 0}
+.tune-head{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.st{display:grid;grid-template-columns:1fr 62px 62px 62px;gap:6px;align-items:center;font-size:12px;margin:5px 0}
+textarea{width:100%;height:150px;background:#1d1813;border:1px solid var(--ink-line);
+  color:var(--parchment-dim);font-family:var(--numeric);font-size:11px;padding:8px;border-radius:3px}
+details{margin-top:8px}summary{cursor:pointer;font-size:12px;color:var(--gold)}
+</style></head><body>
+<header><h1>Aldermarch — Combat Tuner</h1>
+<div class="sub">Auto-resolve · tune, then export</div></header>
+<div class="wrap">
+
+<div class="card">
+  <p class="note" style="margin:0">Change any number below and the battle re-resolves immediately.
+  When it feels right, hit <b>Export tuning</b> and paste the JSON back to Claude Code to apply it
+  to the repo. Editing here never touches the repo on its own.</p>
+</div>
+
+<div class="card">
+  <div class="h2">Attacker</div>
+  <div id="atk"></div>
+  <div class="row" id="atkStance" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <div class="h2">Defender</div>
+  <div id="def"></div>
+  <div class="row" id="defStance" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <div class="h2">Ground</div>
+  <select id="terrain"></select>
+  <div class="row" style="margin-top:10px">
+    <button class="btn" id="reroll">Re-roll engagement</button>
+  </div>
+</div>
+
+<div id="result"></div>
+
+<div class="card">
+  <div class="h2">Unit stats</div>
+  <div class="tune tune-head"><span>Unit</span><span>Atk</span><span>Def</span><span>Hardy</span><span>Upkeep</span></div>
+  <div id="unitTune"></div>
+</div>
+
+<div class="card">
+  <div class="h2">Stances</div>
+  <div class="st tune-head"><span>Stance</span><span>Attack</span><span>Taken</span><span>Shield</span></div>
+  <p class="note" style="margin:4px 0 8px">Attack multiplies damage dealt · Taken multiplies damage
+  received · Shield is the share of casualties archers are spared (0-1).</p>
+  <div id="stanceTune"></div>
+</div>
+
+<div class="card">
+  <div class="h2">Terrain defence</div>
+  <div id="terrainTune"></div>
+  <div class="h2" style="margin-top:14px">Counter-triangle</div>
+  <div id="counterTune"></div>
+</div>
+
+<div class="card">
+  <div class="h2">Export</div>
+  <button class="btn" id="export">Export tuning</button>
+  <details><summary>Show JSON</summary><textarea id="json" readonly></textarea></details>
+  <p class="note">Paste this to Claude Code with "apply this tuning" — it maps onto
+  src/content/units.ts and src/domain/combat/battleResolver.ts.</p>
+</div>
+
+<div class="card">
+  <p class="note" style="margin:0"><b>Snapshot note.</b> The numbers above were imported from the
+  repo at build time, so they match source exactly. The resolve algorithm is a hand port of
+  src/domain/combat/battleResolver.ts into plain JS so this page can run with no build step —
+  if the resolver changes materially, regenerate this file with <span class="mono">npm run playtest</span>.</p>
+</div>
+
+</div>
+<script>
+const C = {"units":{"militia":{"kind":"militia","name":"Militia","attack":4,"defence":5,"hardiness":1,"speed":4,"buildCost":{"wood":2},"upkeep":1,"recruitable":true},"archers":{"kind":"archers","name":"Archers","attack":7,"defence":4,"hardiness":0.8,"speed":4,"buildCost":{"wood":4,"ore":1},"upkeep":2,"recruitable":true},"knights":{"kind":"knights","name":"Knights","attack":12,"defence":9,"hardiness":1.6,"speed":6,"buildCost":{"ore":6,"wood":2,"gold":4},"upkeep":5,"recruitable":true},"mercenaries":{"kind":"mercenaries","name":"Mercenaries","attack":9,"defence":7,"hardiness":1.2,"speed":5,"buildCost":{},"upkeep":8,"recruitable":false}},"stances":{"balanced":{"id":"balanced","name":"Balanced","blurb":"Hold the line and trade evenly.","attack":1,"damageTaken":1,"archerProtection":0},"shieldArchers":{"id":"shieldArchers","name":"Shield the Archers","blurb":"Foot ranks absorb the charge so the bows keep firing.","attack":0.9,"damageTaken":0.85,"archerProtection":0.6},"aggressivePush":{"id":"aggressivePush","name":"Aggressive Push","blurb":"Break them quickly, and accept the butcher’s bill.","attack":1.3,"damageTaken":1.25,"archerProtection":0}},"terrainDefence":{"open":1,"forest":1.15,"hills":1.25,"chokepoint":1.4},"counterBonus":{"militia":{},"archers":{"militia":1.35},"knights":{"archers":1.4},"mercenaries":{}},"counterThreshold":0.4,"factions":[{"id":"knight","name":"The Knight","bonuses":{"castleCost":1.1,"attack":1.15,"defence":1,"goldIncome":1,"foodYield":0.95,"happiness":0,"mercenaryCost":1}},{"id":"warden","name":"The Warden","bonuses":{"castleCost":0.8,"attack":0.95,"defence":1.15,"goldIncome":1,"foodYield":1,"happiness":0,"mercenaryCost":1}},{"id":"merchant","name":"The Merchant","bonuses":{"castleCost":1,"attack":1,"defence":0.95,"goldIncome":1.25,"foodYield":1,"happiness":0,"mercenaryCost":0.8}},{"id":"steward","name":"The Steward","bonuses":{"castleCost":1,"attack":0.95,"defence":1,"goldIncome":1,"foodYield":1.2,"happiness":5,"mercenaryCost":1}}],"mercenaryBands":[{"id":"danishSwordsmen","name":"Danish Swordsmen","strength":40,"hirePrice":320,"upkeep":26,"rivals":["frisianAxemen"]},{"id":"burgundyMacemen","name":"Burgundy Macemen","strength":35,"hirePrice":280,"upkeep":22,"rivals":["lombardLances"]},{"id":"frisianAxemen","name":"Frisian Axemen","strength":30,"hirePrice":240,"upkeep":19,"rivals":["danishSwordsmen"]},{"id":"lombardLances","name":"Lombard Lances","strength":45,"hirePrice":400,"upkeep":33,"rivals":["burgundyMacemen"]}]};
+const ICONS = {"militia":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFAklEQVR4nO1aTWgbRxT+VGpK6/aSlcwSS5Hc+OCDAklTI5Ap1KqLoWlRiMEGYWxMDzpYMVTgi1oaDK0pGJzi2BSdQkAIkka00B9QCetDqUF1/2gFdUFFdmyFxbJyKOTSHLYHaca70mrzw/zYVN9ldjUzu/O+ee/Ne2/leqn7efyf8YzsBchGhwDZC5CNDgE8HupTFYPHc3mgowGyFyAbzAnwqYrx4Sczx8YMuGjA6+fe4PFYLuBCQFW/y+OxXMCUAKL+E9MprC3NHQszcLHMBV57dcAAgEsX38TyahYAsKvXXMxewAFMCQCsMcBRFx7gQABQJ8FJeDvTkEXWs6Jf6FMVI5mI4e133gIAfP3VtwCA5dWsI2m8IJwAAHjR+5zlpDjtd8tYBgAJJuB0MsjQACmh8M0bi7atDEjLBY6C8IAkAiamU7atDHR8gOgXmnH9SrfM1wMQSMDVjy4bzbs/s/CAXicTMSm5gxACfKpiLK9mkUzEMBaPAAC0fAZaPmNxgmPxCHyq0kIUT3APhHyqYhChCQlaPoPI6CQdk0zEsPNQRy6tYSweQaQ/iNn5FSGRoZBIMNIfhLtHxXh4BOHROH7d/AVaPoM/f/8RAKCVisilNSQTMRoVri3NCSGBKwE+VTFu3ljEwb5Of9vIpwHAogFAXWAAuH37O5wbfIXmCrzBnABiv2Y7dveomJhOWezdfG0maL2whRNnT1LtmIoOGeuFLW5HJFMCyI4Dh8FNYbPYMs6jnkJVv4vCZhGhwWBL/6cLn+N+9B6GQwMAgOHQAMqVmrG9V2VOBHMN8KinLPekMuSEv3cOEBoMUrKmokMAgHKlhr5ehbYNMPULXIui1690I+D1tB1Hdp+0y6tZuutmoU3CI+D1MI0XmGrArl5zRUYn6eJeePl9AFdbxtlVjW9t3KFkNe04VzDXgF295hoODSDg9WBiOgWz3ZqdXTNyac12x83o61WwvVdlqgVcTKBcqQGok2G219n5FQsJB/t6Cylkbrt7J5N6GggJhHyqYpCFz86vtB134uxJy325UsP5C2eQS2vkJGC+Ni4EEM9txvZeFQCQunwRAPDXv/8AAH7+5g/af/+3ey1zLnWpAFo1gRWEFUVJPrB47UvHcWYHGPB68N4H1/DZx+8i+8UPAEB9ACsIS4cj/UGMh0eg5TMADm15bWmOhsGA1QH29SqYig5R4c3zWEEYAe6euio3H4Fa6TBSLFdqWC9sWfrbmRIrCCOg3RE4Hh6x3Ae8Hiq0nfABrwcsQ2LhGmAHrVREMhHD9l6V7nC5UqPXpCXCs4S0muD5C2cAHGrGab+bOkqzwOaW/M4yFxBSEbKr/efSGoCGZpj8wNrSHC2QNINHSizkGDzY1y0mQAgpbBZtfUOkPwjE6yTxrggJMQGz8GaBm2sBpHTm5C9YQwgBtzbu0Otm4bRSEf4uK0FOSRNrCDEBO3sGAH+XCn+Xip2HOnZK+mPNYQ3uBBAbzqW1J0pfRX0m40JAu8TF/ClsZuGBRUifqhjWfralr3YQ/g8RfzjdCIftvwj7w+nG1aRtP2tw+To8FR0yypUavv9py7KDzVWc5h1+VD8PcK0IOaGdcGPxCI0IRUC4CTwqnhfl/QmO1N/liVawzvmdIIwAc13wccC6/t8OQpKhp93RxjyuxyEXAppt/ElzeNY5vxO4HIPHCUfKCcpAhwDZC5CNDgGyFyAb/wEovC9LDfFh8AAAAABJRU5ErkJggg==","archers":"data:image/png;base64,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","knights":"data:image/png;base64,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","mercenaries":"data:image/png;base64,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"};
+const STAMP = "data:image/png;base64,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";
+const KINDS = ['militia','archers','knights','mercenaries'];
+
+// Live, editable copies. Reset by reloading the page.
+const units = JSON.parse(JSON.stringify(C.units));
+const stances = JSON.parse(JSON.stringify(C.stances));
+const terrainDef = JSON.parse(JSON.stringify(C.terrainDefence));
+const counter = JSON.parse(JSON.stringify(C.counterBonus));
+let counterThreshold = C.counterThreshold;
+
+const state = {
+  atk:{militia:30,archers:15,knights:5,mercenaries:0},
+  def:{militia:25,archers:20,knights:3,mercenaries:0},
+  atkStance:'aggressivePush', defStance:'shieldArchers',
+  terrain:'hills', roll:0,
+};
+
+/* --- seeded rng: same seed, same battle (matches src/domain/rng.ts) --- */
+function rng(seed){let s=seed>>>0;const next=()=>{s=(s+0x6d2b79f5)|0;let t=Math.imul(s^(s>>>15),1|s);
+  t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};
+  return {next,range:(a,b)=>a+next()*(b-a)};}
+function seedFrom(){const str=[...arguments].join('|');let h=2166136261;
+  for(const ch of str){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+
+const total = r => KINDS.reduce((s,k)=>s+(r[k]||0),0);
+const r3 = n => Math.round(n*1000)/1000;
+
+function composition(r){const t=total(r);const o={};for(const k of KINDS)o[k]=t?(r[k]||0)/t:0;return o;}
+
+function counterMods(own,enemy){
+  const os=composition(own), es=composition(enemy), out=[];
+  for(const k of KINDS){
+    if(!os[k]) continue;
+    const against = counter[k]||{};
+    for(const ek of Object.keys(against)){
+      if(es[ek] < counterThreshold) continue;
+      out.push({label:units[k].name+' vs '+units[ek].name+'-heavy',
+                factor:r3(1+(against[ek]-1)*os[k])});
+    }
+  }
+  return out;
+}
+
+function baseOutput(r,attacking){let t=0;
+  for(const k of KINDS){const n=r[k]||0; if(n) t+=n*(attacking?units[k].attack:units[k].defence);}
+  return t;}
+
+function applyCasualties(troops,damage,archerProtection,R){
+  const order = archerProtection>0 ? ['militia','mercenaries','knights','archers']
+                                   : ['militia','mercenaries','archers','knights'];
+  const losses={}, remaining={...troops};
+  let pool = damage * R.range(0.92,1.08);
+  for(const k of order){
+    if(pool<=0) break;
+    const avail = remaining[k]||0; if(!avail) continue;
+    const hard = units[k].hardiness;
+    const prot = k==='archers' ? 1-archerProtection : 1;
+    const killable = Math.floor((pool*prot)/hard);
+    const killed = Math.min(avail, Math.max(0,killable));
+    if(killed>0){losses[k]=killed; remaining[k]=avail-killed; if(!remaining[k]) delete remaining[k];}
+    pool -= (killed*hard)/prot;
+  }
+  return {losses,remaining};
+}
+
+function resolve(input){
+  const R = rng(input.seed);
+  let A={...input.atk}, D={...input.def};
+  const as=stances[input.atkStance], ds=stances[input.defStance];
+  const rounds=[];
+  const side=(t,e,st,attacking)=>{
+    const base=baseOutput(t,attacking); const mods=[];
+    if(st.attack!==1) mods.push({label:st.name+' stance',factor:st.attack});
+    mods.push(...counterMods(t,e));
+    if(!attacking){const f=terrainDef[input.terrain]; if(f!==1) mods.push({label:input.terrain+' terrain',factor:f});}
+    return {base,mods,final:mods.reduce((a,m)=>a*m.factor,base)};
+  };
+  for(let n=1;n<=(input.maxRounds||12);n++){
+    if(!total(A)||!total(D)) break;
+    const a=side(A,D,as,true), d=side(D,A,ds,false);
+    const dh=applyCasualties(D,(a.final*ds.damageTaken)/10,ds.archerProtection,R);
+    const ah=applyCasualties(A,(d.final*as.damageTaken)/10,as.archerProtection,R);
+    rounds.push({n,
+      atk:{base:r3(a.base),mods:a.mods,final:r3(a.final),losses:ah.losses,taken:total(ah.losses)},
+      def:{base:r3(d.base),mods:d.mods,final:r3(d.final),losses:dh.losses,taken:total(dh.losses)}});
+    A=ah.remaining; D=dh.remaining;
+    if(!total(ah.losses)&&!total(dh.losses)) break;
+  }
+  const al=total(A), dl=total(D);
+  let outcome = al===0&&dl===0 ? 'mutualDestruction'
+              : dl===0 ? 'attackerWins'
+              : al===0 ? 'defenderHolds' : 'stalemate';
+  const sub=(a,b)=>{const o={};for(const k of KINDS){const d=(a[k]||0)-(b[k]||0); if(d>0)o[k]=d;}return o;};
+  return {outcome,rounds,atkSurv:A,defSurv:D,
+          atkLoss:sub(input.atk,A),defLoss:sub(input.def,D),seed:input.seed};
+}
+
+/* ------------------------------- rendering ------------------------------- */
+const VERDICT={attackerWins:'The field is taken',defenderHolds:'The defence holds',
+  mutualDestruction:'Both hosts destroyed',stalemate:'Neither host breaks'};
+const describe = r => KINDS.filter(k=>r[k]>0).map(k=>r[k]+' '+units[k].name.toLowerCase()).join(', ');
+
+function musterUI(id,key){
+  const el=document.getElementById(id); el.innerHTML='';
+  for(const k of KINDS){
+    const row=document.createElement('label'); row.className='muster';
+    row.innerHTML='<img src="'+ICONS[k]+'" alt=""><span class="mname">'+units[k].name+
+      '</span><input type="range" min="0" max="60" value="'+
+      (state[key][k]||0)+'"><span class="cnt">'+(state[key][k]||0)+'</span>';
+    row.querySelector('input').oninput=e=>{state[key][k]=+e.target.value;
+      row.querySelector('.cnt').textContent=e.target.value; render();};
+    el.appendChild(row);
+  }
+}
+function stanceUI(id,key){
+  const el=document.getElementById(id); el.innerHTML='';
+  for(const s of Object.keys(stances)){
+    const b=document.createElement('button');
+    b.className='chip'+(state[key]===s?' on':''); b.textContent=stances[s].name;
+    b.title=stances[s].blurb;
+    b.onclick=()=>{state[key]=s; stanceUI(id,key); render();};
+    el.appendChild(b);
+  }
+}
+
+function render(){
+  const res=resolve({atk:state.atk,def:state.def,atkStance:state.atkStance,defStance:state.defStance,
+    terrain:state.terrain,seed:seedFrom(JSON.stringify(state.atk),JSON.stringify(state.def),state.terrain,state.roll)});
+  let h='<div class="verdict"><img src="'+STAMP+'" alt=""><div><div class="vtext">'+VERDICT[res.outcome]+
+    '</div><div class="vsub">Attacker lost '+total(res.atkLoss)+' · Defender lost '+total(res.defLoss)+
+    ' · '+res.rounds.length+' rounds</div></div></div><div class="card">';
+  if(!res.rounds.length) h+='<p class="note">No engagement — one side had nothing in the field.</p>';
+  for(const r of res.rounds){
+    h+='<div class="round"><div class="rn">Round '+r.n+'</div>';
+    for(const [lbl,s] of [['Attacker',r.atk],['Defender',r.def]]){
+      h+='<div class="side"><div class="sh"><span>'+lbl+'</span><span class="out">'+s.final+'</span></div><div class="mods"><span class="mod">base '+s.base+'</span>';
+      for(const m of s.mods) h+='<span class="mod '+(m.factor>=1?'up':'down')+'">'+m.label+' ×'+m.factor+'</span>';
+      h+='</div><div class="loss">'+(s.taken===0?'no losses':'−'+s.taken+': '+describe(s.losses))+'</div></div>';
+    }
+    h+='</div>';
+  }
+  h+='<div class="round"><div class="rn">Survivors</div><div class="loss">Attacker: '+
+     (total(res.atkSurv)?describe(res.atkSurv):'annihilated')+'<br>Defender: '+
+     (total(res.defSurv)?describe(res.defSurv):'annihilated')+'</div></div></div>';
+  document.getElementById('result').innerHTML=h;
+  document.getElementById('json').value=exportJson();
+}
+
+function numInput(get,set){
+  const i=document.createElement('input'); i.type='number'; i.step='0.05'; i.value=get();
+  i.oninput=()=>{const v=parseFloat(i.value); if(!isNaN(v)){set(v); render();}};
+  return i;
+}
+function unitTuneUI(){
+  const el=document.getElementById('unitTune'); el.innerHTML='';
+  for(const k of KINDS){
+    const row=document.createElement('div'); row.className='tune';
+    const name=document.createElement('span'); name.textContent=units[k].name; row.appendChild(name);
+    row.appendChild(numInput(()=>units[k].attack,v=>units[k].attack=v));
+    row.appendChild(numInput(()=>units[k].defence,v=>units[k].defence=v));
+    row.appendChild(numInput(()=>units[k].hardiness,v=>units[k].hardiness=v));
+    row.appendChild(numInput(()=>units[k].upkeep,v=>units[k].upkeep=v));
+    el.appendChild(row);
+  }
+}
+function stanceTuneUI(){
+  const el=document.getElementById('stanceTune'); el.innerHTML='';
+  for(const s of Object.keys(stances)){
+    const row=document.createElement('div'); row.className='st';
+    const n=document.createElement('span'); n.textContent=stances[s].name; row.appendChild(n);
+    row.appendChild(numInput(()=>stances[s].attack,v=>stances[s].attack=v));
+    row.appendChild(numInput(()=>stances[s].damageTaken,v=>stances[s].damageTaken=v));
+    row.appendChild(numInput(()=>stances[s].archerProtection,v=>stances[s].archerProtection=v));
+    el.appendChild(row);
+  }
+}
+function terrainTuneUI(){
+  const el=document.getElementById('terrainTune'); el.innerHTML='';
+  for(const t of Object.keys(terrainDef)){
+    const row=document.createElement('div'); row.className='st';
+    const n=document.createElement('span'); n.textContent=t; row.appendChild(n);
+    row.appendChild(numInput(()=>terrainDef[t],v=>terrainDef[t]=v));
+    el.appendChild(row);
+  }
+  const ct=document.getElementById('counterTune'); ct.innerHTML='';
+  for(const k of Object.keys(counter)){
+    for(const ek of Object.keys(counter[k])){
+      const row=document.createElement('div'); row.className='st';
+      const n=document.createElement('span'); n.textContent=units[k].name+' vs '+units[ek].name; row.appendChild(n);
+      row.appendChild(numInput(()=>counter[k][ek],v=>counter[k][ek]=v));
+      ct.appendChild(row);
+    }
+  }
+  const row=document.createElement('div'); row.className='st';
+  const n=document.createElement('span'); n.textContent='threshold'; row.appendChild(n);
+  row.appendChild(numInput(()=>counterThreshold,v=>counterThreshold=v));
+  ct.appendChild(row);
+}
+
+function exportJson(){
+  const u={}; for(const k of KINDS) u[k]={attack:units[k].attack,defence:units[k].defence,
+    hardiness:units[k].hardiness,upkeep:units[k].upkeep};
+  const s={}; for(const k of Object.keys(stances)) s[k]={attack:stances[k].attack,
+    damageTaken:stances[k].damageTaken,archerProtection:stances[k].archerProtection};
+  return JSON.stringify({_apply:'Aldermarch combat tuning — apply to src/content/units.ts and src/domain/combat/battleResolver.ts',
+    units:u,stances:s,terrainDefence:terrainDef,counterBonus:counter,counterThreshold},null,2);
+}
+
+const tsel=document.getElementById('terrain');
+for(const t of Object.keys(terrainDef)){const o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);}
+tsel.value=state.terrain;
+tsel.onchange=e=>{state.terrain=e.target.value; render();};
+document.getElementById('reroll').onclick=()=>{state.roll++; render();};
+document.getElementById('export').onclick=async()=>{
+  const t=exportJson();
+  try{await navigator.clipboard.writeText(t);
+    document.getElementById('export').textContent='Copied — paste to Claude';}
+  catch(e){document.querySelector('details').open=true;
+    document.getElementById('export').textContent='Copy from the box below';}
+};
+
+musterUI('atk','atk'); musterUI('def','def');
+stanceUI('atkStance','atkStance'); stanceUI('defStance','defStance');
+unitTuneUI(); stanceTuneUI(); terrainTuneUI(); render();
+</script></body></html>
