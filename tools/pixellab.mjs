@@ -192,6 +192,28 @@ const paletteBase64 = () => {
   return readFileSync(p).toString('base64');
 };
 
+/** Pause between create calls, so a large batch does not burst the API. */
+const CREATE_INTERVAL_MS = 2500;
+
+/**
+ * Create with backoff.
+ *
+ * A create that comes back with neither an id nor an image is treated as
+ * transient — in practice that is the API pushing back on request rate, and it
+ * succeeds on a later attempt. Genuinely bad arguments fail as isError and
+ * throw out of callTool without retrying.
+ */
+async function createWithRetry(job, attempts = 4) {
+  let last;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const res = await callTool(job.tool, withPalette(job));
+    if (res.fields.id || res.images.length > 0) return res;
+    last = res;
+    await sleep(4000 * 2 ** attempt);
+  }
+  return last;
+}
+
 /** Jobs opt out with "palette": false (e.g. when matching an existing asset). */
 function withPalette(job) {
   if (job.palette === false) return job.args;
@@ -208,8 +230,11 @@ async function runBatch(batchPath) {
   // Kick everything off first, then collect. Generation is the slow part and
   // the API is async, so serialising the waits would multiply total time.
   const started = [];
-  for (const job of jobs) {
+  for (const [i, job] of jobs.entries()) {
     try {
+      // Throttle. Firing 26 creates back-to-back got the first four through
+      // and then failed the rest — the API pushes back on bursts, so pace them.
+      if (i > 0 && !job.resume) await sleep(CREATE_INTERVAL_MS);
       // `resume` re-collects an already-generated job by id instead of paying
       // for it again — used when a run generated fine server-side but the
       // client failed to read the result.
@@ -218,9 +243,16 @@ async function runBatch(batchPath) {
         console.log(`  resume  ${job.key.padEnd(24)} ${job.resume}`);
         continue;
       }
-      const res = await callTool(job.tool, withPalette(job));
+      const res = await createWithRetry(job);
       const id = res.fields.id ?? null;
-      started.push({ job, id, immediate: res.images.length ? res.images : null });
+      const immediate = res.images.length ? res.images : null;
+      if (!id && !immediate) {
+        // Never swallow this: the API reports quota and rate-limit problems as
+        // ordinary text with isError unset, so the response body is the only
+        // explanation there is.
+        throw new Error(`no id and no image. Response was:\n${res.text.slice(0, 400)}`);
+      }
+      started.push({ job, id, immediate });
       console.log(`  queued  ${job.key.padEnd(24)} ${id ?? '(inline result)'}`);
     } catch (err) {
       console.error(`  FAILED  ${job.key.padEnd(24)} ${err.message}`);

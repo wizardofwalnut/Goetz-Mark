@@ -5,7 +5,8 @@ import type { MatchState } from '../domain/match/matchState';
 import { isDefended, troopCount, garrisonOf } from '../domain/match/matchState';
 import { indexMap } from '../domain/map/mapQueries';
 import { palette, seatColor, terrainTint, type } from './theme';
-import { terrainArt } from '../assets/assetManifest';
+import { castleArt, terrainArt } from '../assets/assetManifest';
+import type { CastleTier } from '../domain/match/matchState';
 
 /**
  * Static map render.
@@ -211,10 +212,12 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
 
           return (
             <g key={`marker-${county.id}`} pointerEvents="none">
-              {state?.castleTier !== 'none' && (
-                <g filter="url(#castleShadow)" transform={`translate(${county.centroid.x}, ${county.centroid.y - 12})`}>
-                  <CastleGlyph fill={seat !== null ? seatColor(seat).base : palette.inkLine} />
-                </g>
+              {state && state.castleTier !== 'none' && (
+                <CastleMarker
+                  tier={state.castleTier}
+                  x={county.centroid.x}
+                  y={county.centroid.y - 12}
+                />
               )}
 
               <text
@@ -270,17 +273,28 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
 }
 
 /**
- * INTERIM STOPGAP — not final art. See src/ui/interimArt.ts.
+ * Castle marker — the generated sprite for the tier.
  *
- * Shipping castle markers come from PixelLab via `castleArt(tier)`. This exists
- * only so the board is readable before those are generated, and is deleted the
- * moment they land — a test fails if it outlives its replacement.
+ * There is no drawn fallback: castle art exists for every buildable tier, and
+ * hand-authored SVG standing in for a sprite is exactly what this project does
+ * not ship. A tier with no art simply renders nothing, which is visible enough
+ * to notice and honest about what is missing.
  */
-function CastleGlyph({ fill }: { fill: string }) {
+function CastleMarker({ tier, x, y }: { tier: CastleTier; x: number; y: number }) {
+  const art = castleArt(tier);
+  if (art.missing || !art.url) return null;
+
+  const size = 34;
   return (
-    <g fill={fill} stroke={palette.ink} strokeWidth="0.8">
-      <path d="M-11,4 L-11,-4 L-7.5,-4 L-7.5,-7 L-4,-7 L-4,-4 L-1.5,-4 L-1.5,-9 L1.5,-9 L1.5,-4 L4,-4 L4,-7 L7.5,-7 L7.5,-4 L11,-4 L11,4 Z" />
-      <rect x="-11" y="4" width="22" height="3.5" />
+    <g filter="url(#castleShadow)" transform={`translate(${x}, ${y})`}>
+      <image
+        href={art.url}
+        x={-size / 2}
+        y={-size / 2}
+        width={size}
+        height={size}
+        style={{ imageRendering: 'pixelated' }}
+      />
     </g>
   );
 }

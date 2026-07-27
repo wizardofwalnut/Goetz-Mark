@@ -32,15 +32,6 @@ export interface InterimVisual {
 
 export const INTERIM_VISUALS: readonly InterimVisual[] = [
   {
-    where: 'src/ui/MapView.tsx — CastleGlyph',
-    what: 'Hand-drawn SVG castle marker. Explicitly a stopgap, not final art.',
-    replacedBy: [
-      'castle.motteAndBailey',
-      'castle.normanKeep',
-      'castle.royalCastle',
-    ],
-  },
-  {
     where: 'src/ui/MapView.tsx — ownership hatch patterns',
     what: 'SVG line hatching to distinguish seats without relying on hue alone.',
     replacedBy: ['banner.crimson', 'banner.steel', 'banner.gold', 'banner.verdigris'],

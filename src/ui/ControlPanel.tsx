@@ -5,8 +5,10 @@ import type { MatchState } from '../domain/match/matchState';
 import { activePlayer, garrisonOf, troopCount } from '../domain/match/matchState';
 import { indexMap, neighboursOf } from '../domain/map/mapQueries';
 import { getFaction } from '../content/factions';
-import { RESOURCE_LABELS } from '../domain/resources';
+import { RESOURCE_LABELS, type Resource } from '../domain/resources';
 import { palette, seatColor, type } from './theme';
+import { crestArt, resourceArt } from '../assets/assetManifest';
+import { Sprite } from './Sprite';
 
 /**
  * The control panel beside the map.
@@ -65,7 +67,20 @@ export function ControlPanel({ map, match, selected }: ControlPanelProps) {
             const isTurn = p.seat === match.turn.activeSeat;
             return (
               <li key={p.id} className={`lord${isTurn ? ' lord-active' : ''}`}>
-                <span className="lord-swatch" style={{ background: seatColor(p.seat).base }} />
+                <Sprite
+                  asset={crestArt(p.factionId)}
+                  size={22}
+                  alt={`${faction.name} crest`}
+                  className="lord-crest"
+                  // Until crests are generated, the seat colour swatch is the
+                  // only faction marker — so it is the fallback, not a spacer.
+                  fallback={
+                    <span
+                      className="lord-swatch"
+                      style={{ background: seatColor(p.seat).base }}
+                    />
+                  }
+                />
                 <span className="lord-name">
                   {p.displayName}
                   <span className="lord-faction">{faction.name}</span>
@@ -101,7 +116,16 @@ export function ControlPanel({ map, match, selected }: ControlPanelProps) {
                 label="Defence"
                 value={`×${TERRAIN_DEFENCE_MODIFIER[county.terrain].toFixed(2)}`}
               />
-              <Stat label="Resource" value={RESOURCE_LABELS[county.resource]} />
+              <dt className="stat-label">Resource</dt>
+              <dd className="stat-value stat-with-icon">
+                <Sprite
+                  asset={resourceArt(county.resource)}
+                  size={18}
+                  alt=""
+                  className="resource-icon"
+                />
+                {RESOURCE_LABELS[county.resource]}
+              </dd>
               <Stat label="Yield" value={`${county.yield}/turn`} />
               <Stat label="Build slots" value={String(county.size)} />
               <Stat label="Castle" value={CASTLE_LABEL[countyState.castleTier] ?? '—'} />
@@ -144,6 +168,12 @@ export function ControlPanel({ map, match, selected }: ControlPanelProps) {
             {Object.entries(match.treasuries[turnPlayer.id] ?? {}).map(([res, amount]) => (
               <div key={res} className="treasury-item">
                 <span className="treasury-label">
+                  <Sprite
+                    asset={resourceArt(res as Resource)}
+                    size={16}
+                    alt=""
+                    className="resource-icon"
+                  />
                   {RESOURCE_LABELS[res as keyof typeof RESOURCE_LABELS] ?? res}
                 </span>
                 <span className="treasury-amount" style={{ fontFamily: type.numeric }}>

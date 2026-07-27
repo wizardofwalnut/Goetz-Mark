@@ -200,6 +200,23 @@ body {
   box-shadow: 0 0 0 1px rgb(0 0 0 / 0.5);
 }
 
+.lord-crest {
+  flex: none;
+  display: block;
+}
+
+.resource-icon {
+  vertical-align: -3px;
+  margin-right: 5px;
+}
+
+.stat-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
 .lord-name {
   display: flex;
   flex-direction: column;

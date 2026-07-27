@@ -24,15 +24,12 @@
       "tile": true
     },
     "castle.motteAndBailey": {
-      "pending": true,
       "path": "castle/motte-and-bailey.png"
     },
     "castle.normanKeep": {
-      "pending": true,
       "path": "castle/norman-keep.png"
     },
     "castle.royalCastle": {
-      "pending": true,
       "path": "castle/royal-castle.png"
     },
     "unit.militia": {
@@ -92,7 +89,6 @@
       "path": "crest/steward.png"
     },
     "resource.wheat": {
-      "pending": true,
       "path": "resource/wheat.png"
     },
     "resource.cows": {

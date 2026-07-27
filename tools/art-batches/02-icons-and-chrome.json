@@ -1,5 +1,29 @@
 [
   {
+    "key": "castle.motteAndBailey",
+    "tool": "create_image_pixflux",
+    "out": "castle/motte-and-bailey.png",
+    "args": {
+      "description": "simple medieval motte and bailey castle icon, wooden palisade and timber keep on a small earthen mound, map marker symbol, dark ink outline, aged gold and umber, drawn on parchment, flat shading",
+      "width": 64, "height": 64, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "high top-down",
+      "text_guidance_scale": 10, "seed": 4010
+    }
+  },
+  {
+    "key": "resource.wheat",
+    "tool": "create_image_pixflux",
+    "out": "resource/wheat.png",
+    "args": {
+      "description": "wheat sheaf icon, bundle of golden grain stalks tied with cord, medieval ledger symbol, dark ink outline, aged gold, drawn on parchment, flat shading",
+      "width": 48, "height": 48, "no_background": true,
+      "shading": "flat shading", "outline": "single color outline",
+      "detail": "low detail", "view": "side",
+      "text_guidance_scale": 10, "seed": 4020
+    }
+  },
+  {
     "key": "castle.normanKeep",
     "tool": "create_image_pixflux",
     "out": "castle/norman-keep.png",
