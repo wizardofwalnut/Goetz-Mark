@@ -39,12 +39,14 @@ src/
   domain/          Pure game rules. No React, no rendering, no I/O.
     ids.ts         Branded id types
     resources.ts   Food (per-county) vs materials (pooled) split
+    rng.ts         Seeded PRNG — combat must replay identically per device
     map/           Static map types + queries (adjacency, movement, chokepoints)
     match/         Match state and creation
+    combat/        Stat/stance battle resolver
   content/         Data, not code — factions, units, maps
   assets/          Asset manifest + resolver
   ui/              React rendering
-tools/             Dev scripts (map geometry generator)
+tools/             Dev scripts (map geometry generator, PixelLab art client)
 ```
 
 ## Four decisions worth knowing before editing
@@ -131,6 +133,37 @@ identical vertices, and a test checks it.
 The layout is original. It follows the source game's design patterns without
 reproducing any published map's arrangement.
 
+## Combat
+
+Stat/stance auto-resolve, which **replaces** the source game's real-time
+battles entirely — the one place the design doc deliberately departs from the
+original rather than matching it. A tactical grid mode is a later stretch goal;
+auto-resolve stays as "quick battle" even after it ships.
+
+Two properties the implementation is built around:
+
+- **Determinism.** Battles take a seed and never read `Math.random` or the
+  clock. Two devices replay the same match, and a disagreement about who won
+  would surface hours later on someone else's turn. `seedFrom()` derives the
+  seed from stable match data so it need not be stored separately.
+- **Explicability.** The doc asks for a full breakdown after the fight, so every
+  multiplier is recorded where it is applied rather than folded into one
+  number. A test reapplies the recorded modifiers to the recorded base and
+  checks they reproduce the recorded final — otherwise the breakdown would be
+  decorative rather than true.
+
+Decisions not specified by the doc, made here:
+
+- Counter bonuses scale with how much of the army can exploit the matchup, and
+  only trigger once the enemy is genuinely committed to the countered unit — a
+  token few archers must not hand the enemy a full knight bonus.
+- Both sides strike simultaneously, so declaring the attack confers no edge.
+- A stalemate does not take ground. Clearing the field is required to take a
+  castle; otherwise attacking would be free.
+
+The unit and stance numbers are first pass and expected to move. "Muster a
+battle" in the control panel is where they get exercised.
+
 ## Open design questions
 
 Carried from the design doc, deliberately modelled as config rather than
@@ -140,6 +173,29 @@ hardcoded so playtesting can settle them:
   `autoSkip`.
 - Final victory-condition menu — `MatchConfig.victoryConditions`.
 - Map size ↔ player count pairing.
+
+## What is not built yet
+
+Milestone 1 is "single-player vs. AI on the real match-state architecture".
+The state model, map, art pipeline and combat exist; the game is not yet
+playable end to end. Remaining, in dependency order:
+
+1. **Turn loop** — advance turn, per-turn income, food consumption, happiness
+   drift and the revolt check. `TurnState` and `MatchConfig.timeoutPolicy`
+   already model it; nothing advances them.
+2. **Actions** — recruit, allocate labour, move armies (including the
+   mid-transit stop, which `ArmyLocation` already models), annex undefended
+   counties, and attack defended ones through the resolver.
+3. **AI** — reads the `ai` weighting on each faction. That weighting is the
+   same record that drives the player's bonuses, so an AI cannot drift from its
+   faction's stated identity.
+4. **Severed territory** — `severedFrom()` exists and is tested, but nothing
+   calls it yet; it needs a capital concept per player first.
+
+Art still pending: the two faction unit variants (the manifest falls back to
+generic sprites, which is the intended behaviour) and the three sliced UI
+frames, which need the generated kit sheets cut into nine-slice assets before
+the CSS chrome can retire.
 
 ## Accuracy note
 
