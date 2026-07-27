@@ -118,9 +118,13 @@ identical vertices, and a test checks it.
 - **Structurally identical seats.** The layout mirrors about the pass and about
   the vertical centreline. All four seats have the same neighbour count, the
   same terrain mix within early reach, and the same road distance to the pass.
-  Variety lives in county sizes and resources, not in seat advantage — a seat
-  that reaches the chokepoint a hop sooner is simply the better seat, and no
-  amount of resource tuning fixes that.
+  Variety lives in county sizes and resources, not in seat advantage.
+
+  This is a choice **for this map**, not a rule for all of them. Symmetry buys
+  strict competitive fairness and costs character; asymmetric maps are expected
+  in the map packs, and each map's test file asserts whatever that map actually
+  promises. The seat-parity assertions in `aldermarch.test.ts` are deliberately
+  scoped to the Aldermarch and must not be lifted into a shared suite.
 - **A road spine** runs the length of the map through the pass, so the fastest
   route between basins is also the contested one.
 

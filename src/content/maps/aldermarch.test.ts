@@ -4,12 +4,19 @@ import { chokepoints, connectedComponents, indexMap, moveCost, reachableFrom } f
 import { countyId } from '../../domain/ids';
 
 /**
- * These tests assert the map's DESIGN CLAIMS, not its implementation.
+ * These tests assert THIS MAP'S design claims, not its implementation.
  *
- * The design says: one deliberate chokepoint dividing the map, scarce stone
- * creating dependency, balanced starts. Each of those is a balance property
- * that would otherwise quietly rot the next time the layout is edited — a
- * chokepoint stops being a chokepoint the moment someone adds one border.
+ * The Aldermarch claims: one deliberate chokepoint dividing the map, scarce
+ * stone creating dependency, and four structurally identical seats. Each is a
+ * balance property that would otherwise rot quietly the next time the layout is
+ * edited — a chokepoint stops being a chokepoint the moment someone adds one
+ * border.
+ *
+ * SCOPE: the seat-parity tests below hold because the Aldermarch is
+ * deliberately mirror-symmetric. That is a property of this map, NOT a rule
+ * every map must follow — asymmetric maps are expected, and each map asserts
+ * whatever its own design actually promises. Do not lift these assertions into
+ * a shared suite.
  */
 
 const ix = indexMap(ALDERMARCH);
