@@ -232,12 +232,15 @@ export function createSoloMatch(opts: {
   difficulty?: 'meek' | 'steady' | 'ruthless';
   now?: number;
   rng?: () => number;
+  /** Passed straight through — see CreateMatchOptions.interiorGrid. */
+  interiorGrid?: { readonly cols: number; readonly rows: number };
 }): MatchState {
   const difficulty = opts.difficulty ?? 'steady';
   return createMatch({
     map: opts.map,
     now: opts.now,
     rng: opts.rng,
+    interiorGrid: opts.interiorGrid,
     seats: [
       {
         displayName: opts.playerName,

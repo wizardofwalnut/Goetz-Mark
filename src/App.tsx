@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ALDERMARCH } from './content/maps/aldermarch.generated';
+import { REALM } from './content/maps/realm.generated';
 import { createSoloMatch } from './domain/match/createMatch';
 import { factionId, type CountyId } from './domain/ids';
 import { createRng } from './domain/rng';
@@ -20,6 +20,17 @@ import './ui/styles.css';
  * `createMatch` a networked game will use. The state below is already the
  * shape that syncs to Firebase in Milestone 2 — there is no single-player-only
  * structure to migrate away from later.
+ *
+ * NOW ON THE v2 BOARD. The map is the four-county REALM rather than the
+ * nineteen-county draft: v2 puts the world at four counties, both seats on ore
+ * and both neutrals on stone, so a castle means taking or trading for the
+ * ground between. Four seats do not fit a two-seat map, so the solo game is
+ * one opponent rather than three.
+ *
+ * The county screen is still the ground-level isometric one. Swapping it for
+ * the overhead view is the next step and is deliberately NOT bundled here —
+ * CountyOverhead is static, so trading it in before it can plant a field or
+ * move the labour slider would cost the management loop the game is about.
  */
 
 export default function App() {
@@ -30,14 +41,13 @@ export default function App() {
   const initial = useMemo(
     () =>
       createSoloMatch({
-        map: ALDERMARCH,
+        map: REALM,
         playerName: 'You',
         factionId: factionId('warden'),
-        opponents: [
-          { name: 'Lord Aldric', factionId: factionId('knight') },
-          { name: 'Dame Ysolde', factionId: factionId('merchant') },
-          { name: 'Lord Bevan', factionId: factionId('steward') },
-        ],
+        opponents: [{ name: 'Lord Aldric', factionId: factionId('knight') }],
+        // The tighter interior the overhead camera is built around. Set here
+        // rather than defaulted so both county screens see the same board.
+        interiorGrid: { cols: 7, rows: 19 },
         // Fixed clock and a SEEDED rng so the dev shell renders identically
         // every run. It must be a real generator, not a constant — a constant
         // makes every roll the same, which quietly produced counties where no
@@ -58,11 +68,11 @@ export default function App() {
    */
   const endSeason = () => {
     const managed = takeAllAiTurns(match);
-    const marched = takeAllMilitaryTurns(managed.match, indexMap(ALDERMARCH));
-    setMatch(advanceSeason(marched.match, ALDERMARCH).match);
+    const marched = takeAllMilitaryTurns(managed.match, indexMap(REALM));
+    setMatch(advanceSeason(marched.match, REALM).match);
   };
 
-  const countyDef = inCounty ? ALDERMARCH.counties.find((c) => c.id === inCounty) : null;
+  const countyDef = inCounty ? REALM.counties.find((c) => c.id === inCounty) : null;
   if (countyDef) {
     return (
       <CountyScreen
@@ -78,14 +88,14 @@ export default function App() {
     <div className="app">
       <main className="map-stage">
         <MapView
-          map={ALDERMARCH}
+          map={REALM}
           match={match}
           selected={selected}
           onSelect={(id) => setSelected((prev) => (prev === id ? null : id))}
         />
       </main>
       <ControlPanel
-        map={ALDERMARCH}
+        map={REALM}
         match={match}
         selected={selected}
         onOpenReport={() => setReportOpen(true)}
