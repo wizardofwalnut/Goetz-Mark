@@ -1,16 +1,18 @@
 import type { CountyDef } from '../../domain/map/mapTypes';
 import type { GameMap } from '../../domain/map/mapTypes';
 import type { MatchState } from '../../domain/match/matchState';
-import type { GroundCell, IndustrySiteState } from '../../domain/county/interior';
+import type { FieldTile, GroundCell, IndustrySiteState } from '../../domain/county/interior';
+import { stageOf } from '../../domain/county/interior';
 import { healthFromRations, projectProduction, type Health } from '../../domain/county/labour';
 import type { Resource } from '../../domain/resources';
 import { describeTurn, seasonOfTurn } from '../../domain/season';
 import {
   overheadCastleArt,
+  overheadFieldArt,
+  overheadForestArt,
   overheadGroundArt,
   overheadIndustryArt,
   overheadMountainArt,
-  overheadPloughArt,
   overheadRoadArt,
   overheadTownArt,
   resourceArt,
@@ -25,7 +27,6 @@ import {
   cellCentre,
   cellX,
   cellY,
-  cornerMasks,
   gridSize,
   roadMasks,
 } from './overheadCamera';
@@ -59,11 +60,6 @@ export function CountyOverhead({ county, map, match }: Props) {
   const { width, height } = gridSize(interior.cols, interior.rows);
   const bounds = { cols: interior.cols, rows: interior.rows };
   const masks = roadMasks(interior.road, bounds);
-  // Worked land is a REGION, not a set of squares: the ploughed tiles are a
-  // Wang set keyed by corners, so a block of fields renders as one tilled area
-  // with soft edges instead of a scatter of hard-edged tiles.
-  const plough = cornerMasks(interior.fields, bounds);
-  const fieldCells = new Set(interior.fields.map((f) => `${f.col},${f.row}`));
 
   // Sprites stand on the ground, so they must be drawn in row order together
   // with it — a castle two rows back has to be covered by the land in front of
@@ -79,31 +75,25 @@ export function CountyOverhead({ county, map, match }: Props) {
   for (const cell of interior.ground) {
     put(cell.row, <GroundTile key={`g${cell.col}_${cell.row}`} cell={cell} />);
   }
-  // Ploughed soil goes down over the ground and UNDER the roads: a road is cut
-  // through worked land, not ploughed over.
-  //
-  // CLIPPED TO THE FIELD CELLS THEMSELVES. Corner autotiling naturally spills
-  // half a tile past the region it describes, and letting it do so here turned
-  // sixteen fields into one slab of soil covering most of the county — the
-  // bounded, countable set of workable tiles stopped being either. Clipping
-  // costs the soft outer edges and keeps what the fields are FOR: the tapped
-  // cell and the drawn cell are the same cell. The transition pieces stay
-  // wired, so they light up the day worked land becomes a real region.
-  for (const [at, mask] of Object.entries(plough)) {
-    if (!fieldCells.has(at)) continue;
-    const [col = 0, row = 0] = at.split(',').map(Number);
-    put(row, <PloughTile key={`p${at}`} col={col} row={row} mask={mask} />);
+  // Fields go down over the ground and UNDER the roads: a road is cut through
+  // worked land, not ploughed over.
+  for (const field of interior.fields) {
+    put(field.row, <FieldTileView key={field.id} field={field} />);
   }
   for (const cell of interior.road) {
     const mask = masks[`${cell.col},${cell.row}`];
     if (mask === undefined) continue;
     put(cell.row, <RoadTile key={`r${cell.col}_${cell.row}`} cell={cell} mask={mask} />);
   }
-  // Impassable peaks are sprites standing on the rock, not flat tiles. See
-  // overheadMountainArt for why that distinction matters at this camera.
+  // Peaks and woods are sprites standing on their own ground, not flat tiles.
+  // See overheadMountainArt for why that distinction matters at this camera —
+  // it applies to a wood for the same reason it applies to a crag.
   for (const cell of interior.ground) {
-    if (cell.kind !== 'mountain') continue;
-    put(cell.row, <MountainSprite key={`m${cell.col}_${cell.row}`} col={cell.col} row={cell.row} />);
+    if (cell.kind === 'mountain') {
+      put(cell.row, <MountainSprite key={`m${cell.col}_${cell.row}`} col={cell.col} row={cell.row} />);
+    } else if (cell.kind === 'forest') {
+      put(cell.row, <ForestSprite key={`f${cell.col}_${cell.row}`} col={cell.col} row={cell.row} />);
+    }
   }
   for (const site of interior.industry) {
     put(site.row, <IndustrySprite key={site.kind} site={site} />);
@@ -212,31 +202,37 @@ function RoadTile({ cell, mask }: { cell: { col: number; row: number }; mask: nu
 }
 
 /**
- * A piece of worked land.
+ * A field, drawn for WHAT IS IN IT.
  *
  * Fields must read as workable at a glance even when fallow — that difference
- * from generic ground is the whole reason the bounded 8-16 set exists. The
- * ploughed Wang set carries it: furrowed soil against meadow, with the fifteen
- * transition pieces turning a block of fields into one tilled area rather than
- * a row of brown squares.
+ * from generic ground is the whole reason the bounded 8-16 set exists. But the
+ * status matters just as much: a grain field visibly changing across the season
+ * cycle is a mechanic, not decoration, and barren land has to look like
+ * something that needs reclaiming rather than something ready to sow.
  *
- * NOTE for when this screen becomes interactive: the drawn region is half a
- * tile wider than the field cells themselves, which is inherent to corner-based
- * autotiling. Tap targets must stay the field cells, and selection needs its
- * own affordance rather than relying on the edge of the soil.
+ * An earlier pass drew every field from a corner mask alone and silently lost
+ * all of that — fallow, barren, cattle and all four grain stages rendered
+ * identically. Passing the field itself, rather than a mask derived from where
+ * it sits, is what stops that recurring.
  */
-function PloughTile({ col, row, mask }: { col: number; row: number; mask: number }) {
-  const art = overheadPloughArt(mask);
+function FieldTileView({ field }: { field: FieldTile }) {
+  const art = overheadFieldArt(field.status, stageOf(field));
   if (art.missing || !art.url) {
-    return <rect {...tileBox(col, row)} fill={palette.parchmentDeep} />;
+    return <rect {...tileBox(field.col, field.row)} fill={palette.parchmentDeep} />;
   }
-  return <image href={art.url} {...tileBox(col, row)} />;
+  return <image href={art.url} {...tileBox(field.col, field.row)} />;
 }
 
 function MountainSprite({ col, row }: { col: number; row: number }) {
   const art = overheadMountainArt();
   if (art.missing || !art.url) return null;
   return <MapSprite col={col} row={row} url={art.url} size={1.5} label="Mountain" />;
+}
+
+function ForestSprite({ col, row }: { col: number; row: number }) {
+  const art = overheadForestArt();
+  if (art.missing || !art.url) return null;
+  return <MapSprite col={col} row={row} url={art.url} size={1.4} label="Woods" />;
 }
 
 /**

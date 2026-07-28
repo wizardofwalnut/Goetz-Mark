@@ -26,9 +26,12 @@ const rng = createRng(20260728).next;
 const match = createMatch({
   map: REALM,
   rng,
-  // Small enough that a whole county fits a phone screen with tiles drawn
-  // large enough to tap. See the note on CreateMatchOptions.interiorGrid.
-  interiorGrid: { cols: 5, rows: 13 },
+  // The zoom control. The map scales to fit the screen's width, so the column
+  // count — not TILE_W — is what sets how big a tile lands on the glass. Seven
+  // across gives roughly 59pt tiles: still clear of the 44-48pt tap floor the
+  // spec sets, but far enough back that the county reads as land rather than as
+  // four tiles and a house. Rows follow from a portrait phone's aspect.
+  interiorGrid: { cols: 7, rows: 17 },
   seats: [
     {
       displayName: 'You',

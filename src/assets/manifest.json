@@ -523,72 +523,11 @@
     "overhead.industry.lumberMill": {
       "path": "overhead/sprite/lumber-mill.png"
     },
-    "overhead.plough.0": {
-      "path": "overhead/plough/0.png",
-      "tile": true
-    },
-    "overhead.plough.1": {
-      "path": "overhead/plough/1.png",
-      "tile": true
-    },
-    "overhead.plough.2": {
-      "path": "overhead/plough/2.png",
-      "tile": true
-    },
-    "overhead.plough.3": {
-      "path": "overhead/plough/3.png",
-      "tile": true
-    },
-    "overhead.plough.4": {
-      "path": "overhead/plough/4.png",
-      "tile": true
-    },
-    "overhead.plough.5": {
-      "path": "overhead/plough/5.png",
-      "tile": true
-    },
-    "overhead.plough.6": {
-      "path": "overhead/plough/6.png",
-      "tile": true
-    },
-    "overhead.plough.7": {
-      "path": "overhead/plough/7.png",
-      "tile": true
-    },
-    "overhead.plough.8": {
-      "path": "overhead/plough/8.png",
-      "tile": true
-    },
-    "overhead.plough.9": {
-      "path": "overhead/plough/9.png",
-      "tile": true
-    },
-    "overhead.plough.10": {
-      "path": "overhead/plough/10.png",
-      "tile": true
-    },
-    "overhead.plough.11": {
-      "path": "overhead/plough/11.png",
-      "tile": true
-    },
-    "overhead.plough.12": {
-      "path": "overhead/plough/12.png",
-      "tile": true
-    },
-    "overhead.plough.13": {
-      "path": "overhead/plough/13.png",
-      "tile": true
-    },
-    "overhead.plough.14": {
-      "path": "overhead/plough/14.png",
-      "tile": true
-    },
-    "overhead.plough.15": {
-      "path": "overhead/plough/15.png",
-      "tile": true
-    },
     "overhead.sprite.mountain": {
       "path": "overhead/sprite/mountain.png"
+    },
+    "overhead.sprite.forest": {
+      "path": "overhead/sprite/forest.png"
     }
   }
 }

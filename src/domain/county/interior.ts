@@ -264,7 +264,6 @@ export function createInterior(opts: {
   // scattering mountains through the centre would strand fields at random.
   const ground: GroundCell[] = [];
   const centre = { col: (cols - 1) / 2, row: (rows - 1) / 2 };
-  const maxDist = Math.hypot(centre.col, centre.row);
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -274,11 +273,25 @@ export function createInterior(opts: {
         ground.push({ col, row, kind: 'ground' });
         continue;
       }
-      const edgeness = Math.hypot(col - centre.col, row - centre.row) / maxDist;
+      // How close to the RIM, measured per axis rather than as a radius.
+      //
+      // A radial distance normalised by the corner distance only reads as
+      // "edge" along whichever axis is longer: on a 7x17 county it put crags
+      // in thick bands across the top and bottom while the left and right
+      // columns never qualified at all. Taking the worst axis separately
+      // hugs the actual boundary whatever shape the county is.
+      const edgeness = Math.max(
+        Math.abs(col - centre.col) / Math.max(1, centre.col),
+        Math.abs(row - centre.row) / Math.max(1, centre.row),
+      );
       const roll = rng();
       let kind: GroundKind = 'ground';
       // Only the outer band gets terrain, and even there most stays walkable.
-      if (!onRoad.has(cellKey(col, row)) && edgeness > 0.62 && roll < 0.45) {
+      // A ONE-CELL rim, not a wide frontier. At 0.62 a tall county came out as
+      // a corridor of farmland hemmed in by wilderness on every side: the
+      // threshold is a fraction of the half-width, so a low one claims most of
+      // a grid that is much longer than it is wide.
+      if (!onRoad.has(cellKey(col, row)) && edgeness > 0.78 && roll < 0.4) {
         const pick = rng();
         kind = pick < 0.5 ? 'forest' : pick < 0.85 ? 'mountain' : 'water';
       }

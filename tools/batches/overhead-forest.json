@@ -1,0 +1,20 @@
+[
+  {
+    "key": "overhead.sprite.forest",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "tools/references/mountain-style.png",
+        "usage": "the camera angle, faceted pixel shading, outline weight and overall rendering style — match this so trees and mountains read as one set"
+      }
+    ],
+    "args": {
+      "description": "A dense cluster of conifer and broadleaf trees on a transparent background, seen from high above at a steep angle. Rounded and conical canopies at several heights overlapping into one small wood, dark green foliage with lighter sunlit tops and deep shadow beneath. No ground, no grass, no sky.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 7731
+    },
+    "outDir": "overhead/candidates/forest"
+  }
+]

@@ -1,0 +1,19 @@
+[
+  {
+    "key": "overhead.barren",
+    "tool": "create_tiles_pro",
+    "groups": 4,
+    "args": {
+      "description": "1). exhausted farm soil, pale dusty grey-brown dry earth with a few dead yellow stubble stalks, faint old furrow lines, no stones 2). exhausted farm soil, pale dusty grey-brown dry earth with a few dead yellow stubble stalks, faint old furrow lines, no stones 3). exhausted farm soil, pale dusty grey-brown dry earth with a few dead yellow stubble stalks, faint old furrow lines, no stones 4). exhausted farm soil, pale dusty grey-brown dry earth with a few dead yellow stubble stalks, faint old furrow lines, no stones",
+      "tile_type": "square_topdown",
+      "tile_size": 32,
+      "tile_view_angle": 60,
+      "tile_depth_ratio": 0.2,
+      "outline_mode": "segmentation",
+      "seed": 3390
+    },
+    "outs": [
+      { "key": "overhead.field.barren", "out": "overhead/field/barren.png", "group": 0 }
+    ]
+  }
+]

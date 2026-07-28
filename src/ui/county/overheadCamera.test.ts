@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { E, N, S, W, STRIDE_Y, TILE_W, cornerMasks, gridSize, roadMasks } from './overheadCamera';
-import { createInterior } from '../../domain/county/interior';
+import { E, N, S, W, STRIDE_Y, TILE_W, gridSize, roadMasks } from './overheadCamera';
+import { createInterior, stageOf, type FieldTile } from '../../domain/county/interior';
+import { overheadFieldArt } from '../../assets/assetManifest';
 import { createRng } from '../../domain/rng';
 
 describe('overhead camera', () => {
@@ -134,45 +135,40 @@ describe('county roads', () => {
   });
 });
 
-describe('terrain region autotiling', () => {
-  const bounds = { cols: 4, rows: 4 };
 
-  it('renders a lone cell as fully worked land', () => {
-    // The reason corners are read as "any touching cell", not "all". Under an
-    // all-rule a single field has no fully-inside corner and vanishes.
-    const masks = cornerMasks([{ col: 1, row: 1 }], bounds);
-    expect(masks['1,1']).toBe(N | E | S | W);
+describe('field art follows field state', () => {
+  const field = (over: Partial<FieldTile>): FieldTile => ({
+    id: 'f',
+    col: 0,
+    row: 0,
+    status: 'fallow',
+    seasonsGrown: 0,
+    herd: 0,
+    reclaimed: 0,
+    ...over,
   });
 
-  it('bleeds half a tile into the surrounding ground', () => {
-    // Deliberate: it is what merges neighbouring fields into one worked area.
-    // The renderer's tap targets must stay the field cells themselves.
-    const masks = cornerMasks([{ col: 1, row: 1 }], bounds);
-    expect(masks['0,0']).toBeDefined();
-    expect(masks['2,2']).toBeDefined();
-    // ...but not two cells out.
-    expect(masks['3,3']).toBeUndefined();
+  const keyFor = (f: FieldTile) => overheadFieldArt(f.status, stageOf(f)).key;
+
+  it('draws every field state differently', () => {
+    // A regression guard, not a hypothetical. An earlier pass drew fields from
+    // a corner mask alone and silently dropped status entirely, so fallow,
+    // barren, cattle and all four grain stages rendered identically. The
+    // checkpoint hid it because every field starts fallow.
+    const keys = [
+      keyFor(field({ status: 'fallow' })),
+      keyFor(field({ status: 'barren' })),
+      keyFor(field({ status: 'cattle', herd: 2 })),
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('leaves untouched ground with no piece at all', () => {
-    // Mask 0 must not be recorded — drawing it would paint a tile of plain
-    // background over every cell in the county.
-    const masks = cornerMasks([{ col: 0, row: 0 }], bounds);
-    expect(masks['3,0']).toBeUndefined();
-    expect(Object.values(masks).every((m) => m !== 0)).toBe(true);
-  });
-
-  it('joins neighbouring cells into one region', () => {
-    // The cell between two fields is fully worked, which is the whole point of
-    // a corner set over four independent tiles.
-    const masks = cornerMasks(
-      [
-        { col: 1, row: 1 },
-        { col: 2, row: 1 },
-      ],
-      bounds,
+  it('walks grain through the season cycle', () => {
+    // Grain visibly changing as it grows is a mechanic, not decoration: the
+    // player reads when to harvest off the field itself.
+    const stages = [0, 1, 2, 3, 4, 5].map((seasonsGrown) =>
+      keyFor(field({ status: 'grain', seasonsGrown })),
     );
-    expect(masks['1,1']).toBe(N | E | S | W);
-    expect(masks['2,1']).toBe(N | E | S | W);
+    expect(new Set(stages).size).toBeGreaterThan(1);
   });
 });

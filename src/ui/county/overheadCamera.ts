@@ -110,53 +110,6 @@ export interface Cell {
  * position alone cannot work: a road that merely runs along the boundary would
  * be indistinguishable from one that crosses it.
  */
-/**
- * Which Wang piece belongs in each cell, for a region defined by CORNERS.
- *
- * Roads autotile on EDGES — a cell either connects to its neighbour or it does
- * not. A terrain region autotiles on CORNERS instead: the tile is chosen by
- * what the land is at each of its four corners, which is what lets a ploughed
- * field meet grass on a soft diagonal rather than a hard square edge.
- *
- * A corner counts as inside the region when ANY of the four cells meeting at
- * that corner is in it. That grows the drawn region outward by half a tile,
- * which is the point: a lone field still renders as a full tilled patch, and
- * neighbouring fields merge into one worked area instead of a row of squares.
- * The alternative rule — a corner counts only when ALL four cells are in the
- * region — shrinks instead, and erases a lone field completely.
- *
- * Bits are NW|NE|SE|SW = 1|2|4|8, matching how the generated set is keyed.
- */
-export function cornerMasks(
-  region: readonly Cell[],
-  bounds: { readonly cols: number; readonly rows: number },
-): Record<string, number> {
-  const key = (c: number, r: number) => `${c},${r}`;
-  const inRegion = new Set(region.map((c) => key(c.col, c.row)));
-
-  /** A lattice corner is inside when any cell touching it is. */
-  const cornerSet = (vc: number, vr: number) =>
-    inRegion.has(key(vc - 1, vr - 1)) ||
-    inRegion.has(key(vc, vr - 1)) ||
-    inRegion.has(key(vc - 1, vr)) ||
-    inRegion.has(key(vc, vr));
-
-  const masks: Record<string, number> = {};
-  for (let row = 0; row < bounds.rows; row++) {
-    for (let col = 0; col < bounds.cols; col++) {
-      const mask =
-        (cornerSet(col, row) ? 1 : 0) |
-        (cornerSet(col + 1, row) ? 2 : 0) |
-        (cornerSet(col + 1, row + 1) ? 4 : 0) |
-        (cornerSet(col, row + 1) ? 8 : 0);
-      // Mask 0 is "no region here at all". Recording it would make callers
-      // draw a tile of pure background over every cell of the county.
-      if (mask !== 0) masks[key(col, row)] = mask;
-    }
-  }
-  return masks;
-}
-
 export function roadMasks(
   road: readonly Cell[],
   bounds: { readonly cols: number; readonly rows: number },
