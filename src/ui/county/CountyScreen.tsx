@@ -16,6 +16,7 @@ import {
   toggleIndustry,
 } from '../../domain/county/actions';
 import { advanceSeason, type SeasonEvent } from '../../domain/turn/advanceTurn';
+import { takeAllAiTurns } from '../../domain/ai/countyAi';
 import { describeTurn, seasonOfTurn, type Season } from '../../domain/season';
 import {
   bannerArt,
@@ -238,7 +239,11 @@ export function CountyScreen({ county, match, onChange, onBack }: Props) {
           season={season}
           onShare={(v) => dispatch(setLabourSplit(match, county.id, v))}
           onEndTurn={() => {
-            const result = advanceSeason(match);
+            // AI seats act BEFORE the season resolves, so their orders are
+            // carried out by the same resolution the player's are — an AI whose
+            // turn ran afterwards would be a season behind for ever.
+            const withAi = takeAllAiTurns(match);
+            const result = advanceSeason(withAi.match);
             onChange(result.match);
             setReport(result.events);
           }}

@@ -29,7 +29,7 @@ export interface FactionBonuses {
   readonly mercenaryCost: number;
 }
 
-/** How strongly the AI leans toward each behaviour. 0..1, read from bonuses. */
+/** How strongly the AI leans toward each behaviour. 0..1. */
 export interface AiWeighting {
   readonly aggression: number;
   readonly turtling: number;
@@ -42,8 +42,38 @@ export interface Faction {
   readonly name: string;
   readonly blurb: string;
   readonly bonuses: FactionBonuses;
-  readonly ai: AiWeighting;
 }
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+/**
+ * How an AI of this faction plays — DERIVED from its bonuses, never authored
+ * separately.
+ *
+ * This is the point of the whole arrangement. A hand-written behaviour table
+ * beside the bonuses is a table that drifts: someone tunes the Warden's castle
+ * discount for balance, and the Warden AI carries on playing to the old number
+ * because nothing forced the two to agree. Deriving it means a faction's
+ * identity has exactly one source, so an AI cannot play against its own sheet.
+ *
+ * Read each line as a claim about the faction:
+ *  - Cheap attacks invite attacking; strong defence invites waiting.
+ *  - Cheap walls and hard walls both reward turtling.
+ *  - Gold and food surpluses reward building an economy.
+ *  - Contentment and cheap mercenaries make friends worth keeping.
+ */
+export function deriveAiWeighting(b: FactionBonuses): AiWeighting {
+  return {
+    aggression: clamp01(0.5 + (b.attack - 1) * 2.5 - (b.defence - 1) * 1.5),
+    turtling: clamp01(0.5 + (1 - b.castleCost) * 2.5 + (b.defence - 1) * 2),
+    economy: clamp01(0.5 + (b.goldIncome - 1) * 1.5 + (b.foodYield - 1) * 1.5),
+    diplomacy: clamp01(0.5 + b.happiness / 15 + (1 - b.mercenaryCost) * 0.8),
+  };
+}
+
+/** Convenience: the weighting for a faction. */
+export const aiWeightingOf = (faction: Faction): AiWeighting =>
+  deriveAiWeighting(faction.bonuses);
 
 const NEUTRAL: FactionBonuses = {
   castleCost: 1,
@@ -61,28 +91,24 @@ export const FACTIONS: readonly Faction[] = [
     name: 'The Knight',
     blurb: 'Takes ground early and does not apologise for it.',
     bonuses: { ...NEUTRAL, attack: 1.15, castleCost: 1.1, foodYield: 0.95 },
-    ai: { aggression: 0.85, turtling: 0.15, economy: 0.35, diplomacy: 0.25 },
   },
   {
     id: factionId('warden'),
     name: 'The Warden',
     blurb: 'Cheap walls, patient hands. Bleeds attackers on their own advance.',
     bonuses: { ...NEUTRAL, castleCost: 0.8, defence: 1.15, attack: 0.95 },
-    ai: { aggression: 0.2, turtling: 0.9, economy: 0.6, diplomacy: 0.45 },
   },
   {
     id: factionId('merchant'),
     name: 'The Merchant',
     blurb: 'Buys what others must build. Gold is a weapon in the right ledger.',
     bonuses: { ...NEUTRAL, goldIncome: 1.25, mercenaryCost: 0.8, defence: 0.95 },
-    ai: { aggression: 0.4, turtling: 0.45, economy: 0.9, diplomacy: 0.6 },
   },
   {
     id: factionId('steward'),
     name: 'The Steward',
     blurb: 'Well-fed counties, content peasants, and quietly enormous armies.',
     bonuses: { ...NEUTRAL, foodYield: 1.2, happiness: 5, attack: 0.95 },
-    ai: { aggression: 0.3, turtling: 0.5, economy: 0.75, diplomacy: 0.85 },
   },
 ];
 
