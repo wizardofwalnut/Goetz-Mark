@@ -7,6 +7,9 @@ import { healthFromRations, projectProduction, type Health } from '../../domain/
 import type { Resource } from '../../domain/resources';
 import { describeTurn, seasonOfTurn } from '../../domain/season';
 import {
+  armyBearerArt,
+  armySizeBand,
+  armySoldierArt,
   overheadCastleArt,
   overheadFieldArt,
   overheadForestArt,
@@ -113,11 +116,23 @@ export function CountyOverhead({ county, map, match }: Props) {
     );
   }
 
-  // NOTE: armies are deliberately NOT drawn here yet. The spec does call for
-  // on-map army figures whose count reads as the garrison's strength, but the
-  // knight art generated for it belongs to the armory and shop screens, not to
-  // the land. Revisit when those screens exist and the right figure for the
-  // map has been made.
+  // Armies go down AFTER the buildings they stand beside. Within a row things
+  // paint in the order they were added, so a garrison queued before the keep is
+  // a garrison painted over by it.
+  for (const army of Object.values(match.armies)) {
+    if (army.location.kind !== 'garrison' || army.location.county !== county.id) continue;
+    const owner = match.players.find((p) => p.id === army.owner);
+    put(
+      castle.row,
+      <ArmySprite
+        key={army.id}
+        col={castle.col}
+        row={castle.row}
+        seat={owner?.seat ?? 0}
+        troops={Object.values(army.troops).reduce((a, b) => a + (b ?? 0), 0)}
+      />,
+    );
+  }
 
   // The caravan, if it is in this county. Its cell always sits on a road —
   // county/movement.ts is what guarantees a wagon can never be anywhere else.
@@ -242,6 +257,69 @@ function MountainSprite({ col, row }: { col: number; row: number }) {
   const art = overheadMountainArt();
   if (art.missing || !art.url) return null;
   return <MapSprite col={col} row={row} url={art.url} size={1.5} label="Mountain" />;
+}
+
+/**
+ * An army standing on the map.
+ *
+ * Two questions answered without opening anything: WHOSE, from the flag the
+ * bearer carries in the owner's seat colour, and HOW BIG, from the number of
+ * figures — one, two or three for small, medium and large.
+ *
+ * Only the bearer is coloured. Three men carrying three flags would read as
+ * three armies rather than one large one, which is the opposite of what the
+ * count is for.
+ */
+const FIGURES_FOR: Record<ReturnType<typeof armySizeBand>, number> = {
+  small: 1,
+  medium: 2,
+  large: 3,
+};
+
+/** A loose knot, so two and three read as "more men" and not as a formation. */
+const FIGURE_OFFSETS = [
+  { x: -0.5, y: 0.9 },
+  { x: -0.16, y: 1.32 },
+  { x: -0.84, y: 1.36 },
+] as const;
+
+function ArmySprite({
+  col,
+  row,
+  seat,
+  troops,
+}: {
+  col: number;
+  row: number;
+  seat: number;
+  troops: number;
+}) {
+  const bearer = armyBearerArt(seat);
+  const soldier = armySoldierArt();
+  const count = FIGURES_FOR[armySizeBand(troops)];
+
+  // Bearer last, so his flag is never hidden behind a spearman's shoulder.
+  const figures = FIGURE_OFFSETS.slice(0, count)
+    .map((offset, i) => ({ offset, art: i === 0 ? bearer : soldier, key: i }))
+    .reverse();
+
+  return (
+    <>
+      {figures.map(({ offset, art, key }) =>
+        art.missing || !art.url ? null : (
+          <MapSprite
+            key={key}
+            col={col}
+            row={row}
+            url={art.url}
+            size={1.15}
+            offset={offset}
+            label={`${troops} men`}
+          />
+        ),
+      )}
+    </>
+  );
 }
 
 function ForestSprite({ col, row }: { col: number; row: number }) {

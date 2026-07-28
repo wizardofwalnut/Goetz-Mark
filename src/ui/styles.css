@@ -1158,3 +1158,59 @@ body {
   color: #e8dcc0;
   font-family: 'SF Mono', Menlo, Consolas, monospace;
 }
+
+/* ---------------------------------------------------------------------------
+   Army token preview (dev page).
+   --------------------------------------------------------------------------- */
+
+.armies-grid {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.armies-seat-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.armies-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid #5c5344;
+}
+
+.armies-sizes {
+  display: flex;
+  gap: 8px;
+}
+
+.armies-label {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: #8a7a5e;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.armies-vision {
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 18px;
+  margin: 26px 0 2px;
+}
+
+/* Applied to a copy of the same markup, so what is being checked is the real
+   sprites rather than a mock-up that could disagree with them. */
+.vision-grey {
+  filter: grayscale(1);
+}
+
+.vision-deut {
+  filter: url(#deuteranopia);
+}

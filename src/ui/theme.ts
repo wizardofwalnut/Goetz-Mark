@@ -23,12 +23,17 @@ export const palette = {
   parchmentDeep: '#bfae8a',
   parchmentShadow: '#a4906c',
 
-  crimson: '#a32c28',
-  crimsonBright: '#c94a3f',
-  steel: '#3f6b8f',
-  steelBright: '#5b8db4',
-  gold: '#c9a227',
-  goldBright: '#e3bf4a',
+  crimson: '#c0392b',
+  crimsonBright: '#e0554a',
+  steel: '#2f6fd0',
+  steelBright: '#5b93e8',
+  gold: '#e8c33a',
+  goldBright: '#f5d968',
+  sable: '#26262e',
+  sableBright: '#4a4a58',
+
+  /* Kept because MapView and the isometric CountyScreen still reference the
+     green in their own decoration. NOT a seat colour any more — see below. */
   verdigris: '#4a7c59',
   verdigrisBright: '#68a077',
 
@@ -43,12 +48,31 @@ export const terrainTint = {
   chokepoint: '#9c8f76',
 } as const;
 
-/** Seat colours, in seat order. */
+/**
+ * Seat colours, in seat order.
+ *
+ * CHOSEN BY MEASUREMENT, not by taste. Every pair has to stay apart under
+ * normal vision and under all three kinds of colour blindness, because these
+ * carry "whose army is that" on a token roughly fifteen pixels wide.
+ *
+ * The previous set — crimson, steel, gold, verdigris — had a worst-case
+ * separation of 33 (steel against verdigris under tritanopia). This set scores
+ * 110, and theme.test.ts fails if any pair drops below 100.
+ *
+ * Verdigris is gone as a seat colour for a second and separate reason: it sat
+ * RGB-distance 49 from the grass-green the minimap fills unclaimed counties
+ * with, so a county held by that seat read as nobody's. Green is a poor choice
+ * of team colour in a game whose map is a field.
+ *
+ * Sable replaces it. A near-black banner is the most separable fourth against
+ * red, blue and gold in every simulation, and it competes with nothing on the
+ * map.
+ */
 export const seatColors = [
   { base: palette.crimson, bright: palette.crimsonBright, name: 'Crimson' },
-  { base: palette.steel, bright: palette.steelBright, name: 'Steel' },
+  { base: palette.steel, bright: palette.steelBright, name: 'Azure' },
   { base: palette.gold, bright: palette.goldBright, name: 'Gold' },
-  { base: palette.verdigris, bright: palette.verdigrisBright, name: 'Verdigris' },
+  { base: palette.sable, bright: palette.sableBright, name: 'Sable' },
 ] as const;
 
 export const seatColor = (seat: number) =>

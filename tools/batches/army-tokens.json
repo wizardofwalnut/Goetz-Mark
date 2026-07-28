@@ -1,0 +1,52 @@
+[
+  {
+    "key": "overhead.army.bearer.0",
+    "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight and palette temperature" }],
+    "args": {
+      "description": "A medieval standard-bearer on foot, on a transparent background, seen from high above at a steep angle. He holds a tall pole with a LARGE simple rectangular banner in one flat bold CRIMSON RED, no pattern and no emblem on it, the banner filling much of the image and reading clearly at tiny size. Plain steel helm and mail, dark outline. No ground, no grass, no sky.",
+      "width": 64, "height": 64, "no_background": true, "seed": 5501
+    },
+    "outDir": "overhead/candidates/bearer0"
+  },
+  {
+    "key": "overhead.army.bearer.1",
+    "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight and palette temperature" }],
+    "args": {
+      "description": "A medieval standard-bearer on foot, on a transparent background, seen from high above at a steep angle. He holds a tall pole with a LARGE simple rectangular banner in one flat bold AZURE BLUE, no pattern and no emblem on it, the banner filling much of the image and reading clearly at tiny size. Plain steel helm and mail, dark outline. No ground, no grass, no sky.",
+      "width": 64, "height": 64, "no_background": true, "seed": 5502
+    },
+    "outDir": "overhead/candidates/bearer1"
+  },
+  {
+    "key": "overhead.army.bearer.2",
+    "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight and palette temperature" }],
+    "args": {
+      "description": "A medieval standard-bearer on foot, on a transparent background, seen from high above at a steep angle. He holds a tall pole with a LARGE simple rectangular banner in one flat bright GOLDEN YELLOW, no pattern and no emblem on it, the banner filling much of the image and reading clearly at tiny size. Plain steel helm and mail, dark outline. No ground, no grass, no sky.",
+      "width": 64, "height": 64, "no_background": true, "seed": 5503
+    },
+    "outDir": "overhead/candidates/bearer2"
+  },
+  {
+    "key": "overhead.army.bearer.3",
+    "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight and palette temperature" }],
+    "args": {
+      "description": "A medieval standard-bearer on foot, on a transparent background, seen from high above at a steep angle. He holds a tall pole with a LARGE simple rectangular banner in one flat near-BLACK CHARCOAL, no pattern and no emblem on it, the banner filling much of the image and reading clearly at tiny size, edged with a thin pale outline so its shape stays visible. Plain steel helm and mail. No ground, no grass, no sky.",
+      "width": 64, "height": 64, "no_background": true, "seed": 5504
+    },
+    "outDir": "overhead/candidates/bearer3"
+  },
+  {
+    "key": "overhead.army.soldier",
+    "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight and palette temperature" }],
+    "args": {
+      "description": "A single medieval foot soldier on a transparent background, seen from high above at a steep angle. Plain steel helm, mail and a spear held upright, neutral grey and brown colours only with NO coloured surcoat or banner of any kind. Compact readable silhouette with a dark outline. No ground, no grass, no sky.",
+      "width": 64, "height": 64, "no_background": true, "seed": 5505
+    },
+    "outDir": "overhead/candidates/soldier"
+  }
+]

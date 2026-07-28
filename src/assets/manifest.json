@@ -534,6 +534,21 @@
     },
     "equipment.knightArmour": {
       "path": "equipment/knight-armour.png"
+    },
+    "overhead.army.bearer.0": {
+      "path": "overhead/sprite/army-bearer-crimson.png"
+    },
+    "overhead.army.bearer.1": {
+      "path": "overhead/sprite/army-bearer-azure.png"
+    },
+    "overhead.army.bearer.2": {
+      "path": "overhead/sprite/army-bearer-gold.png"
+    },
+    "overhead.army.bearer.3": {
+      "path": "overhead/sprite/army-bearer-sable.png"
+    },
+    "overhead.army.soldier": {
+      "path": "overhead/sprite/army-soldier.png"
     }
   }
 }

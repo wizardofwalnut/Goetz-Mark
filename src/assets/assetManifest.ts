@@ -282,6 +282,26 @@ export const overheadForestArt = () => resolveAsset(['overhead.sprite.forest']);
 export const overheadWagonArt = () => resolveAsset(['overhead.sprite.wagon']);
 
 /**
+ * The standard-bearer for a seat, carrying that seat's flag.
+ *
+ * Keyed by SEAT INDEX, the same number `seatColor` in ui/theme.ts is keyed by,
+ * so the flag a player sees on the map and their colour everywhere else in the
+ * UI cannot drift apart. Seats wrap, so a map with more seats than banners
+ * still renders rather than showing a hole.
+ */
+export const armyBearerArt = (seat: number) =>
+  resolveAsset([`overhead.army.bearer.${((seat % 4) + 4) % 4}`]);
+
+/**
+ * A plain foot soldier, in no one's livery.
+ *
+ * Drawn beside the bearer to carry an army's SIZE — one, two or three figures
+ * for small, medium and large. Only the bearer is coloured: three men carrying
+ * three flags reads as three armies rather than one big one.
+ */
+export const armySoldierArt = () => resolveAsset(['overhead.army.soldier']);
+
+/**
  * Equipment art, for the blacksmith/armory and merchant shop screens.
  *
  * NOT a map sprite. The spec builds both of those screens around a picture of

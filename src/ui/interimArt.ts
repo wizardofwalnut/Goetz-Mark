@@ -118,6 +118,10 @@ export const PLANNED_ART: readonly PlannedArt[] = [
     keyPrefixes: ['equipment.'],
   },
   {
+    forSurface: 'County map — army tokens, flag-coloured by seat',
+    keyPrefixes: ['overhead.army.'],
+  },
+  {
     forSurface: 'County screen — field tiles, industry sites and on-map sprites',
     keyPrefixes: ['field.', 'industry.', 'sprite.'],
   },
