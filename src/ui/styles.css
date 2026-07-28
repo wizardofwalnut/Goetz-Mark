@@ -1065,3 +1065,96 @@ body {
 
 .ov-health-fill[data-health='sick'] { background: #d4a24f; }
 .ov-health-fill[data-health='diseased'] { background: #b8443a; }
+
+/* ---------------------------------------------------------------------------
+   Castle ladder preview (dev page). Deleted with castles.html when the castle
+   build screen replaces it.
+   --------------------------------------------------------------------------- */
+
+.tiers {
+  padding: 22px 20px 30px;
+  background: #0d0b09;
+  color: #e8dcc0;
+  min-height: 100vh;
+}
+
+.tiers-head {
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 24px;
+  margin: 0 0 4px;
+}
+
+.tiers-sub {
+  margin: 0 0 22px;
+  color: #a4906c;
+  font-size: 13px;
+  max-width: 60ch;
+}
+
+.tiers-row {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.tier {
+  width: 190px;
+  flex: 0 0 auto;
+}
+
+/* The plot is the point: real ground, real scale, no frame around it that
+   would flatter the sprite. */
+.tier-plot {
+  display: block;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.tier-rank {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a7a5e;
+}
+
+.tier-name {
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+
+.tier-blurb {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #bfae8a;
+  min-height: 52px;
+}
+
+.tier-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.tier-free {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #8a7a5e;
+}
+
+.tier-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #bfae8a;
+}
+
+.tier-stats b {
+  color: #e8dcc0;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+}

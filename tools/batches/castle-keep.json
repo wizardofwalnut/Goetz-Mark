@@ -1,0 +1,16 @@
+[
+  {
+    "key": "overhead.castle.normanKeep",
+    "tool": "create_map_object",
+    "args": {
+      "description": "Norman stone keep: one TALL square tower of pale grey stone rising well above its own low outer wall, battlements along the tower top, narrow slit windows, a small gatehouse in the wall below. The tower dominates and is much taller than it is wide. Seen from high above.",
+      "view": "high top-down",
+      "width": 72,
+      "height": 72,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "out": "overhead/sprite/castle-norman-keep.png"
+  }
+]
