@@ -157,7 +157,7 @@ describe('interior generation', () => {
 describe('labour projection', () => {
   const interior = createInterior({ size: 4, resource: 'stone', rng: createRng(2).next });
 
-  const withFields = (statuses: Parameters<typeof field>[0]['status'][]) => ({
+  const withFields = (statuses: FieldTile['status'][]) => ({
     ...interior,
     fields: statuses.map((status, i) =>
       field({ id: `f${i}`, status, seasonsGrown: status === 'grain' ? 2 : 0, herd: status === 'cattle' ? 1 : 0 }),
