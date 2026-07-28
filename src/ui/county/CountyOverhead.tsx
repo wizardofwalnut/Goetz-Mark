@@ -154,12 +154,30 @@ const tileBox = (col: number, row: number) => ({
   style: { imageRendering: 'pixelated' as const },
 });
 
+/**
+ * A ground cell.
+ *
+ * Plain ground goes down under EVERY cell, with forest, mountain or water
+ * drawn over it. That is not redundant: generated tiles are not guaranteed to
+ * fill their canvas — the water tile came back with a transparent lower band —
+ * and without something beneath it, the hole shows the page through the map.
+ * Grass under everything is also simply true of the terrain it describes.
+ */
 function GroundTile({ cell }: { cell: GroundCell }) {
-  const art = overheadGroundArt(cell.kind);
-  if (art.missing || !art.url) {
-    return <rect {...tileBox(cell.col, cell.row)} fill={palette.parchmentShadow} />;
-  }
-  return <image href={art.url} {...tileBox(cell.col, cell.row)} />;
+  const base = overheadGroundArt('ground');
+  const art = cell.kind === 'ground' ? base : overheadGroundArt(cell.kind);
+  const box = tileBox(cell.col, cell.row);
+
+  return (
+    <>
+      {base.missing || !base.url ? (
+        <rect {...box} fill={palette.parchmentShadow} />
+      ) : (
+        <image href={base.url} {...box} />
+      )}
+      {art !== base && !art.missing && art.url && <image href={art.url} {...box} />}
+    </>
+  );
 }
 
 function RoadTile({ cell, mask }: { cell: { col: number; row: number }; mask: number }) {

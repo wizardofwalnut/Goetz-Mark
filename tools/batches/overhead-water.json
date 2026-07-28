@@ -1,0 +1,17 @@
+[
+  {
+    "key": "overhead.water",
+    "tool": "create_tiles_pro",
+    "groups": 4,
+    "args": {
+      "description": "1). deep blue lake water, gentle ripples, uniform blue across the whole tile 2). deep blue lake water, gentle ripples, uniform blue across the whole tile 3). deep blue lake water, gentle ripples, uniform blue across the whole tile 4). deep blue lake water, gentle ripples, uniform blue across the whole tile",
+      "tile_type": "square_topdown",
+      "tile_size": 32,
+      "tile_view_angle": 60,
+      "tile_depth_ratio": 0.2,
+      "outline_mode": "segmentation",
+      "seed": 6120
+    },
+    "outs": [{ "key": "overhead.tile.water", "out": "overhead/tile/water.png", "group": 0 }]
+  }
+]

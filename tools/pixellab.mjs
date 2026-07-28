@@ -317,8 +317,21 @@ async function runBatch(batchPath) {
       }
 
       if (job.outs) {
+        // A tile set returns SEVERAL VARIATIONS OF EACH numbered prompt, not
+        // one tile per prompt: a four-tile request came back as sixteen
+        // images, indices 0-3 all grass, 4-7 all ploughed field, and so on.
+        // Mapping outs positionally therefore saved four variations of the
+        // first prompt under four different keys — which is how "forest" and
+        // "mountain" both ended up as pictures of a ploughed field.
+        //
+        // `group` names which numbered prompt an out wants; the stride is
+        // worked out from what actually came back, so it survives the tile
+        // count changing with size or model.
+        const groups = job.groups ?? job.outs.length;
+        const stride = Math.floor(images.length / groups);
         job.outs.forEach((target, i) => {
-          const pick = target.tileIndex ?? i;
+          const pick =
+            target.tileIndex ?? (target.group !== undefined ? target.group * stride : i);
           const image = images[pick];
           if (!image) {
             throw new Error(`${target.key}: no tile at index ${pick} (got ${images.length})`);

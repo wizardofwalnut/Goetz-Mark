@@ -442,9 +442,8 @@
       "tile": true
     },
     "overhead.field.grain.spoiled": {
-      "path": "overhead/field/barren.png",
-      "tile": true,
-      "aliasOf": "overhead.field.barren"
+      "path": "overhead/field/grain-spoiled.png",
+      "tile": true
     },
     "overhead.road.0": {
       "path": "overhead/road/tile-00.png"

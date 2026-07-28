@@ -1,0 +1,20 @@
+[
+  {
+    "key": "overhead.terrain",
+    "tool": "create_tiles_pro",
+    "args": {
+      "description": "1). dense woodland seen from directly above: a solid mass of round dark green treetops, no ground visible 2). bare rocky mountain: jagged grey stone boulders and scree, no plants 3). shallow blue river water with ripples over a pale gravel bed 4). dense woodland seen from directly above: a solid mass of round dark green treetops, no ground visible",
+      "tile_type": "square_topdown",
+      "tile_size": 32,
+      "tile_view_angle": 60,
+      "tile_depth_ratio": 0.2,
+      "outline_mode": "segmentation",
+      "seed": 5150
+    },
+    "outs": [
+      { "key": "overhead.tile.forest", "out": "overhead/tile/forest.png", "tileIndex": 0 },
+      { "key": "overhead.tile.mountain", "out": "overhead/tile/mountain.png", "tileIndex": 1 },
+      { "key": "overhead.tile.water", "out": "overhead/tile/water.png", "tileIndex": 2 }
+    ]
+  }
+]

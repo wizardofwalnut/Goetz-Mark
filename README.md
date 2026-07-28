@@ -16,8 +16,36 @@ npm run typecheck
 npm run build
 npm run gen:map        # regenerate map geometry from its layout spec
 npm run art:balance    # PixelLab credits / generations remaining
-npm run art tools/art-batches/<batch>.json   # generate an art batch
+npm run art tools/batches/<batch>.json       # generate an art batch
+npm run gen:realm      # regenerate the four-county realm
+npm run shot <url> <out.png> [w] [h] [dpr]   # screenshot a page in Chromium
 ```
+
+### The county render checkpoint
+
+`checkpoint.html` renders one county with the overhead camera and nothing
+else — no click handling, no labour logic, no second county. It exists
+because the county-map spec asks for a still to be looked at before anything
+interactive is built on top of it, so a wrong camera angle costs ten minutes
+rather than a day.
+
+```bash
+npm run dev
+npm run shot http://localhost:5173/checkpoint.html shot.png 414 896 2
+```
+
+Delete `checkpoint.html` and `src/checkpoint.tsx` once the interactive
+overhead screen replaces them.
+
+### Two cameras, on purpose
+
+`src/ui/county/CountyScreen.tsx` is the older ground-level isometric view
+(64x32 diamonds). `src/ui/county/CountyOverhead.tsx` is the v2 god's-eye view
+(axis-aligned squares, foreshortened rows, depth bands). Their art lives in
+separate manifest namespaces — `tile.*`/`field.*` against `overhead.*` — and
+the overhead accessors deliberately do **not** fall back to the isometric
+keys. A tile drawn from the wrong camera reads as finished art and hides the
+gap; a placeholder does not.
 
 ### PixelLab token
 
