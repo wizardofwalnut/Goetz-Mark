@@ -87,10 +87,18 @@ describe('county roads', () => {
     for (const cell of lastCol) expect(masks[`${cell.col},${cell.row}`]! & E).toBe(E);
   });
 
-  it('lays no road at all for a county with no neighbours', () => {
-    // Not a crash and not a road to nowhere: a county with nothing beside it
-    // still has a town, it just has nothing to connect to.
-    expect(build([]).road).toEqual([{ col: 2, row: 6 }]);
+  it('lays no road OUT of a county with no neighbours, but still one to its keep', () => {
+    // Nothing beside it means nothing to connect to, so no road reaches an
+    // edge. The town-to-castle spur is internal and exists regardless — the
+    // keep has to be reachable whether or not the county has neighbours.
+    const interior = build([]);
+    const onEdge = interior.road.filter(
+      (c) =>
+        c.col <= 0 || c.row <= 0 || c.col >= interior.cols - 1 || c.row >= interior.rows - 1,
+    );
+    expect(onEdge).toEqual([]);
+    expect(interior.road).toContainEqual({ col: interior.castle.col, row: interior.castle.row });
+    expect(interior.road).toContainEqual({ col: interior.town.col, row: interior.town.row });
   });
 
   it('keeps the road clear of fields and impassable ground', () => {
@@ -105,7 +113,7 @@ describe('county roads', () => {
     }
   });
 
-  it('stands the castle apart from the town, off the road and off the rim', () => {
+  it('stands the castle apart from the town and off the rim', () => {
     const interior = build(['e', 's']);
     const { castle, town } = interior;
     expect(castle).not.toEqual(town);
@@ -114,10 +122,35 @@ describe('county roads', () => {
     expect(castle.row).toBeGreaterThan(0);
     expect(castle.row).toBeLessThan(interior.rows - 1);
 
-    const onRoad = interior.road.some((c) => c.col === castle.col && c.row === castle.row);
-    expect(onRoad).toBe(false);
     const onField = interior.fields.some((f) => f.col === castle.col && f.row === castle.row);
     expect(onField).toBe(false);
+  });
+
+  it('always puts a road to the castle gate', () => {
+    // A keep a road cannot reach is a keep nothing can relieve, resupply or
+    // besiege by the movement rules the rest of the map obeys.
+    for (const exits of [['e', 's'], ['n'], ['n', 'e', 's', 'w'], []] as const) {
+      const interior = build(exits);
+      const onRoad = interior.road.some(
+        (c) => c.col === interior.castle.col && c.row === interior.castle.row,
+      );
+      expect(onRoad, `exits=[${exits.join(',')}]`).toBe(true);
+    }
+  });
+
+  it('keeps the castle road joined to the network, not a stranded stub', () => {
+    // The spur has to actually connect: a road AT the gate that touches nothing
+    // else would satisfy the test above while leading nowhere.
+    const interior = build(['e', 's']);
+    const road = new Set(interior.road.map((c) => `${c.col},${c.row}`));
+    const { castle } = interior;
+    const neighbours = [
+      `${castle.col},${castle.row - 1}`,
+      `${castle.col + 1},${castle.row}`,
+      `${castle.col},${castle.row + 1}`,
+      `${castle.col - 1},${castle.row}`,
+    ].filter((k) => road.has(k));
+    expect(neighbours.length).toBeGreaterThan(0);
   });
 
   it('gives a county its hard-mineral site and no other', () => {

@@ -245,7 +245,7 @@ export function createInterior(opts: {
   // --- roads -------------------------------------------------------------
   // Laid FIRST, so the ground layer knows to keep them clear. A road that
   // ends in a mountain is not a road.
-  const road = buildRoads(town, { cols, rows }, exits);
+  const road = buildRoads(town, castleAt(cols, rows), { cols, rows }, exits);
   const onRoad = new Set(road.map((c) => cellKey(c.col, c.row)));
 
   // Far enough from the town to read as its own building, close enough to
@@ -365,6 +365,25 @@ export function createInterior(opts: {
 }
 
 /**
+ * Where the keep stands.
+ *
+ * One column across and two rows back from the town: diagonal, so the two
+ * sprites never touch, and never on the grid's outer ring where half the keep
+ * would sit off the edge of the view.
+ *
+ * Computed rather than stored because the roads have to know it before the
+ * interior exists — a castle a road cannot reach is a castle nothing can
+ * relieve, resupply or besiege by the rules the map is drawn to.
+ */
+function castleAt(cols: number, rows: number) {
+  const town = { col: Math.floor(cols / 2), row: Math.floor(rows / 2) };
+  return {
+    col: Math.min(cols - 2, Math.max(1, town.col - 1)),
+    row: Math.min(rows - 2, Math.max(1, town.row - 2)),
+  };
+}
+
+/**
  * Lay the county's roads: town centre out to each edge that has a neighbour.
  *
  * An L-path (along the row, then along the column) rather than anything
@@ -377,6 +396,7 @@ export function createInterior(opts: {
  */
 function buildRoads(
   town: { readonly col: number; readonly row: number },
+  castle: { readonly col: number; readonly row: number },
   bounds: { readonly cols: number; readonly rows: number },
   exits: readonly Exit[],
 ): { readonly col: number; readonly row: number }[] {
@@ -407,6 +427,16 @@ function buildRoads(
     for (let r = town.row; r !== target.row; r += stepRow) push(target.col, r);
     push(target.col, target.row);
   }
+
+  // A spur to the keep. Every castle must be reachable by road: a garrison is
+  // relieved, resupplied and besieged along one, and a keep sitting in a field
+  // with no way in contradicts the movement rules the rest of the map obeys.
+  // The same L-path as the exits, run inward from the town rather than out.
+  const stepRow = Math.sign(castle.row - town.row);
+  for (let r = town.row; r !== castle.row; r += stepRow) push(town.col, r);
+  const stepCol = Math.sign(castle.col - town.col);
+  for (let c = town.col; c !== castle.col; c += stepCol) push(c, castle.row);
+  push(castle.col, castle.row);
 
   return out;
 }

@@ -7,9 +7,6 @@ import { healthFromRations, projectProduction, type Health } from '../../domain/
 import type { Resource } from '../../domain/resources';
 import { describeTurn, seasonOfTurn } from '../../domain/season';
 import {
-  armyBearerArt,
-  armySizeBand,
-  armySoldierArt,
   overheadCastleArt,
   overheadFieldArt,
   overheadForestArt,
@@ -65,29 +62,41 @@ export function CountyOverhead({ county, map, match }: Props) {
   const bounds = { cols: interior.cols, rows: interior.rows };
   const masks = roadMasks(interior.road, bounds);
 
-  // Sprites stand on the ground, so they must be drawn in row order together
-  // with it — a castle two rows back has to be covered by the land in front of
-  // it, not painted over the whole map afterwards.
-  const bandOf = (row: number) => row;
-  const bands = new Map<number, JSX.Element[]>();
-  const put = (row: number, el: JSX.Element) => {
-    const band = bands.get(bandOf(row)) ?? [];
+  // TWO LAYERS, and the split matters.
+  //
+  // Tiles first, all of them, in row order so each row's depth band is covered
+  // by the row in front. THEN sprites, also in row order so they occlude each
+  // other correctly.
+  //
+  // Interleaving them was a real bug: a figure standing on row r had its legs
+  // painted over by the ground tile of row r+1, because that tile is drawn
+  // later and its canvas overlaps upward. Buildings are tall enough to survive
+  // losing their base; a man is not, and came out as a head and a flag.
+  //
+  // Flat ground in front of a standing figure should never hide it — the
+  // ground is at floor level and the figure rises off it.
+  const tiles = new Map<number, JSX.Element[]>();
+  const sprites = new Map<number, JSX.Element[]>();
+  const into = (layer: Map<number, JSX.Element[]>) => (row: number, el: JSX.Element) => {
+    const band = layer.get(row) ?? [];
     band.push(el);
-    bands.set(bandOf(row), band);
+    layer.set(row, band);
   };
+  const putTile = into(tiles);
+  const put = into(sprites);
 
   for (const cell of interior.ground) {
-    put(cell.row, <GroundTile key={`g${cell.col}_${cell.row}`} cell={cell} />);
+    putTile(cell.row, <GroundTile key={`g${cell.col}_${cell.row}`} cell={cell} />);
   }
   // Fields go down over the ground and UNDER the roads: a road is cut through
   // worked land, not ploughed over.
   for (const field of interior.fields) {
-    put(field.row, <FieldTileView key={field.id} field={field} />);
+    putTile(field.row, <FieldTileView key={field.id} field={field} />);
   }
   for (const cell of interior.road) {
     const mask = masks[`${cell.col},${cell.row}`];
     if (mask === undefined) continue;
-    put(cell.row, <RoadTile key={`r${cell.col}_${cell.row}`} cell={cell} mask={mask} />);
+    putTile(cell.row, <RoadTile key={`r${cell.col}_${cell.row}`} cell={cell} mask={mask} />);
   }
   // Peaks and woods are sprites standing on their own ground, not flat tiles.
   // See overheadMountainArt for why that distinction matters at this camera —
@@ -116,23 +125,14 @@ export function CountyOverhead({ county, map, match }: Props) {
     );
   }
 
-  // Armies go down AFTER the buildings they stand beside. Within a row things
-  // paint in the order they were added, so a garrison queued before the keep is
-  // a garrison painted over by it.
-  for (const army of Object.values(match.armies)) {
-    if (army.location.kind !== 'garrison' || army.location.county !== county.id) continue;
-    const owner = match.players.find((p) => p.id === army.owner);
-    put(
-      castle.row,
-      <ArmySprite
-        key={army.id}
-        col={castle.col}
-        row={castle.row}
-        seat={owner?.seat ?? 0}
-        troops={Object.values(army.troops).reduce((a, b) => a + (b ?? 0), 0)}
-      />,
-    );
-  }
+  // GARRISONED ARMIES ARE NOT DRAWN. A garrison is inside its castle, and the
+  // keep on the map already says the county is held — a token standing in the
+  // field beside it says the men are in the field, which is the opposite of
+  // what garrisoned means. Tokens appear when an army takes the road.
+  //
+  // Marching armies are not placed yet: an in-transit army lives on a BORDER
+  // between two counties, not on a cell inside one, so where it draws is a
+  // question for the realm map rather than this screen.
 
   // The caravan, if it is in this county. Its cell always sits on a road —
   // county/movement.ts is what guarantees a wagon can never be anywhere else.
@@ -141,7 +141,8 @@ export function CountyOverhead({ county, map, match }: Props) {
     put(row, <WagonSprite key="merchant" col={col} row={row} />);
   }
 
-  const rows = [...bands.keys()].sort((a, b) => a - b);
+  const tileRows = [...tiles.keys()].sort((a, b) => a - b);
+  const spriteRows = [...sprites.keys()].sort((a, b) => a - b);
 
   return (
     <div className="ov">
@@ -155,8 +156,11 @@ export function CountyOverhead({ county, map, match }: Props) {
           role="img"
           aria-label={`${county.name}, seen from above in ${season}`}
         >
-          {rows.map((row) => (
-            <g key={row}>{bands.get(row)}</g>
+          {tileRows.map((row) => (
+            <g key={`t${row}`}>{tiles.get(row)}</g>
+          ))}
+          {spriteRows.map((row) => (
+            <g key={`s${row}`}>{sprites.get(row)}</g>
           ))}
         </svg>
 
@@ -257,69 +261,6 @@ function MountainSprite({ col, row }: { col: number; row: number }) {
   const art = overheadMountainArt();
   if (art.missing || !art.url) return null;
   return <MapSprite col={col} row={row} url={art.url} size={1.5} label="Mountain" />;
-}
-
-/**
- * An army standing on the map.
- *
- * Two questions answered without opening anything: WHOSE, from the flag the
- * bearer carries in the owner's seat colour, and HOW BIG, from the number of
- * figures — one, two or three for small, medium and large.
- *
- * Only the bearer is coloured. Three men carrying three flags would read as
- * three armies rather than one large one, which is the opposite of what the
- * count is for.
- */
-const FIGURES_FOR: Record<ReturnType<typeof armySizeBand>, number> = {
-  small: 1,
-  medium: 2,
-  large: 3,
-};
-
-/** A loose knot, so two and three read as "more men" and not as a formation. */
-const FIGURE_OFFSETS = [
-  { x: -0.5, y: 0.9 },
-  { x: -0.16, y: 1.32 },
-  { x: -0.84, y: 1.36 },
-] as const;
-
-function ArmySprite({
-  col,
-  row,
-  seat,
-  troops,
-}: {
-  col: number;
-  row: number;
-  seat: number;
-  troops: number;
-}) {
-  const bearer = armyBearerArt(seat);
-  const soldier = armySoldierArt();
-  const count = FIGURES_FOR[armySizeBand(troops)];
-
-  // Bearer last, so his flag is never hidden behind a spearman's shoulder.
-  const figures = FIGURE_OFFSETS.slice(0, count)
-    .map((offset, i) => ({ offset, art: i === 0 ? bearer : soldier, key: i }))
-    .reverse();
-
-  return (
-    <>
-      {figures.map(({ offset, art, key }) =>
-        art.missing || !art.url ? null : (
-          <MapSprite
-            key={key}
-            col={col}
-            row={row}
-            url={art.url}
-            size={1.15}
-            offset={offset}
-            label={`${troops} men`}
-          />
-        ),
-      )}
-    </>
-  );
 }
 
 function ForestSprite({ col, row }: { col: number; row: number }) {

@@ -194,12 +194,28 @@ function firstMerchantPost(
   const interior = start ? counties[start.county]?.interior : null;
   if (!start || !interior) return null;
 
-  const onGrid = interior.road.filter(
-    (c) => c.col >= 0 && c.row >= 0 && c.col < interior.cols && c.row < interior.rows,
-  );
   // Furthest along the road from the town, so the wagon reads as passing
   // through rather than parked in the market square.
-  const post = onGrid[onGrid.length - 1];
+  //
+  // Measured rather than "the last cell in the list": the road now ends with a
+  // spur to the castle gate, so taking the tail parked the caravan against the
+  // keep. The castle cell is excluded outright — a merchant waits on the
+  // highway, not in the bailey.
+  const { castle } = interior;
+  const candidates = interior.road.filter(
+    (c) =>
+      c.col >= 0 &&
+      c.row >= 0 &&
+      c.col < interior.cols &&
+      c.row < interior.rows &&
+      !(c.col === castle.col && c.row === castle.row),
+  );
+  const fromTown = (c: { col: number; row: number }) =>
+    Math.hypot(c.col - interior.town.col, c.row - interior.town.row);
+  const post = candidates.reduce<(typeof candidates)[number] | undefined>(
+    (best, c) => (best === undefined || fromTown(c) > fromTown(best) ? c : best),
+    undefined,
+  );
   return post ? { county: start.county, at: { col: post.col, row: post.row } } : null;
 }
 
