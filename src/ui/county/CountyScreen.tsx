@@ -15,6 +15,7 @@ import {
   setLabourSplit,
   toggleIndustry,
 } from '../../domain/county/actions';
+import { advanceSeason, type SeasonEvent } from '../../domain/turn/advanceTurn';
 import { describeTurn, seasonOfTurn, type Season } from '../../domain/season';
 import {
   bannerArt,
@@ -90,6 +91,7 @@ export function CountyScreen({ county, match, onChange, onBack }: Props) {
   const [editing, setEditing] = useState<FieldTile | null>(null);
   const [confirming, setConfirming] = useState<{ field: FieldTile; to: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [report, setReport] = useState<readonly SeasonEvent[] | null>(null);
 
   const season = seasonOfTurn(match.turn.number);
   const interior = state?.interior ?? null;
@@ -235,6 +237,11 @@ export function CountyScreen({ county, match, onChange, onBack }: Props) {
           projection={projection}
           season={season}
           onShare={(v) => dispatch(setLabourSplit(match, county.id, v))}
+          onEndTurn={() => {
+            const result = advanceSeason(match);
+            onChange(result.match);
+            setReport(result.events);
+          }}
         />
       </div>
 
@@ -293,6 +300,20 @@ export function CountyScreen({ county, match, onChange, onBack }: Props) {
       )}
 
       {info && <InfoSheet content={info} onClose={() => setInfo(null)} />}
+
+      {report && (
+        <InfoSheet
+          content={{
+            title: `${describeTurn(match.turn.number)} begins`,
+            lines: [],
+            note:
+              report.length === 0
+                ? 'A quiet season. Nothing of note happened.'
+                : report.map((e) => `· ${e.detail}`).join('\n'),
+          }}
+          onClose={() => setReport(null)}
+        />
+      )}
     </div>
   );
 }

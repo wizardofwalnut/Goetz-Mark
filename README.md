@@ -164,6 +164,21 @@ Decisions not specified by the doc, made here:
 The unit and stance numbers are first pass and expected to move. "Muster a
 battle" in the control panel is where they get exercised.
 
+## Settled design decisions
+
+Recorded so they are not reopened:
+
+- **Interaction: tap acts, long-press informs.** Load-bearing across every
+  target on the county screen; see `src/ui/useLongPress.ts`.
+- **Five castle tiers**, superseding the original design doc's three.
+- **Seasons are turns**, with full seasonal art.
+- **No fog of war**, but visibility is a per-player query so it stays a filter
+  rather than a rewrite if that ever changes.
+- **No Advanced Farming and no Army Foraging.** Both were optional difficulty
+  toggles in the source game; neither is being built. Grain uses one labour
+  requirement across the season cycle, and armies are self-sustaining rather
+  than eating from the county they stand in.
+
 ## Open design questions
 
 Carried from the design doc, deliberately modelled as config rather than

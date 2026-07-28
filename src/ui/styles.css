@@ -868,3 +868,17 @@ body {
   .cs-body { flex-direction: row; }
   .labour { border-top: none; border-left: 1px solid var(--ink-line); width: 340px; max-height: none; }
 }
+
+.end-turn {
+  margin-top: 14px;
+  width: 100%;
+  background: rgb(201 162 39 / 0.12);
+  border: 1px solid var(--gold);
+  color: var(--gold-bright);
+  font-family: var(--display);
+  font-size: 15px;
+  padding: 11px;
+  border-radius: 3px;
+}
+.end-turn:active { background: rgb(201 162 39 / 0.26); }
+.cs-sheet .note { white-space: pre-line; }

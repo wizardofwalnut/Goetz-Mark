@@ -22,9 +22,10 @@ interface Props {
   readonly projection: ProductionProjection | null;
   readonly season: Season;
   readonly onShare: (value: number) => void;
+  readonly onEndTurn: () => void;
 }
 
-export function LabourPanel({ share, projection, season, onShare }: Props) {
+export function LabourPanel({ share, projection, season, onShare, onEndTurn }: Props) {
   return (
     <div className="labour">
       <div className="labour-head">
@@ -83,6 +84,12 @@ export function LabourPanel({ share, projection, season, onShare }: Props) {
           Winter — the fields yield nothing. The county eats from its stores.
         </p>
       )}
+
+      {/* Ending the season is the only irreversible action on this screen, so
+          it sits apart from the reversible slider above it. */}
+      <button className="btn end-turn" onClick={onEndTurn}>
+        End the season
+      </button>
     </div>
   );
 }
