@@ -14,11 +14,12 @@ import type { MaterialResource } from '../resources';
  * Three rules from the design doc meet here, and each is a deliberate departure
  * from or fidelity to the source:
  *
- *  1. An UNDEFENDED county is annexed peacefully. The original forced a battle
- *     even against nothing; the doc cuts that on purpose.
- *  2. A DEFENDED county forces a battle, and only a cleared field takes the
- *     ground. A stalemate leaves the defender holding it, so attacking is never
- *     free.
+ *  1. A county with NO GARRISON is not walked into. The keep gives no shelter
+ *     to men who are not in it, so the objective becomes the town, and the town
+ *     turns out what it has. No county changes hands for free.
+ *  2. A DEFENDED county forces a battle at the keep, and only a cleared field
+ *     takes the ground. A stalemate leaves the defender holding it, so
+ *     attacking is never free.
  *  3. Counties CUT OFF from their owner's capital fall away. Holding a
  *     connected chain is what makes contiguous territory worth planning for.
  */
@@ -40,6 +41,25 @@ const DEFAULT_ATTACK_STANCE: Stance = 'balanced';
 
 /** Seasons a mercenary contingent tolerates going unpaid before it walks. */
 export const DESERTION_AFTER_SEASONS = 2;
+
+/**
+ * Share of a county's people who turn out when there is no garrison.
+ *
+ * Small on purpose. These are townsfolk with whatever came to hand, and the
+ * rule exists so that taking ground costs SOMETHING — not so that it stops an
+ * army. Any real force beats them while paying for it.
+ *
+ * Modelled as militia rather than as a unit kind of their own: militia already
+ * means "untrained bodies" in content/units.ts, and a fifth kind would mean
+ * touching the counter table and the resolver, which is combat design. Battles
+ * are staying minimal until the county and economy layers are finished.
+ */
+const TOWN_LEVY_SHARE = 0.03;
+const MIN_TOWN_LEVY = 3;
+
+/** How many the town can put in the street. */
+export const townLevy = (population: number): number =>
+  population <= 0 ? 0 : Math.max(MIN_TOWN_LEVY, Math.round(population * TOWN_LEVY_SHARE));
 
 export function resolveConquest(match: MatchState, ix: MapIndex): ConquestResult {
   const events: ConquestEvent[] = [];
@@ -72,21 +92,76 @@ export function resolveConquest(match: MatchState, ix: MapIndex): ConquestResult
       (a, b) => troopCount(b.troops) - troopCount(a.troops),
     )[0]!;
 
+    const attackerTroops = mergeTroops(attackers);
+
     if (defenders.length === 0) {
-      // Rule 1: nothing to fight. The county changes hands quietly.
-      current = setOwner(current, countyId, lead.owner);
-      takenThisSeason.add(countyId);
-      events.push({
-        county: countyId,
-        kind: 'annexed',
-        detail: `${countyId} annexed without a fight`,
+      // Rule 1: no garrison, so no assault on the keep — an empty castle
+      // shelters nobody and confers NOTHING. The fight is in the streets
+      // against whoever the town could muster.
+      const levy = townLevy(county.population);
+      if (levy === 0) {
+        current = setOwner(current, countyId, lead.owner);
+        takenThisSeason.add(countyId);
+        events.push({
+          county: countyId,
+          kind: 'annexed',
+          detail: `${countyId} taken — nobody left to hold it`,
+        });
+        continue;
+      }
+
+      const street = resolveBattle({
+        attacker: {
+          troops: attackerTroops,
+          stance: DEFAULT_ATTACK_STANCE,
+          factionId: factionOf(current, lead.owner),
+        },
+        defender: {
+          troops: { militia: levy },
+          stance: DEFAULT_DEFENCE_STANCE,
+          factionId: county.owner ? factionOf(current, county.owner) : null,
+        },
+        terrain: 'open',
+        seed: seedFrom(current.id, current.turn.number, countyId),
       });
+
+      current = applyCasualties(current, attackers, street.attackerLosses, 1);
+
+      // The levy WAS the population, so its dead come off the people rather
+      // than off an army. No Army record is created for it: townsfolk cannot
+      // be marched, merged, or drawn upkeep for.
+      const fallen = troopCount(street.defenderLosses);
+      const after = current.counties[countyId];
+      if (after) {
+        current = {
+          ...current,
+          counties: {
+            ...current.counties,
+            [countyId]: { ...after, population: Math.max(0, after.population - fallen) },
+          },
+        };
+      }
+
+      if (attackerTakesGround(street)) {
+        current = setOwner(current, countyId, lead.owner);
+        takenThisSeason.add(countyId);
+        events.push({
+          county: countyId,
+          kind: 'battle',
+          detail: `${countyId} taken in the streets — ${fallen} townsfolk fell`,
+        });
+      } else {
+        events.push({
+          county: countyId,
+          kind: 'repelled',
+          detail: `${countyId} held by its own people`,
+        });
+      }
       continue;
     }
 
-    // Rule 2: a defended county forces a battle.
+    // Rule 2: a manned keep is assaulted, and the walls count.
     const defenderTroops = mergeTroops(defenders);
-    const attackerTroops = mergeTroops(attackers);
     const castle = CASTLES[county.castleTier];
 
     const result = resolveBattle({

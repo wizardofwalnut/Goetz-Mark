@@ -1,12 +1,14 @@
 import type { CountyDef } from '../../domain/map/mapTypes';
 import type { GameMap } from '../../domain/map/mapTypes';
 import type { MatchState } from '../../domain/match/matchState';
+import { isDefended } from '../../domain/match/matchState';
 import type { FieldTile, GroundCell, IndustrySiteState } from '../../domain/county/interior';
 import { stageOf } from '../../domain/county/interior';
 import { healthFromRations, projectProduction, type Health } from '../../domain/county/labour';
 import type { Resource } from '../../domain/resources';
 import { describeTurn, seasonOfTurn } from '../../domain/season';
 import {
+  castleFlagArt,
   overheadCastleArt,
   overheadFieldArt,
   overheadForestArt,
@@ -123,6 +125,16 @@ export function CountyOverhead({ county, map, match }: Props) {
       castle.row,
       <CastleSprite key="keep" col={castle.col} row={castle.row} tier={state.castleTier} />,
     );
+    // Flag up only when there are men inside. An empty keep now shelters
+    // nobody and adds nothing to the defence, so "is it manned?" is the single
+    // most useful thing this screen can tell an attacker at a glance.
+    const holder = state.owner ? match.players.find((p) => p.id === state.owner) : null;
+    if (holder && isDefended(match, county.id)) {
+      put(
+        castle.row,
+        <CastleFlag key="flag" col={castle.col} row={castle.row} seat={holder.seat} />,
+      );
+    }
   }
 
   // GARRISONED ARMIES ARE NOT DRAWN. A garrison is inside its castle, and the
@@ -261,6 +273,22 @@ function MountainSprite({ col, row }: { col: number; row: number }) {
   const art = overheadMountainArt();
   if (art.missing || !art.url) return null;
   return <MapSprite col={col} row={row} url={art.url} size={1.5} label="Mountain" />;
+}
+
+/** Flies above the keep, offset up and right so it clears the battlements. */
+function CastleFlag({ col, row, seat }: { col: number; row: number; seat: number }) {
+  const art = castleFlagArt(seat);
+  if (art.missing || !art.url) return null;
+  return (
+    <MapSprite
+      col={col}
+      row={row}
+      url={art.url}
+      size={1.0}
+      offset={{ x: 0.34, y: -1.15 }}
+      label="Garrisoned"
+    />
+  );
 }
 
 function ForestSprite({ col, row }: { col: number; row: number }) {

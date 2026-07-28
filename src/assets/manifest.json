@@ -549,6 +549,18 @@
     },
     "overhead.army.soldier": {
       "path": "overhead/sprite/army-soldier.png"
+    },
+    "overhead.castle.flag.0": {
+      "path": "overhead/sprite/castle-flag-0.png"
+    },
+    "overhead.castle.flag.1": {
+      "path": "overhead/sprite/castle-flag-1.png"
+    },
+    "overhead.castle.flag.2": {
+      "path": "overhead/sprite/castle-flag-2.png"
+    },
+    "overhead.castle.flag.3": {
+      "path": "overhead/sprite/castle-flag-3.png"
     }
   }
 }

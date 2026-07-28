@@ -183,15 +183,56 @@ describe('conquest', () => {
     return moved.match;
   };
 
-  it('annexes an undefended county without a fight', () => {
-    // The design doc's deliberate change from the original, which forced a
-    // battle even against nothing.
+  it('makes an ungarrisoned county fight for itself rather than be walked into', () => {
+    // No county changes hands for free, neutral ground included. The keep
+    // shelters nobody when nobody is in it, so the town turns out instead.
     const m = marchOn();
     expect(m.counties[GREYFEN]!.owner).toBeNull();
+    expect(m.counties[GREYFEN]!.population).toBeGreaterThan(0);
 
     const result = resolveConquest(m, ix);
+    expect(result.events.some((e) => e.kind === 'annexed')).toBe(false);
+    expect(result.events.some((e) => e.kind === 'battle' || e.kind === 'repelled')).toBe(true);
+  });
+
+  it('takes the county anyway when a real army comes — the levy is a speed bump', () => {
+    // The levy exists to cost the attacker something, not to stop them. If 30
+    // militia cannot take a town defended by a handful of townsfolk, the number
+    // is wrong.
+    const m = marchOn();
+    const result = resolveConquest(m, ix);
     expect(result.match.counties[GREYFEN]!.owner).toBe(m.counties[HOLLOWMERE]!.owner);
-    expect(result.events.some((e) => e.kind === 'annexed')).toBe(true);
+  });
+
+  it('takes the fallen out of the county population', () => {
+    // The levy WAS the people. Storming a county costs it inhabitants, which
+    // is the consequence that makes an empty castle a real risk.
+    const m = marchOn();
+    const before = m.counties[GREYFEN]!.population;
+    const result = resolveConquest(m, ix);
+    expect(result.match.counties[GREYFEN]!.population).toBeLessThan(before);
+  });
+
+  it('gives an empty castle no defensive credit', () => {
+    // The point of the whole rule. A keep with a garrison multiplies what
+    // survives; a keep with nobody in it must change nothing at all, so the
+    // same assault on the same county resolves identically whatever tier of
+    // castle is standing empty on it.
+    const m = marchOn();
+    const withKeep = {
+      ...m,
+      counties: {
+        ...m.counties,
+        [GREYFEN]: { ...m.counties[GREYFEN]!, castleTier: 'royalCastle' as const },
+      },
+    };
+    const bare = resolveConquest(m, ix);
+    const fortified = resolveConquest(withKeep, ix);
+
+    expect(fortified.match.counties[GREYFEN]!.population).toBe(
+      bare.match.counties[GREYFEN]!.population,
+    );
+    expect(fortified.match.counties[GREYFEN]!.owner).toBe(bare.match.counties[GREYFEN]!.owner);
   });
 
   it('forces a battle when the county is defended', () => {

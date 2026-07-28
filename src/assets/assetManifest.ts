@@ -313,6 +313,17 @@ export const equipmentArt = (name: string) => resolveAsset([`equipment.${name}`]
 
 export const overheadCastleArt = (tier: CastleTier) => resolveAsset([`overhead.castle.${tier}`]);
 
+/**
+ * The pennant a MANNED keep flies, in its holder's seat colour.
+ *
+ * Flag up means the castle has a garrison in it; a bare keep means the county
+ * is held but empty, and an empty keep now confers no defence at all. So this
+ * is not decoration — it is the readout for the one thing an attacker most
+ * wants to know before committing.
+ */
+export const castleFlagArt = (seat: number) =>
+  resolveAsset([`overhead.castle.flag.${((seat % 4) + 4) % 4}`]);
+
 export const overheadIndustryArt = (kind: IndustryKind) =>
   resolveAsset([`overhead.industry.${kind}`]);
 

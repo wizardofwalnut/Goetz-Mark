@@ -1,0 +1,18 @@
+[
+  { "key": "overhead.castle.flag.0", "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight" }],
+    "args": { "description": "A tall flagpole flying one large simple rectangular banner of flat bold CRIMSON RED cloth, no emblem, on a transparent background, seen from high above at a steep angle. Just the pole and the banner, nothing else. No ground, no building, no sky.", "width": 48, "height": 48, "no_background": true, "seed": 3301 },
+    "outDir": "overhead/candidates/flag0" },
+  { "key": "overhead.castle.flag.1", "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight" }],
+    "args": { "description": "A tall flagpole flying one large simple rectangular banner of flat bold AZURE BLUE cloth, no emblem, on a transparent background, seen from high above at a steep angle. Just the pole and the banner, nothing else. No ground, no building, no sky.", "width": 48, "height": 48, "no_background": true, "seed": 3302 },
+    "outDir": "overhead/candidates/flag1" },
+  { "key": "overhead.castle.flag.2", "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight" }],
+    "args": { "description": "A tall flagpole flying one large simple rectangular banner of flat bright GOLDEN YELLOW cloth, no emblem, on a transparent background, seen from high above at a steep angle. Just the pole and the banner, nothing else. No ground, no building, no sky.", "width": 48, "height": 48, "no_background": true, "seed": 3303 },
+    "outDir": "overhead/candidates/flag2" },
+  { "key": "overhead.castle.flag.3", "tool": "create_image_pro",
+    "references": [{ "file": "tools/references/mountain-style.png", "usage": "camera angle, faceted pixel shading, outline weight" }],
+    "args": { "description": "A tall flagpole flying one large simple rectangular banner of solid pure BLACK cloth filled edge to edge, no emblem and no pale trim, on a transparent background, seen from high above at a steep angle. Just the pole and the banner, nothing else. No ground, no building, no sky.", "width": 48, "height": 48, "no_background": true, "seed": 3304 },
+    "outDir": "overhead/candidates/flag3" }
+]

@@ -428,15 +428,74 @@ function buildRoads(
     push(target.col, target.row);
   }
 
-  // A spur to the keep. Every castle must be reachable by road: a garrison is
-  // relieved, resupplied and besieged along one, and a keep sitting in a field
-  // with no way in contradicts the movement rules the rest of the map obeys.
-  // The same L-path as the exits, run inward from the town rather than out.
-  const stepRow = Math.sign(castle.row - town.row);
-  for (let r = town.row; r !== castle.row; r += stepRow) push(town.col, r);
-  const stepCol = Math.sign(castle.col - town.col);
-  for (let c = town.col; c !== castle.col; c += stepCol) push(c, castle.row);
-  push(castle.col, castle.row);
+  // A spur to the keep, joining the network WITHOUT crossing the market square.
+  //
+  // Every castle must be reachable by road — a garrison is relieved, resupplied
+  // and besieged along one — but an army riding to the keep should not have to
+  // file through the town centre to get there.
+  //
+  // Shortest path rather than another L-path: the castle sits diagonally from
+  // the town and the exit runs lie along the town's row and column, so which
+  // side the spur ought to join depends on which exits the county actually has.
+  // That case analysis goes wrong before it goes long.
+  for (const cell of pathToRoad(castle, town, bounds, seen)) push(cell.col, cell.row);
 
   return out;
+}
+
+/**
+ * Shortest path from the castle to the road network, never through the town.
+ *
+ * Breadth-first over the grid, with the town cell removed from the graph
+ * entirely — not merely avoided as a goal. A county whose only road IS the town
+ * has nothing else to reach, so the search finds nothing and the spur is just
+ * the gate cell: there is no through-route to divert, because there is no
+ * through-route.
+ */
+function pathToRoad(
+  castle: { readonly col: number; readonly row: number },
+  town: { readonly col: number; readonly row: number },
+  bounds: { readonly cols: number; readonly rows: number },
+  road: ReadonlySet<string>,
+): { col: number; row: number }[] {
+  const start = { col: castle.col, row: castle.row };
+  const isTown = (c: { col: number; row: number }) => c.col === town.col && c.row === town.row;
+
+  const queue: { col: number; row: number }[] = [start];
+  const cameFrom = new Map<string, string | null>([[cellKey(start.col, start.row), null]]);
+  const at = new Map<string, { col: number; row: number }>([
+    [cellKey(start.col, start.row), start],
+  ]);
+
+  let goal: string | null = null;
+  while (queue.length > 0) {
+    const cell = queue.shift()!;
+    const key = cellKey(cell.col, cell.row);
+    if (road.has(key) && !isTown(cell) && key !== cellKey(start.col, start.row)) {
+      goal = key;
+      break;
+    }
+    for (const [dc, dr] of [[0, -1], [1, 0], [0, 1], [-1, 0]] as const) {
+      const next = { col: cell.col + dc, row: cell.row + dr };
+      const nk = cellKey(next.col, next.row);
+      if (cameFrom.has(nk)) continue;
+      if (next.col < 0 || next.row < 0 || next.col >= bounds.cols || next.row >= bounds.rows) {
+        continue;
+      }
+      if (isTown(next)) continue;
+      cameFrom.set(nk, key);
+      at.set(nk, next);
+      queue.push(next);
+    }
+  }
+
+  // Nothing to join: the gate still gets its cell so the castle is on a road.
+  if (goal === null) return [start];
+
+  const path: { col: number; row: number }[] = [];
+  for (let key: string | null = goal; key !== null; key = cameFrom.get(key) ?? null) {
+    const cell = at.get(key);
+    if (cell) path.push(cell);
+  }
+  return path;
 }
