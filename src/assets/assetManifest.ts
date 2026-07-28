@@ -282,13 +282,14 @@ export const overheadForestArt = () => resolveAsset(['overhead.sprite.forest']);
 export const overheadWagonArt = () => resolveAsset(['overhead.sprite.wagon']);
 
 /**
- * An armoured foot figure, for an army standing on the map.
+ * Equipment art, for the blacksmith/armory and merchant shop screens.
  *
- * Drawn once per figure rather than once per army: the county spec has the
- * FIGURE COUNT carry the army's size, so a player reads small/medium/large off
- * the map instead of opening a panel to find a number.
+ * NOT a map sprite. The spec builds both of those screens around a picture of
+ * the goods with a quantity control beside it — a suit of knight's armour, a
+ * bow, a militia weapon set — so these are addressed by what the thing IS
+ * rather than by where it stands.
  */
-export const overheadKnightArt = () => resolveAsset(['overhead.sprite.knight']);
+export const equipmentArt = (name: string) => resolveAsset([`equipment.${name}`]);
 
 export const overheadCastleArt = (tier: CastleTier) => resolveAsset([`overhead.castle.${tier}`]);
 

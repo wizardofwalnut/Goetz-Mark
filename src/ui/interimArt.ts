@@ -110,6 +110,14 @@ export interface PlannedArt {
 
 export const PLANNED_ART: readonly PlannedArt[] = [
   {
+    // Generated while building the county map, then taken back off it: the
+    // knight belongs in a shop window, not standing in a field. Kept rather
+    // than deleted because both screens are specced around a picture of the
+    // goods with a quantity control beside it.
+    forSurface: 'Blacksmith/armory and merchant shop screens — pictures of the goods',
+    keyPrefixes: ['equipment.'],
+  },
+  {
     forSurface: 'County screen — field tiles, industry sites and on-map sprites',
     keyPrefixes: ['field.', 'industry.', 'sprite.'],
   },

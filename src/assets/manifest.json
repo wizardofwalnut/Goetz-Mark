@@ -532,8 +532,8 @@
     "overhead.sprite.wagon": {
       "path": "overhead/sprite/wagon.png"
     },
-    "overhead.sprite.knight": {
-      "path": "overhead/sprite/knight.png"
+    "equipment.knightArmour": {
+      "path": "equipment/knight-armour.png"
     }
   }
 }
