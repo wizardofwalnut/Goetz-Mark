@@ -1,0 +1,38 @@
+[
+  {
+    "key": "overhead.sprite.wagon",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "tools/references/mountain-style.png",
+        "usage": "the camera angle, faceted pixel shading, outline weight and palette temperature — match this so the wagon sits in the same set as the terrain"
+      }
+    ],
+    "args": {
+      "description": "A merchant's covered wagon on a transparent background, seen from high above at a steep angle. Pale canvas tilt stretched over curved hoops, dark timber body, four spoked wooden wheels, a draught horse in harness at the front, small crates roped on behind. No ground, no road, no sky.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 9140
+    },
+    "outDir": "overhead/candidates/wagon"
+  },
+  {
+    "key": "overhead.sprite.knight",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "tools/references/mountain-style.png",
+        "usage": "the camera angle, faceted pixel shading, outline weight and palette temperature — match this so the figure sits in the same set as the terrain"
+      }
+    ],
+    "args": {
+      "description": "A single armoured knight standing on foot, on a transparent background, seen from high above at a steep angle so the helm and shoulders read first. Full steel plate armour, a crimson surcoat, a kite shield on the left arm and a sword held at the right side. No ground, no grass, no sky.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 9141
+    },
+    "outDir": "overhead/candidates/knight"
+  }
+]

@@ -272,6 +272,24 @@ export const overheadMountainArt = () => resolveAsset(['overhead.sprite.mountain
  */
 export const overheadForestArt = () => resolveAsset(['overhead.sprite.forest']);
 
+/**
+ * The merchant's covered wagon.
+ *
+ * One sprite, not one per cargo: the spec asks for the merchant wagon and the
+ * supply wagon to be visually distinct from each other, which is a difference
+ * between two vehicles rather than between loads.
+ */
+export const overheadWagonArt = () => resolveAsset(['overhead.sprite.wagon']);
+
+/**
+ * An armoured foot figure, for an army standing on the map.
+ *
+ * Drawn once per figure rather than once per army: the county spec has the
+ * FIGURE COUNT carry the army's size, so a player reads small/medium/large off
+ * the map instead of opening a panel to find a number.
+ */
+export const overheadKnightArt = () => resolveAsset(['overhead.sprite.knight']);
+
 export const overheadCastleArt = (tier: CastleTier) => resolveAsset([`overhead.castle.${tier}`]);
 
 export const overheadIndustryArt = (kind: IndustryKind) =>

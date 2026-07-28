@@ -171,8 +171,36 @@ export function createMatch(options: CreateMatchOptions): MatchState {
     counties,
     armies,
     treasuries,
+    // The caravan starts on the road of the first seat's county. It has to
+    // stand somewhere on a road, and the opening position is as good as any
+    // until it starts moving between counties.
+    merchant: firstMerchantPost(map, counties),
     winner: null,
   };
+}
+
+/**
+ * Where the caravan starts.
+ *
+ * On a road cell of the opening county — never on open ground, because a wagon
+ * that cannot legally be where it was placed is a bug waiting to be found by a
+ * player rather than by a test.
+ */
+function firstMerchantPost(
+  map: GameMap,
+  counties: Record<CountyId, CountyState>,
+): MatchState['merchant'] {
+  const start = map.starts[0];
+  const interior = start ? counties[start.county]?.interior : null;
+  if (!start || !interior) return null;
+
+  const onGrid = interior.road.filter(
+    (c) => c.col >= 0 && c.row >= 0 && c.col < interior.cols && c.row < interior.rows,
+  );
+  // Furthest along the road from the town, so the wagon reads as passing
+  // through rather than parked in the market square.
+  const post = onGrid[onGrid.length - 1];
+  return post ? { county: start.county, at: { col: post.col, row: post.row } } : null;
 }
 
 /**

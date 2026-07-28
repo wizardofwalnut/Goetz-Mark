@@ -28,7 +28,9 @@ import type { CountyInterior } from '../county/interior';
  *     about them.
  */
 
-export const MATCH_SCHEMA_VERSION = 1;
+// Bumped for the merchant caravan, which is new state a saved match will not
+// have. Migration reads a missing merchant as "none on the board yet".
+export const MATCH_SCHEMA_VERSION = 2;
 
 export type UnitKind = 'militia' | 'archers' | 'knights' | 'mercenaries';
 
@@ -194,7 +196,29 @@ export interface MatchState {
   readonly armies: Readonly<Record<ArmyId, Army>>;
   /** Empire-wide pooled building materials, one pool per player. */
   readonly treasuries: Readonly<Record<PlayerId, Treasury>>;
+  /**
+   * The travelling merchant, or null when none is on the board.
+   *
+   * ONE caravan for the whole realm, not one per player: the spec's trade rule
+   * is that you can only deal with the merchant while its wagon is physically
+   * inside your own borders, and that is only a decision worth making if there
+   * is a single wagon everyone is waiting on.
+   */
+  readonly merchant: Merchant | null;
   readonly winner: PlayerId | null;
+}
+
+/**
+ * The merchant caravan.
+ *
+ * Positioned by county AND by cell, because both matter and for different
+ * reasons: the county decides who may trade with it, the cell is where the
+ * wagon is drawn and which road it is following. Its travel rule — roads only,
+ * never across open land — lives in county/movement.ts as the `wheeled` kind.
+ */
+export interface Merchant {
+  readonly county: CountyId;
+  readonly at: { readonly col: number; readonly row: number };
 }
 
 // ---------------------------------------------------------------------------

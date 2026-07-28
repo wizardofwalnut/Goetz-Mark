@@ -12,10 +12,13 @@ import {
   overheadForestArt,
   overheadGroundArt,
   overheadIndustryArt,
+  overheadKnightArt,
   overheadMountainArt,
   overheadRoadArt,
   overheadTownArt,
+  overheadWagonArt,
   resourceArt,
+  armySizeBand,
 } from '../../assets/assetManifest';
 import { palette } from '../theme';
 import { Minimap } from './Minimap';
@@ -99,6 +102,7 @@ export function CountyOverhead({ county, map, match }: Props) {
     put(site.row, <IndustrySprite key={site.kind} site={site} />);
   }
 
+
   // The town is the anchor of the whole screen; the castle stands apart from
   // it on ground the interior reserved. Both positions come from the data —
   // the renderer does not get to decide where a building is.
@@ -109,6 +113,29 @@ export function CountyOverhead({ county, map, match }: Props) {
       castle.row,
       <CastleSprite key="keep" col={castle.col} row={castle.row} tier={state.castleTier} />,
     );
+  }
+
+  // Armies and the caravan go down AFTER the buildings they stand beside.
+  // Within a row the drawing order is the order things were added, so a
+  // garrison queued before the keep is a garrison painted over by it.
+  for (const army of Object.values(match.armies)) {
+    if (army.location.kind !== 'garrison' || army.location.county !== county.id) continue;
+    put(
+      castle.row,
+      <ArmySprite
+        key={army.id}
+        col={castle.col}
+        row={castle.row}
+        troops={Object.values(army.troops).reduce((a, b) => a + (b ?? 0), 0)}
+      />,
+    );
+  }
+
+  // The caravan, if it is in this county. Its cell always sits on a road —
+  // county/movement.ts is what guarantees a wagon can never be anywhere else.
+  if (match.merchant && match.merchant.county === county.id) {
+    const { col, row } = match.merchant.at;
+    put(row, <WagonSprite key="merchant" col={col} row={row} />);
   }
 
   const rows = [...bands.keys()].sort((a, b) => a - b);
@@ -248,6 +275,7 @@ function MapSprite({
   url,
   size,
   label,
+  offset,
 }: {
   col: number;
   row: number;
@@ -255,14 +283,16 @@ function MapSprite({
   /** Sprite footprint in tiles. A town covers more ground than a forge. */
   size: number;
   label: string;
+  /** Nudge within the cell, in tiles. Lets several figures share one cell. */
+  offset?: { readonly x: number; readonly y: number };
 }) {
   const centre = cellCentre(col, row);
   const w = TILE_W * size;
   return (
     <image
       href={url}
-      x={centre.x - w / 2}
-      y={centre.y + STRIDE_Y / 2 - w}
+      x={centre.x - w / 2 + (offset?.x ?? 0) * TILE_W}
+      y={centre.y + STRIDE_Y / 2 - w + (offset?.y ?? 0) * STRIDE_Y}
       width={w}
       height={w}
       style={{ imageRendering: 'pixelated' }}
@@ -290,6 +320,65 @@ function CastleSprite({
   const art = overheadCastleArt(tier);
   if (art.missing || !art.url) return null;
   return <MapSprite col={col} row={row} url={art.url} size={1.5} label="Castle" />;
+}
+
+/**
+ * An army on the map.
+ *
+ * The FIGURE COUNT carries the army's size — one, two or three men for small,
+ * medium and large. That is the spec's rule and it is the point: a player
+ * should read the strength of a garrison off the map at a glance rather than
+ * opening a panel to find a number. The figures fan out so they overlap the way
+ * a knot of men would, instead of standing in a rank.
+ */
+const FIGURES_FOR: Record<ReturnType<typeof armySizeBand>, number> = {
+  small: 1,
+  medium: 2,
+  large: 3,
+};
+
+// Men fall in on the far side of the keep from the town. The town sprite is
+// tall and stands nearer the camera, so anything placed between the two gets
+// painted over by a roof — correct occlusion, useless as a readout.
+const FIGURE_OFFSETS = [
+  { x: -0.5, y: 0.8 },
+  { x: -0.9, y: 1.3 },
+  { x: -0.15, y: 1.35 },
+] as const;
+
+function ArmySprite({ col, row, troops }: { col: number; row: number; troops: number }) {
+  const art = overheadKnightArt();
+  if (art.missing || !art.url) return null;
+  const count = FIGURES_FOR[armySizeBand(troops)];
+
+  return (
+    <>
+      {FIGURE_OFFSETS.slice(0, count).map((offset, i) => (
+        <MapSprite
+          key={i}
+          col={col}
+          row={row}
+          url={art.url!}
+          size={1.15}
+          offset={offset}
+          label={`${troops} men`}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * The merchant's wagon.
+ *
+ * Roads only — never across open land. That is not enforced here: the rule
+ * lives in county/movement.ts as the `wheeled` travel kind, so it holds for
+ * anything that moves the wagon rather than only for whatever draws it.
+ */
+function WagonSprite({ col, row }: { col: number; row: number }) {
+  const art = overheadWagonArt();
+  if (art.missing || !art.url) return null;
+  return <MapSprite col={col} row={row} url={art.url} size={1.15} label="Merchant caravan" />;
 }
 
 function IndustrySprite({ site }: { site: IndustrySiteState }) {

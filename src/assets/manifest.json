@@ -528,6 +528,12 @@
     },
     "overhead.sprite.forest": {
       "path": "overhead/sprite/forest.png"
+    },
+    "overhead.sprite.wagon": {
+      "path": "overhead/sprite/wagon.png"
+    },
+    "overhead.sprite.knight": {
+      "path": "overhead/sprite/knight.png"
     }
   }
 }
