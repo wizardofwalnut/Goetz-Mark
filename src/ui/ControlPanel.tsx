@@ -9,6 +9,7 @@ import { RESOURCE_LABELS, type Resource } from '../domain/resources';
 import { palette, seatColor, type } from './theme';
 import { crestArt, resourceArt } from '../assets/assetManifest';
 import { Sprite } from './Sprite';
+import { CASTLES } from '../content/castles';
 
 /**
  * The control panel beside the map.
@@ -23,16 +24,16 @@ interface ControlPanelProps {
   readonly match: MatchState;
   readonly selected: CountyId | null;
   readonly onOpenReport: () => void;
+  readonly onEnterCounty: (id: CountyId) => void;
 }
 
-const CASTLE_LABEL: Record<string, string> = {
-  none: 'No castle',
-  motteAndBailey: 'Motte & Bailey',
-  normanKeep: 'Norman Keep',
-  royalCastle: 'Royal Castle',
-};
-
-export function ControlPanel({ map, match, selected, onOpenReport }: ControlPanelProps) {
+export function ControlPanel({
+  map,
+  match,
+  selected,
+  onOpenReport,
+  onEnterCounty,
+}: ControlPanelProps) {
   const ix = indexMap(map);
   const turnPlayer = activePlayer(match);
   const county = selected ? ix.countyById.get(selected) : null;
@@ -129,7 +130,7 @@ export function ControlPanel({ map, match, selected, onOpenReport }: ControlPane
               </dd>
               <Stat label="Yield" value={`${county.yield}/turn`} />
               <Stat label="Build slots" value={String(county.size)} />
-              <Stat label="Castle" value={CASTLE_LABEL[countyState.castleTier] ?? '—'} />
+              <Stat label="Castle" value={CASTLES[countyState.castleTier].name} />
               <Stat label="Population" value={String(countyState.population)} />
               <Stat label="Happiness" value={`${countyState.happiness}%`} />
             </dl>
@@ -195,6 +196,15 @@ export function ControlPanel({ map, match, selected, onOpenReport }: ControlPane
         <button className="panel-action" onClick={onOpenReport}>
           Muster a battle
         </button>
+        {selected && (
+          <button
+            className="panel-action"
+            style={{ marginTop: 8 }}
+            onClick={() => onEnterCounty(selected)}
+          >
+            Enter {ix.countyById.get(selected)?.name ?? 'county'}
+          </button>
+        )}
       </section>
     </aside>
   );

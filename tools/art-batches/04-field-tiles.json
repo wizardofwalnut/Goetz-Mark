@@ -1,0 +1,65 @@
+[
+  {
+    "_note": "Field states via create_tiles_pro, not pixflux. pixflux composed a perspective field with a vanishing point instead of a flat tile — the same failure the terrain set hit. Indices are chosen after inspecting the 16 variations.",
+    "key": "fieldset.ground",
+    "tool": "create_tiles_pro",
+    "palette": false,
+    "outs": [
+      { "key": "scratch.g0", "out": "_scratch/g0.png", "tileIndex": 0 },
+      { "key": "scratch.g1", "out": "_scratch/g1.png", "tileIndex": 1 },
+      { "key": "scratch.g2", "out": "_scratch/g2.png", "tileIndex": 2 },
+      { "key": "scratch.g3", "out": "_scratch/g3.png", "tileIndex": 3 },
+      { "key": "scratch.g4", "out": "_scratch/g4.png", "tileIndex": 4 },
+      { "key": "scratch.g5", "out": "_scratch/g5.png", "tileIndex": 5 },
+      { "key": "scratch.g6", "out": "_scratch/g6.png", "tileIndex": 6 },
+      { "key": "scratch.g7", "out": "_scratch/g7.png", "tileIndex": 7 },
+      { "key": "scratch.g8", "out": "_scratch/g8.png", "tileIndex": 8 },
+      { "key": "scratch.g9", "out": "_scratch/g9.png", "tileIndex": 9 },
+      { "key": "scratch.g10", "out": "_scratch/g10.png", "tileIndex": 10 },
+      { "key": "scratch.g11", "out": "_scratch/g11.png", "tileIndex": 11 },
+      { "key": "scratch.g12", "out": "_scratch/g12.png", "tileIndex": 12 },
+      { "key": "scratch.g13", "out": "_scratch/g13.png", "tileIndex": 13 },
+      { "key": "scratch.g14", "out": "_scratch/g14.png", "tileIndex": 14 },
+      { "key": "scratch.g15", "out": "_scratch/g15.png", "tileIndex": 15 }
+    ],
+    "args": {
+      "description": "1). bare ploughed brown farm soil tile with furrow rows 2). dry cracked barren pale wasteland tile 3). green grass pasture tile 4). ripe golden wheat crop tile",
+      "tile_type": "square_topdown",
+      "tile_view": "top-down",
+      "tile_size": 64,
+      "outline_mode": "segmentation",
+      "seed": 8101
+    }
+  },
+  {
+    "key": "fieldset.grain",
+    "tool": "create_tiles_pro",
+    "palette": false,
+    "outs": [
+      { "key": "scratch.w0", "out": "_scratch/w0.png", "tileIndex": 0 },
+      { "key": "scratch.w1", "out": "_scratch/w1.png", "tileIndex": 1 },
+      { "key": "scratch.w2", "out": "_scratch/w2.png", "tileIndex": 2 },
+      { "key": "scratch.w3", "out": "_scratch/w3.png", "tileIndex": 3 },
+      { "key": "scratch.w4", "out": "_scratch/w4.png", "tileIndex": 4 },
+      { "key": "scratch.w5", "out": "_scratch/w5.png", "tileIndex": 5 },
+      { "key": "scratch.w6", "out": "_scratch/w6.png", "tileIndex": 6 },
+      { "key": "scratch.w7", "out": "_scratch/w7.png", "tileIndex": 7 },
+      { "key": "scratch.w8", "out": "_scratch/w8.png", "tileIndex": 8 },
+      { "key": "scratch.w9", "out": "_scratch/w9.png", "tileIndex": 9 },
+      { "key": "scratch.w10", "out": "_scratch/w10.png", "tileIndex": 10 },
+      { "key": "scratch.w11", "out": "_scratch/w11.png", "tileIndex": 11 },
+      { "key": "scratch.w12", "out": "_scratch/w12.png", "tileIndex": 12 },
+      { "key": "scratch.w13", "out": "_scratch/w13.png", "tileIndex": 13 },
+      { "key": "scratch.w14", "out": "_scratch/w14.png", "tileIndex": 14 },
+      { "key": "scratch.w15", "out": "_scratch/w15.png", "tileIndex": 15 }
+    ],
+    "args": {
+      "description": "1). dark soil with tiny green seedling shoots tile 2). young short green wheat tile 3). tall ripe golden wheat tile 4). rotted flattened grey-brown dead wheat tile",
+      "tile_type": "square_topdown",
+      "tile_view": "top-down",
+      "tile_size": 64,
+      "outline_mode": "segmentation",
+      "seed": 8102
+    }
+  }
+]

@@ -1,0 +1,410 @@
+[
+  {
+    "key": "castle.woodenPalisade",
+    "tool": "create_image_pixflux",
+    "out": "castle/wooden-palisade.png",
+    "args": {
+      "description": "simple medieval wooden palisade fort icon, timber stake wall ring around a small wooden hut, earthwork ditch, map marker symbol, dark ink outline, umber and straw, drawn on parchment, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7001
+    }
+  },
+  {
+    "key": "castle.stoneCastle",
+    "tool": "create_image_pixflux",
+    "out": "castle/stone-castle.png",
+    "args": {
+      "description": "medieval stone castle icon, curtain wall with corner towers and a gatehouse, map marker symbol, dark ink outline, grey stone and aged gold, drawn on parchment, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "medium detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7002
+    }
+  },
+  {
+    "key": "field.fallow",
+    "tool": "create_image_pixflux",
+    "out": "field/fallow.png",
+    "args": {
+      "description": "ploughed empty farm field seen from directly overhead, bare brown furrow rows, no crop, uniform all-over pattern, no horizon, no sky",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 12,
+      "seed": 7010
+    }
+  },
+  {
+    "key": "field.barren",
+    "tool": "create_image_pixflux",
+    "out": "field/barren.png",
+    "args": {
+      "description": "worked-out barren farm field seen from directly overhead, cracked dry pale earth with weeds, no furrows, uniform all-over pattern, no horizon, no sky",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 12,
+      "seed": 7011
+    }
+  },
+  {
+    "key": "field.cattle",
+    "tool": "create_image_pixflux",
+    "out": "field/cattle.png",
+    "args": {
+      "description": "green cattle pasture field seen from directly overhead, short grass with a few tufts, no animals, uniform all-over pattern, no horizon, no sky",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 12,
+      "seed": 7012
+    }
+  },
+  {
+    "key": "field.grain.sown",
+    "tool": "create_image_pixflux",
+    "out": "field/grain-sown.png",
+    "args": {
+      "description": "freshly sown grain field seen from directly overhead, dark furrow rows with faint green shoots just breaking soil, uniform all-over pattern, no horizon, no sky",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 12,
+      "seed": 7013
+    }
+  },
+  {
+    "key": "field.grain.growing",
+    "tool": "create_image_pixflux",
+    "out": "field/grain-growing.png",
+    "args": {
+      "description": "young green wheat field seen from directly overhead, short green stalks in rows, uniform all-over pattern, no horizon, no sky",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 12,
+      "seed": 7014
+    }
+  },
+  {
+    "key": "field.grain.mature",
+    "tool": "create_image_pixflux",
+    "out": "field/grain-mature.png",
+    "args": {
+      "description": "ripe golden wheat field ready for harvest seen from directly overhead, dense tall gold stalks in rows, uniform all-over pattern, no horizon, no sky",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 12,
+      "seed": 7015
+    }
+  },
+  {
+    "key": "field.grain.spoiled",
+    "tool": "create_image_pixflux",
+    "out": "field/grain-spoiled.png",
+    "args": {
+      "description": "rotted grain field seen from directly overhead, collapsed grey-brown flattened stalks, uniform all-over pattern, no horizon, no sky",
+      "width": 64,
+      "height": 64,
+      "no_background": false,
+      "shading": "flat shading",
+      "outline": "lineless",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 12,
+      "seed": 7016
+    }
+  },
+  {
+    "key": "sprite.cow",
+    "tool": "create_image_pixflux",
+    "out": "sprite/cow.png",
+    "args": {
+      "description": "single medieval cow seen from a high angle, brown and white, small readable livestock sprite, dark ink outline, drawn on parchment, flat shading",
+      "width": 48,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7020
+    }
+  },
+  {
+    "key": "sprite.merchantWagon",
+    "tool": "create_image_pixflux",
+    "out": "sprite/merchant-wagon.png",
+    "args": {
+      "description": "medieval merchant cart pulled by a horse, canvas cover and trade goods, seen from a high angle, small readable sprite, dark ink outline, warm brown and cream, flat shading",
+      "width": 64,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7021
+    }
+  },
+  {
+    "key": "sprite.supplyWagon",
+    "tool": "create_image_pixflux",
+    "out": "sprite/supply-wagon.png",
+    "args": {
+      "description": "medieval ox-drawn supply wagon loaded with grain sacks, open flat bed with no canvas cover, seen from a high angle, small readable sprite, dark ink outline, umber and straw, flat shading",
+      "width": 64,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7022
+    }
+  },
+  {
+    "key": "sprite.mercenaryOffer",
+    "tool": "create_image_pixflux",
+    "out": "sprite/mercenary-offer.png",
+    "args": {
+      "description": "sword crossed with a bulging gold coin purse, medieval mercenary-for-hire marker icon, dark ink outline, steel and aged gold, drawn on parchment, flat shading",
+      "width": 48,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7023
+    }
+  },
+  {
+    "key": "sprite.army.small",
+    "tool": "create_image_pixflux",
+    "out": "sprite/army-small.png",
+    "args": {
+      "description": "one medieval soldier figure with spear and shield standing, seen from a high angle, small readable sprite, dark ink outline, steel and muted earth tones, flat shading",
+      "width": 48,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7024
+    }
+  },
+  {
+    "key": "sprite.army.medium",
+    "tool": "create_image_pixflux",
+    "out": "sprite/army-medium.png",
+    "args": {
+      "description": "two medieval soldier figures standing side by side with spears and shields, seen from a high angle, small readable sprite, dark ink outline, steel and muted earth tones, flat shading",
+      "width": 56,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7025
+    }
+  },
+  {
+    "key": "sprite.army.large",
+    "tool": "create_image_pixflux",
+    "out": "sprite/army-large.png",
+    "args": {
+      "description": "three medieval soldier figures standing in a tight group with spears and shields, seen from a high angle, small readable sprite, dark ink outline, steel and muted earth tones, flat shading",
+      "width": 64,
+      "height": 48,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 7026
+    }
+  },
+  {
+    "key": "industry.quarry.idle",
+    "tool": "create_image_pixflux",
+    "out": "industry/quarry-idle.png",
+    "args": {
+      "description": "open stone quarry pit with cut blocks and a ramp, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 1951
+    }
+  },
+  {
+    "key": "industry.quarry.working",
+    "tool": "create_image_pixflux",
+    "out": "industry/quarry-working.png",
+    "args": {
+      "description": "stone quarry pit with workers cutting blocks, dust and a loaded cart, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 1952
+    }
+  },
+  {
+    "key": "industry.mine.idle",
+    "tool": "create_image_pixflux",
+    "out": "industry/mine-idle.png",
+    "args": {
+      "description": "boarded-up mine entrance in a rock face, no activity, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 5132
+    }
+  },
+  {
+    "key": "industry.mine.working",
+    "tool": "create_image_pixflux",
+    "out": "industry/mine-working.png",
+    "args": {
+      "description": "working mine entrance with a turning winch wheel and ore cart, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 5133
+    }
+  },
+  {
+    "key": "industry.lumberMill.idle",
+    "tool": "create_image_pixflux",
+    "out": "industry/lumber-mill-idle.png",
+    "args": {
+      "description": "idle timber sawmill hut with stacked logs, still water wheel, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 3018
+    }
+  },
+  {
+    "key": "industry.lumberMill.working",
+    "tool": "create_image_pixflux",
+    "out": "industry/lumber-mill-working.png",
+    "args": {
+      "description": "working timber sawmill with turning water wheel and fresh cut planks, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 3019
+    }
+  },
+  {
+    "key": "industry.blacksmith.idle",
+    "tool": "create_image_pixflux",
+    "out": "industry/blacksmith-idle.png",
+    "args": {
+      "description": "cold blacksmith forge hut, dark chimney, no smoke, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 4785
+    }
+  },
+  {
+    "key": "industry.blacksmith.working",
+    "tool": "create_image_pixflux",
+    "out": "industry/blacksmith-working.png",
+    "args": {
+      "description": "working blacksmith forge with glowing coals, smoke and hammer at the anvil, medieval building seen from a high angle, small readable map sprite, dark ink outline, muted earth tones, flat shading",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "shading": "flat shading",
+      "outline": "single color outline",
+      "detail": "low detail",
+      "view": "high top-down",
+      "text_guidance_scale": 10,
+      "seed": 4786
+    }
+  }
+]

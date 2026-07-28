@@ -226,106 +226,82 @@
       "tile": true
     },
     "castle.woodenPalisade": {
-      "pending": true,
       "path": "castle/wooden-palisade.png"
     },
     "castle.stoneCastle": {
-      "pending": true,
       "path": "castle/stone-castle.png"
     },
     "field.fallow": {
-      "pending": true,
       "path": "field/fallow.png",
       "tile": true
     },
     "field.barren": {
-      "pending": true,
       "path": "field/barren.png",
       "tile": true
     },
     "field.cattle": {
-      "pending": true,
       "path": "field/cattle.png",
       "tile": true
     },
     "field.grain.sown": {
-      "pending": true,
       "path": "field/grain-sown.png",
       "tile": true
     },
     "field.grain.growing": {
-      "pending": true,
       "path": "field/grain-growing.png",
       "tile": true
     },
     "field.grain.mature": {
-      "pending": true,
       "path": "field/grain-mature.png",
       "tile": true
     },
     "field.grain.spoiled": {
-      "pending": true,
       "path": "field/grain-spoiled.png",
       "tile": true
     },
     "sprite.cow": {
-      "pending": true,
       "path": "sprite/cow.png"
     },
     "sprite.mercenaryOffer": {
-      "pending": true,
       "path": "sprite/mercenary-offer.png"
     },
     "sprite.merchantWagon": {
-      "pending": true,
       "path": "sprite/merchant-wagon.png"
     },
     "sprite.supplyWagon": {
-      "pending": true,
       "path": "sprite/supply-wagon.png"
     },
     "sprite.army.small": {
-      "pending": true,
       "path": "sprite/army-small.png"
     },
     "sprite.army.medium": {
-      "pending": true,
       "path": "sprite/army-medium.png"
     },
     "sprite.army.large": {
-      "pending": true,
       "path": "sprite/army-large.png"
     },
     "industry.quarry.idle": {
-      "pending": true,
       "path": "industry/quarry-idle.png"
     },
     "industry.quarry.working": {
-      "pending": true,
       "path": "industry/quarry-working.png"
     },
     "industry.mine.idle": {
-      "pending": true,
       "path": "industry/mine-idle.png"
     },
     "industry.mine.working": {
-      "pending": true,
       "path": "industry/mine-working.png"
     },
     "industry.lumberMill.idle": {
-      "pending": true,
       "path": "industry/lumber-mill-idle.png"
     },
     "industry.lumberMill.working": {
-      "pending": true,
       "path": "industry/lumber-mill-working.png"
     },
     "industry.blacksmith.idle": {
-      "pending": true,
       "path": "industry/blacksmith-idle.png"
     },
     "industry.blacksmith.working": {
-      "pending": true,
       "path": "industry/blacksmith-working.png"
     }
   }

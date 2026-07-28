@@ -658,3 +658,213 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------- county screen --- */
+
+.county-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cs-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ink-line);
+  background: linear-gradient(180deg, #1b1611, #14100c);
+}
+
+.cs-back {
+  background: none;
+  border: 1px solid var(--ink-line);
+  color: var(--parchment-shadow);
+  border-radius: 3px;
+  padding: 7px 11px;
+  font-size: 13px;
+  flex: none;
+}
+
+.cs-back:active { color: var(--gold-bright); border-color: var(--gold); }
+
+.cs-title { font-size: 19px; letter-spacing: 0.03em; }
+
+.cs-sub {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--parchment-shadow);
+  margin-top: 2px;
+}
+
+.cs-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cs-map-wrap {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: radial-gradient(ellipse at 50% 40%, #1a1511 0%, var(--ink) 72%);
+  /* The map scrolls; a press that turns into a scroll must cancel, not fire. */
+  touch-action: pan-x pan-y;
+}
+
+.cs-map { width: 100%; height: auto; max-width: 760px; }
+
+.cs-tile { cursor: pointer; }
+.cs-tile polygon { transition: filter .12s ease; }
+.cs-tile:active polygon { filter: brightness(1.15); }
+
+/* Press-and-hold affordance — shows the info gesture is registering. */
+.cs-holding polygon {
+  stroke: var(--gold-bright);
+  stroke-width: 2.4;
+  filter: brightness(1.2);
+}
+
+.cs-site-label {
+  font-size: 9px;
+  fill: var(--parchment);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------- labour --- */
+
+.labour {
+  border-top: 1px solid var(--ink-line);
+  padding: 12px 14px 16px;
+  background: linear-gradient(180deg, #14100c, #100d0a);
+  flex: none;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.labour-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.labour-pole {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--parchment-shadow);
+}
+
+.labour-slider { accent-color: var(--gold); width: 100%; }
+
+.labour-counts {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--numeric);
+  font-size: 11px;
+  color: var(--parchment-shadow);
+  margin-top: 5px;
+}
+
+.labour-idle {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #c98a7f;
+  font-style: italic;
+}
+
+.labour-lines {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.labour-line {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.labour-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--parchment-shadow); display: inline-block;
+}
+
+.labour-label { color: var(--parchment-dim); }
+
+.labour-net { font-family: var(--numeric); font-size: 14px; }
+.labour-net.gain { color: #8fbf7f; }
+.labour-net.loss { color: #c98a7f; }
+
+/* -------------------------------------------------------- sheets etc. --- */
+
+.cs-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(8 6 5 / 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+}
+
+.cs-sheet {
+  width: min(520px, 100%);
+  background: linear-gradient(180deg, #191410, #120f0c);
+  border: 1px solid var(--ink-line);
+  border-radius: 6px 6px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.cs-sheet-title { font-size: 16px; margin-bottom: 10px; }
+
+.cs-sheet-close { width: 100%; margin-top: 12px; }
+
+.cs-info-grid { margin: 0 0 8px; display: flex; flex-direction: column; gap: 5px; }
+
+.cs-info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+
+.cs-info-value { margin: 0; font-family: var(--numeric); font-size: 13px; color: var(--parchment-dim); }
+
+.chip.danger { border-color: #8c2f24; color: #d98a7f; }
+.chip.danger:active { background: rgb(140 47 36 / 0.25); }
+
+.cs-confirm-backdrop {
+  position: fixed; inset: 0; background: rgb(8 6 5 / 0.78);
+  display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px;
+}
+
+.cs-confirm {
+  width: min(420px, 100%);
+  background: linear-gradient(180deg, #191410, #120f0c);
+  border: 1px solid var(--ink-line);
+  border-left: 3px solid #8c2f24;
+  border-radius: 4px; padding: 16px;
+}
+
+.cs-confirm-title { font-size: 17px; color: #d98a7f; margin-bottom: 6px; }
+
+.cs-error {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px;
+  background: #2a1512; border: 1px solid #8c2f24; color: #d98a7f;
+  padding: 9px 14px; border-radius: 3px; font-size: 13px; z-index: 70;
+}
+
+@media (min-width: 900px) {
+  .cs-body { flex-direction: row; }
+  .labour { border-top: none; border-left: 1px solid var(--ink-line); width: 340px; max-height: none; }
+}
