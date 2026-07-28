@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { INTERIM_VISUALS, awaitedArtKeys } from './interimArt';
-import { MANIFEST, pendingKeys, resolveAsset } from '../assets/assetManifest';
+import { INTERIM_VISUALS, PLANNED_ART, awaitedArtKeys, isPlanned } from './interimArt';
+import { MANIFEST, manifestKeys, pendingKeys, resolveAsset } from '../assets/assetManifest';
 
 /**
  * Guards on the interim-art allowance.
@@ -34,20 +34,29 @@ describe('interim art register', () => {
     ).toEqual([]);
   });
 
-  it('tracks every pending manifest key against something that consumes it', () => {
-    // A pending key nothing is waiting on is art queued for no reason; a
-    // stopgap waiting on nothing is art that will never arrive. Catch both.
+  it('accounts for every pending manifest key', () => {
+    // Every queued asset must be justified one of two ways: something visible
+    // is standing in for it right now, or it is named against a surface that
+    // will consume it. Art ordered for neither reason is art nobody asked for.
     const awaited = new Set(awaitedArtKeys());
-    const orphaned = pendingKeys().filter((k) => !awaited.has(k));
+    const unaccounted = pendingKeys().filter((k) => !awaited.has(k) && !isPlanned(k));
 
-    // Unit and faction-variant sprites have no map-level stopgap yet because
-    // armies are not rendered until interactivity lands in the next milestone.
-    const expectedUnclaimed = orphaned.every(
-      (k) => k.startsWith('unit.') || k === 'ui.waxStamp',
-    );
-    expect(expectedUnclaimed, `Unexpected orphaned art keys: ${orphaned.join(', ')}`).toBe(
-      true,
-    );
+    expect(
+      unaccounted,
+      `Pending art with no stopgap waiting on it and no planned surface — either add it to ` +
+        `INTERIM_VISUALS, name it in PLANNED_ART, or drop it from the manifest:\n${unaccounted.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('does not leave a planned group pointing at art nobody queued', () => {
+    // The mirror of the test above: a planned surface listing prefixes that
+    // match no manifest entry means the art was never actually ordered.
+    for (const planned of PLANNED_ART) {
+      for (const prefix of planned.keyPrefixes) {
+        const matches = manifestKeys().filter((k) => k.startsWith(prefix));
+        expect(matches.length, `${planned.forSurface} → ${prefix}`).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('has a non-empty register while art is still pending', () => {

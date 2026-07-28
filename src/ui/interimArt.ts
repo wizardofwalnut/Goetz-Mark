@@ -32,6 +32,18 @@ export interface InterimVisual {
 
 export const INTERIM_VISUALS: readonly InterimVisual[] = [
   {
+    where: 'src/ui/MapView.tsx — season-less terrain tiles',
+    what:
+      'The single terrain set is drawn in every season. Correct art swaps the ' +
+      'whole palette per season, including the grain growth cycle.',
+    replacedBy: [
+      'terrain.open.spring',
+      'terrain.open.summer',
+      'terrain.open.autumn',
+      'terrain.open.winter',
+    ],
+  },
+  {
     where: 'src/ui/styles.css — panel chrome',
     what:
       'CSS borders, gradients and the garrison pill, standing in for generated ' +
@@ -59,3 +71,44 @@ export const INTERIM_VISUALS: readonly InterimVisual[] = [
 /** Every manifest key the interim visuals are waiting on. */
 export const awaitedArtKeys = (): string[] =>
   [...new Set(INTERIM_VISUALS.flatMap((v) => v.replacedBy))].sort();
+
+/**
+ * Art queued for a surface that does not exist yet.
+ *
+ * A pending key with nothing waiting on it is usually a mistake — art ordered
+ * for no reason. But art legitimately gets queued ahead of the screen that will
+ * use it, and the alternative to naming that is an ever-widening allowlist that
+ * eventually asserts nothing.
+ *
+ * So each planned group states WHAT will consume it. When that surface ships,
+ * the group moves into INTERIM_VISUALS (if a stopgap stands in meanwhile) or is
+ * deleted outright.
+ */
+export interface PlannedArt {
+  /** The surface that will consume these. */
+  readonly forSurface: string;
+  readonly keyPrefixes: readonly string[];
+}
+
+export const PLANNED_ART: readonly PlannedArt[] = [
+  {
+    forSurface: 'County screen — field tiles, industry sites and on-map sprites',
+    keyPrefixes: ['field.', 'industry.', 'sprite.'],
+  },
+  {
+    forSurface: 'Seasonal palette swaps on the realm and county maps',
+    keyPrefixes: ['terrain.forest.', 'terrain.hills.', 'terrain.chokepoint.'],
+  },
+  {
+    forSurface: 'Castle build screen — the two tiers the county spec added',
+    keyPrefixes: ['castle.woodenPalisade', 'castle.stoneCastle'],
+  },
+  {
+    forSurface: 'Faction-specific unit variants (generic sprites are the fallback)',
+    keyPrefixes: ['unit.militia.', 'unit.knights.'],
+  },
+];
+
+/** True when a pending key is accounted for by a named planned surface. */
+export const isPlanned = (key: string): boolean =>
+  PLANNED_ART.some((p) => p.keyPrefixes.some((prefix) => key.startsWith(prefix)));

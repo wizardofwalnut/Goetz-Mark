@@ -22,7 +22,9 @@ describe('asset manifest', () => {
     for (const t of ['open', 'forest', 'hills', 'chokepoint'] as const) {
       expect(terrainArt(t).declared, t).toBe(true);
     }
-    // 'none' is excluded on purpose: no castle means nothing is drawn.
+    // 'none' is excluded on purpose: no castle means nothing is drawn. All
+    // five buildable tiers must have a route, including the two the later
+    // county-screen spec added.
     for (const tier of CASTLE_TIERS.filter((t) => t !== 'none')) {
       expect(castleArt(tier).declared, tier).toBe(true);
     }

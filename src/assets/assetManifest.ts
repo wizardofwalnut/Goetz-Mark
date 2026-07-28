@@ -3,6 +3,8 @@ import type { FactionId } from '../domain/ids';
 import type { CastleTier, UnitKind } from '../domain/match/matchState';
 import type { Terrain } from '../domain/map/mapTypes';
 import type { Resource } from '../domain/resources';
+import type { Season, GrainStage } from '../domain/season';
+import type { FieldStatus, IndustryKind } from '../domain/county/interior';
 
 /**
  * Asset manifest.
@@ -136,7 +138,38 @@ export function resolveAsset(
 // raw strings.
 // ---------------------------------------------------------------------------
 
-export const terrainArt = (terrain: Terrain) => resolveAsset([`terrain.${terrain}`]);
+/**
+ * Terrain tile, optionally for a season.
+ *
+ * Falls back to the season-less tile, so the map keeps rendering while the
+ * seasonal sets are generated one at a time rather than all-or-nothing.
+ */
+export const terrainArt = (terrain: Terrain, season?: Season) =>
+  resolveAsset(season ? [`terrain.${terrain}.${season}`, `terrain.${terrain}`] : [`terrain.${terrain}`]);
+
+/** Field tile art. Grain resolves by growth stage. */
+export const fieldArt = (status: FieldStatus, stage?: GrainStage | null) =>
+  resolveAsset(
+    status === 'grain' && stage
+      ? [`field.grain.${stage}`, 'field.fallow']
+      : [`field.${status}`, 'field.fallow'],
+  );
+
+/** Industry site, working or idle. */
+export const industryArt = (kind: IndustryKind, working: boolean) =>
+  resolveAsset([`industry.${kind}.${working ? 'working' : 'idle'}`, `industry.${kind}.idle`]);
+
+/**
+ * Army figure count scales with size, per the county-screen spec: 1/2/3 figures
+ * read as small/medium/large without the player reading a number.
+ */
+export const armySizeBand = (troops: number): 'small' | 'medium' | 'large' =>
+  troops < 30 ? 'small' : troops < 80 ? 'medium' : 'large';
+
+export const armyArt = (troops: number) => resolveAsset([`sprite.army.${armySizeBand(troops)}`]);
+
+/** Loose sprites named by the spec — cow, wagons, mercenary offer. */
+export const spriteArt = (name: string) => resolveAsset([`sprite.${name}`]);
 
 /**
  * Castle art for a tier. `none` deliberately has no entry — a county without a

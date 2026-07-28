@@ -1,6 +1,7 @@
 import { armyId, countyId, matchId, playerId } from '../ids';
 import type { CountyId, FactionId, PlayerId } from '../ids';
 import { emptyFoodStore, emptyTreasury } from '../resources';
+import { createInterior } from '../county/interior';
 import type { GameMap } from '../map/mapTypes';
 import {
   MATCH_SCHEMA_VERSION,
@@ -90,12 +91,21 @@ export function createMatch(options: CreateMatchOptions): MatchState {
     const owner = startByCounty.get(def.id) ?? null;
     counties[def.id] = {
       owner,
+      // Starts open with the first real castle; the palisade is a step players
+      // build for themselves on newly taken ground.
       castleTier: owner ? 'motteAndBailey' : 'none',
+      building: null,
       food: owner ? { ...STARTING_FOOD } : emptyFoodStore(),
       happiness: owner ? STARTING_HAPPINESS : NEUTRAL_HAPPINESS,
       population: owner ? STARTING_POPULATION : Math.round(60 + def.size * 25),
       agricultureShare: 0.6,
+      rationLevel: 1,
+      seasonsAtRation: 0,
       unrestTurns: 0,
+      // Interiors are generated for every county, not just owned ones — an
+      // attacker must be able to see what they are marching into, and
+      // generating on capture would change the board mid-match.
+      interior: createInterior({ size: def.size, resource: def.resource, rng }),
     };
   }
 

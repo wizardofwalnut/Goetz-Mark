@@ -1,5 +1,6 @@
 import type { ArmyId, CountyId, FactionId, MapId, MatchId, PlayerId } from '../ids';
 import type { FoodStore, Treasury } from '../resources';
+import type { CountyInterior } from '../county/interior';
 
 /**
  * Match state — the single source of truth for a game in progress.
@@ -81,7 +82,13 @@ export interface MatchConfig {
 export type TurnPhase = 'orders' | 'resolution' | 'complete';
 
 export interface TurnState {
-  /** 1-based. Increments after the last seat in the order finishes. */
+  /**
+   * 1-based. Increments after the last seat in the order finishes.
+   *
+   * A turn IS a season. Season and year are DERIVED from this number via
+   * src/domain/season.ts and deliberately not stored — three fields that can
+   * disagree is three fields that eventually will, on someone else's device.
+   */
   readonly number: number;
   /** Seat whose turn it currently is. */
   readonly activeSeat: number;
@@ -94,6 +101,8 @@ export interface TurnState {
 export interface CountyState {
   readonly owner: PlayerId | null;
   readonly castleTier: CastleTier;
+  /** Set while a castle is being built; null when nothing is under way. */
+  readonly building: { readonly tier: CastleTier; readonly seasonsLeft: number } | null;
   /** Food is stored per county — it is NOT pooled empire-wide. */
   readonly food: FoodStore;
   /** 0..100. Sustained low happiness eventually triggers a revolt. */
@@ -101,12 +110,40 @@ export interface CountyState {
   readonly population: number;
   /** Fraction of the workforce on agriculture; the rest is on industry. 0..1. */
   readonly agricultureShare: number;
+  /** Share of full rations being served, 0..2. Drives health over time. */
+  readonly rationLevel: number;
+  /** Consecutive seasons at the current ration level, for health inertia. */
+  readonly seasonsAtRation: number;
   /** Consecutive turns spent below the revolt threshold. */
   readonly unrestTurns: number;
+  /**
+   * The county's fields and industry sites — what the county screen renders.
+   * Present only for counties an interior has been generated for.
+   */
+  readonly interior: CountyInterior | null;
 }
 
-export const CASTLE_TIERS = ['none', 'motteAndBailey', 'normanKeep', 'royalCastle'] as const;
+/**
+ * Fortification ladder, weakest to strongest.
+ *
+ * Five buildable tiers. The original design doc listed three and called them
+ * unchanged; the later county-screen spec expanded the ladder, and that
+ * supersedes it. Order is load-bearing — comparisons use the array index, so
+ * new tiers must be inserted in strength order, never appended.
+ */
+export const CASTLE_TIERS = [
+  'none',
+  'woodenPalisade',
+  'motteAndBailey',
+  'normanKeep',
+  'stoneCastle',
+  'royalCastle',
+] as const;
 export type CastleTier = (typeof CASTLE_TIERS)[number];
+
+export const castleRank = (tier: CastleTier) => CASTLE_TIERS.indexOf(tier);
+
+export const isStrongerCastle = (a: CastleTier, b: CastleTier) => castleRank(a) > castleRank(b);
 
 /**
  * An army in the field.
