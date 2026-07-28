@@ -30,8 +30,12 @@ const match = createMatch({
   // count — not TILE_W — is what sets how big a tile lands on the glass. Seven
   // across gives roughly 59pt tiles: still clear of the 44-48pt tap floor the
   // spec sets, but far enough back that the county reads as land rather than as
-  // four tiles and a house. Rows follow from a portrait phone's aspect.
-  interiorGrid: { cols: 7, rows: 17 },
+  // four tiles and a house.
+  //
+  // Rows are chosen so the map is at least as tall as the screen, which is what
+  // lets the top bar overlay LAND rather than a black band — a translucent bar
+  // over letterboxing is just an opaque bar with extra steps.
+  interiorGrid: { cols: 7, rows: 19 },
   seats: [
     {
       displayName: 'You',

@@ -299,27 +299,41 @@ function IndustrySprite({ site }: { site: IndustrySiteState }) {
 }
 
 /**
- * Top bar.
+ * The globally pooled raw materials, in the order the spec names them.
  *
- * Year and season, then the globally pooled raw materials as picture plus
- * number. No labels: the governing principle is images over words, and a
- * player who cannot tell ore from wood at a glance will not be helped by a
- * four-letter caption under it either.
+ * These three and no others: they are the resources that pool empire-wide with
+ * no shipping decision attached, which is exactly why they can be shown as one
+ * realm-wide total. Food is deliberately absent — it is held per county and
+ * must be carted, so a single number for it would be a lie. Gold pools too but
+ * is money rather than material, and belongs behind the Treasury.
+ */
+const POOLED_MATERIALS = ['wood', 'stone', 'ore'] as const;
+
+/**
+ * Top bar — an OVERLAY, not a header.
+ *
+ * It floats over the map rather than taking a strip of its own, so the land
+ * runs full-bleed to the top of the screen. On a phone the map is the thing
+ * worth the pixels; chrome that reserves its own band costs a row of county
+ * for information that is only glanced at.
+ *
+ * Year and season, then each material as picture plus number. No labels: the
+ * governing principle is images over words, and a player who cannot tell ore
+ * from stone at a glance is not helped by a five-letter caption under it —
+ * they are helped by the two icons not looking alike, which is a job for the
+ * art, not for text.
  */
 function TopBar({ match, label }: { match: MatchState; label: string }) {
   const you = match.players[0];
-  // Materials pool empire-wide, so they belong in the top bar rather than in
-  // any one county's panel — there is no shipping decision attached to them.
   const purse = you ? match.treasuries[you.id] : undefined;
 
   return (
     <header className="ov-top">
       <div className="ov-when">{label}</div>
       <div className="ov-res">
-        <Readout resource="ore" value={purse?.ore ?? 0} />
-        <Readout resource="wood" value={purse?.wood ?? 0} />
-        <Readout resource="stone" value={purse?.stone ?? 0} />
-        <Readout resource="gold" value={purse?.gold ?? 0} />
+        {POOLED_MATERIALS.map((resource) => (
+          <Readout key={resource} resource={resource} value={purse?.[resource] ?? 0} />
+        ))}
       </div>
     </header>
   );
@@ -350,7 +364,7 @@ function Readout({
       {art.missing || !art.url ? (
         <span className="ov-chip" aria-hidden />
       ) : (
-        <img src={art.url} alt={resource} width={22} height={22} />
+        <img src={art.url} alt={resource} width={30} height={30} />
       )}
       <span className="ov-num">{text}</span>
     </div>

@@ -1,0 +1,34 @@
+[
+  {
+    "key": "resource.ore",
+    "tool": "create_image_pixflux",
+    "args": {
+      "description": "iron ore: a small heap of dark charcoal-grey rocks shot through with bright rust-orange and red iron veins, one broken chunk showing raw metallic iron inside",
+      "width": 48,
+      "height": 48,
+      "no_background": true,
+      "view": "high top-down",
+      "outline": "single color outline",
+      "shading": "medium shading",
+      "detail": "medium detail",
+      "seed": 611
+    },
+    "out": "resource/ore.png"
+  },
+  {
+    "key": "resource.stone",
+    "tool": "create_image_pixflux",
+    "args": {
+      "description": "building stone: a neat stack of pale cream limestone blocks, squared and dressed by a mason, cool grey shadows, no rust and no metal",
+      "width": 48,
+      "height": 48,
+      "no_background": true,
+      "view": "high top-down",
+      "outline": "single color outline",
+      "shading": "medium shading",
+      "detail": "medium detail",
+      "seed": 612
+    },
+    "out": "resource/stone.png"
+  }
+]

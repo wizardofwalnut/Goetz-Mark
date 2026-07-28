@@ -738,7 +738,13 @@ body {
   font-size: 9px;
   fill: var(--parchment);
   letter-spacing: 0.04em;
+  /* The bar itself must not eat taps meant for the map beneath it; its own
+     controls opt back in. */
   pointer-events: none;
+}
+
+.ov-top > * {
+  pointer-events: auto;
 }
 
 /* ------------------------------------------------------------- labour --- */
@@ -908,6 +914,7 @@ body {
    --------------------------------------------------------------------------- */
 
 .ov {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -918,14 +925,26 @@ body {
 }
 
 .ov-top {
+  /* Floats over the land rather than reserving a band of its own. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px calc(10px + env(safe-area-inset-top, 0px));
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  background: #17130f;
-  border-bottom: 1px solid #2a231c;
-  flex: 0 0 auto;
+  padding: 8px 12px 14px;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  /* Fading to transparent keeps the map readable underneath while still
+     giving the numbers enough contrast to sit against terrain of any colour. */
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 11, 9, 0.92) 0%,
+    rgba(13, 11, 9, 0.78) 55%,
+    rgba(13, 11, 9, 0) 100%
+  );
+  pointer-events: none;
 }
 
 .ov-when {
@@ -933,6 +952,7 @@ body {
   font-size: 15px;
   letter-spacing: 0.01em;
   white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .ov-res {
@@ -944,10 +964,10 @@ body {
 .ov-readout {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 5px;
-  border-radius: 5px;
-  background: #221c16;
+  gap: 3px;
+  padding: 2px 6px 2px 3px;
+  border-radius: 6px;
+  background: rgba(34, 28, 22, 0.72);
 }
 
 .ov-readout img {
@@ -958,16 +978,18 @@ body {
 /* Placeholder for a resource whose icon has not been generated. Deliberately
    featureless — it must not be mistakable for finished art. */
 .ov-chip {
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   border-radius: 3px;
   background: #4a3f33;
 }
 
 .ov-num {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 13px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
+  /* The bar sits on open map, so the digits need to hold up over grass. */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .ov-readout.up .ov-num { color: #8fc06a; }
@@ -1000,7 +1022,7 @@ body {
 
 .ov-corner {
   position: absolute;
-  top: 8px;
+  top: 58px;
   right: 8px;
   padding: 4px;
   border-radius: 6px;
