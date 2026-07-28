@@ -15,7 +15,9 @@
     "art": "node tools/pixellab.mjs run",
     "art:balance": "node tools/pixellab.mjs balance",
     "playtest": "vite-node tools/make-playtest.ts",
-    "standalone": "vite build && node tools/make-standalone.mjs"
+    "standalone": "vite build && node tools/make-standalone.mjs",
+    "gen:realm": "node tools/generate-realm-v2.mjs",
+    "shot": "node tools/shot.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -26,6 +28,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^6.0.4",
+    "playwright": "^1.62.0",
     "typescript": "^5.6.3",
     "vite": "^8.1.5",
     "vite-node": "^6.0.0",

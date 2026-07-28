@@ -137,7 +137,11 @@ function save(base64, outPath) {
  * the prose, so a job that fails server-side surfaces immediately instead of
  * burning the whole timeout.
  */
-async function waitFor(getter, idArg, id, { tries = 60, delay = 5000 } = {}) {
+// Style-matched tile sets are an order of magnitude slower than plain ones —
+// the API reports an eta of roughly eight minutes against thirty seconds — so
+// the budget has to cover the slow path or the fast path silently pays for
+// work it then throws away.
+async function waitFor(getter, idArg, id, { tries = 180, delay = 6000 } = {}) {
   for (let i = 0; i < tries; i++) {
     const res = await callTool(getter, { [idArg]: id });
     const status = (res.fields.status ?? '').toLowerCase();
@@ -162,6 +166,9 @@ const GETTERS = {
   create_image_pixen: ['get_image', 'job_id'],
   create_image_pro: ['get_image', 'job_id'],
   create_tiles_pro: ['get_tiles_pro', 'tile_id'],
+  // Path/road sets are collected through the tiles_pro getter, not one of
+  // their own — the create tool and the getter deliberately do not pair by name.
+  create_path_tiles: ['get_tiles_pro', 'tile_id'],
   create_topdown_tileset: ['get_topdown_tileset', 'tileset_id'],
   create_ui_asset: ['get_ui_asset', 'ui_asset_id'],
   create_map_object: ['get_map_object', 'object_id'],
@@ -216,6 +223,23 @@ async function createWithRetry(job, attempts = 4) {
 
 /** Jobs opt out with "palette": false (e.g. when matching an existing asset). */
 function withPalette(job) {
+  // `styleFrom` points at art already on disk and asks the generator to match
+  // it. This is the only reliable way to keep a tile set consistent with one
+  // generated in an earlier run: describing the palette in words does not
+  // survive a second call, and two sets that disagree on what green grass
+  // looks like is a visible seam wherever they meet.
+  if (job.styleFrom) {
+    const files = (Array.isArray(job.styleFrom) ? job.styleFrom : [job.styleFrom]).map((rel) => {
+      const p = join(ART_DIR, rel);
+      const buf = readFileSync(p);
+      return {
+        base64: buf.toString('base64'),
+        width: buf.readUInt32BE(16),
+        height: buf.readUInt32BE(20),
+      };
+    });
+    return { ...job.args, style_images: JSON.stringify(files) };
+  }
   if (job.palette === false) return job.args;
   if (job.tool.startsWith('create_image_')) {
     return { ...job.args, color_image_base64: paletteBase64() };
@@ -278,6 +302,20 @@ async function runBatch(batchPath) {
       // request. `tileIndex` records which one was chosen so a re-run
       // reproduces the same selection rather than silently taking the first
       // four; without it, entries map positionally.
+      // `outDir` dumps every tile a set returns, numbered. Used when the set's
+      // internal order is not known ahead of time — a path set ships 18
+      // configs and which index is which straight/corner/junction can only be
+      // decided by looking at them. Map them to manifest keys in a second pass.
+      if (job.outDir) {
+        images.forEach((image, i) => {
+          const out = `${job.outDir}/tile-${String(i).padStart(2, '0')}.png`;
+          const bytes = save(image, join(ART_DIR, out));
+          console.log(`  saved   ${`${job.key}[${i}]`.padEnd(24)} public/art/${out} (${bytes}b)`);
+        });
+        console.log(`  ${job.key}: ${images.length} tiles — map indices to keys by inspection`);
+        continue;
+      }
+
       if (job.outs) {
         job.outs.forEach((target, i) => {
           const pick = target.tileIndex ?? i;

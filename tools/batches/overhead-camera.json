@@ -1,0 +1,56 @@
+[
+  {
+    "key": "overhead.ground",
+    "tool": "create_tiles_pro",
+    "args": {
+      "description": "1). lush green grass meadow, top down 2). freshly ploughed empty farm field, bare brown soil in straight furrows 3). ripe golden wheat crop ready for harvest, straight rows 4). exhausted barren field, pale cracked grey-brown dirt, nothing growing 5). dense dark green forest canopy seen from directly above 6). grey rocky mountain crag",
+      "tile_type": "square_topdown",
+      "tile_size": 32,
+      "tile_view_angle": 60,
+      "tile_depth_ratio": 0.2,
+      "outline_mode": "segmentation",
+      "seed": 4207
+    },
+    "outs": [
+      { "key": "overhead.tile.ground", "out": "overhead/tile/ground.png", "tileIndex": 0 },
+      { "key": "overhead.field.fallow", "out": "overhead/field/fallow.png", "tileIndex": 1 },
+      { "key": "overhead.field.grain", "out": "overhead/field/grain.png", "tileIndex": 2 },
+      { "key": "overhead.field.barren", "out": "overhead/field/barren.png", "tileIndex": 3 },
+      { "key": "overhead.tile.forest", "out": "overhead/tile/forest.png", "tileIndex": 4 },
+      { "key": "overhead.tile.mountain", "out": "overhead/tile/mountain.png", "tileIndex": 5 }
+    ]
+  },
+  {
+    "key": "overhead.ground2",
+    "tool": "create_tiles_pro",
+    "args": {
+      "description": "1). green fenced cattle pasture, short cropped grass inside a low wooden rail fence 2). shallow blue river water 3). young green wheat shoots just sprouting in brown soil rows 4). tall green wheat crop, not yet golden",
+      "tile_type": "square_topdown",
+      "tile_size": 32,
+      "tile_view_angle": 60,
+      "tile_depth_ratio": 0.2,
+      "outline_mode": "segmentation",
+      "seed": 4208
+    },
+    "outs": [
+      { "key": "overhead.field.cattle", "out": "overhead/field/cattle.png", "tileIndex": 0 },
+      { "key": "overhead.tile.water", "out": "overhead/tile/water.png", "tileIndex": 1 },
+      { "key": "overhead.field.grain.sown", "out": "overhead/field/grain-sown.png", "tileIndex": 2 },
+      { "key": "overhead.field.grain.growing", "out": "overhead/field/grain-growing.png", "tileIndex": 3 }
+    ]
+  },
+  {
+    "key": "overhead.road",
+    "tool": "create_path_tiles",
+    "args": {
+      "description": "green grass meadow with a packed dirt cart road worn through it",
+      "tile_type": "square_topdown",
+      "tile_size": 32,
+      "tile_view_angle": 60,
+      "tile_depth_ratio": 0.2,
+      "outline_mode": "segmentation",
+      "seed": 4209
+    },
+    "outDir": "overhead/road"
+  }
+]

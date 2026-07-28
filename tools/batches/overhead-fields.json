@@ -1,0 +1,35 @@
+[
+  {
+    "key": "overhead.fields",
+    "tool": "create_tiles_pro",
+    "styleFrom": "overhead/road/tile-00.png",
+    "args": {
+      "description": "1). ploughed empty farm field, bare dark brown crumbly soil turned into parallel ridges and furrows, no plants 2). exhausted barren field, pale grey dusty cracked dirt, dead stubble, nothing growing 3). green cattle pasture, cropped grass enclosed by a low wooden rail fence 4). ripe golden wheat crop in neat rows ready for harvest 5). young green wheat shoots sprouting from brown furrows 6). tall green wheat crop, not yet golden",
+      "outline_mode": "segmentation",
+      "seed": 771
+    },
+    "outs": [
+      { "key": "overhead.field.fallow", "out": "overhead/field/fallow.png", "tileIndex": 0 },
+      { "key": "overhead.field.barren", "out": "overhead/field/barren.png", "tileIndex": 1 },
+      { "key": "overhead.field.cattle", "out": "overhead/field/cattle.png", "tileIndex": 2 },
+      { "key": "overhead.field.grain.mature", "out": "overhead/field/grain.png", "tileIndex": 3 },
+      { "key": "overhead.field.grain.sown", "out": "overhead/field/grain-sown.png", "tileIndex": 4 },
+      { "key": "overhead.field.grain.growing", "out": "overhead/field/grain-growing.png", "tileIndex": 5 }
+    ]
+  },
+  {
+    "key": "overhead.terrain",
+    "tool": "create_tiles_pro",
+    "styleFrom": "overhead/road/tile-00.png",
+    "args": {
+      "description": "1). dense dark green forest canopy of round treetops seen from directly above 2). bare grey rocky mountain crag with jagged stone 3). shallow blue river water with a pale gravel bed",
+      "outline_mode": "segmentation",
+      "seed": 772
+    },
+    "outs": [
+      { "key": "overhead.tile.forest", "out": "overhead/tile/forest.png", "tileIndex": 0 },
+      { "key": "overhead.tile.mountain", "out": "overhead/tile/mountain.png", "tileIndex": 1 },
+      { "key": "overhead.tile.water", "out": "overhead/tile/water.png", "tileIndex": 2 }
+    ]
+  }
+]

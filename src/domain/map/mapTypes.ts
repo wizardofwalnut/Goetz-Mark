@@ -48,6 +48,16 @@ export interface CountyDef {
   readonly size: number;
   readonly terrain: Terrain;
   readonly resource: Resource;
+  /**
+   * The county's hard-mineral slot: stone OR ore, never both, and sometimes
+   * neither.
+   *
+   * Modelled as its own field rather than folded into `resource` because the
+   * exclusivity rule has to hold in the DATA, not just in whatever the UI
+   * happens to draw. A map that gives one county both minerals is a map bug,
+   * and a test catches it.
+   */
+  readonly mineral?: 'stone' | 'ore' | null;
   /** Units of `resource` produced per turn at full labour allocation. */
   readonly yield: number;
   /** Polygon in map coordinate space. Shared borders share vertices exactly. */

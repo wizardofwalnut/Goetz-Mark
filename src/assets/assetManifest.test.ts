@@ -97,9 +97,23 @@ describe('asset manifest', () => {
     expect(resolveAsset(['terrain.hills'], ready).url).toBe('/art/terrain/hills.png');
   });
 
-  it('declares no duplicate file paths', () => {
-    const paths = Object.values(MANIFEST.entries).map((e) => e.path);
+  it('declares no ACCIDENTAL duplicate file paths', () => {
+    // Two keys may share a file, but only by saying so. An undeclared
+    // duplicate is nearly always a copy-paste slip in the manifest, and it
+    // hides as working art until someone regenerates one of the two.
+    const paths = Object.entries(MANIFEST.entries)
+      .filter(([, e]) => !e.aliasOf)
+      .map(([, e]) => e.path);
     expect(new Set(paths).size).toBe(paths.length);
+  });
+
+  it('points every alias at an entry that exists', () => {
+    for (const [key, entry] of Object.entries(MANIFEST.entries)) {
+      if (!entry.aliasOf) continue;
+      const target = MANIFEST.entries[entry.aliasOf];
+      expect(target, `${key} aliases missing entry ${entry.aliasOf}`).toBeDefined();
+      expect(target?.path, `${key} must share ${entry.aliasOf}'s file`).toBe(entry.path);
+    }
   });
 
   it('marks terrain tiles as seamlessly tileable', () => {

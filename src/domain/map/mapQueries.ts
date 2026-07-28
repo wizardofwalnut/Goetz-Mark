@@ -41,6 +41,34 @@ export const areAdjacent = (ix: MapIndex, a: CountyId, b: CountyId): boolean =>
 export const hasRoad = (ix: MapIndex, a: CountyId, b: CountyId): boolean =>
   ix.roads.has(borderKey(a, b));
 
+/**
+ * Which county edges a road leaves by, one per neighbour.
+ *
+ * Taken from the direction of each neighbour's centroid: whichever axis the
+ * neighbour lies further along wins. Only the realm map knows who borders
+ * whom, so this has to be answered here rather than inside a county — an
+ * interior that chose its own exits could aim a road at an edge with nothing
+ * behind it.
+ */
+export function exitsOf(ix: MapIndex, c: CountyId): readonly ('n' | 'e' | 's' | 'w')[] {
+  const self = ix.countyById.get(c);
+  if (!self) return [];
+
+  const dirs = new Set<'n' | 'e' | 's' | 'w'>();
+  for (const id of neighboursOf(ix, c)) {
+    const other = ix.countyById.get(id);
+    if (!other) continue;
+    const dx = other.centroid.x - self.centroid.x;
+    const dy = other.centroid.y - self.centroid.y;
+    dirs.add(
+      Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'e' : 'w') : dy >= 0 ? 's' : 'n',
+    );
+  }
+  // Stable order, so an interior generated from the same map is identical on
+  // every device regardless of how the border list happens to be ordered.
+  return (['n', 'e', 's', 'w'] as const).filter((d) => dirs.has(d));
+}
+
 export function requireCounty(ix: MapIndex, c: CountyId): CountyDef {
   const def = ix.countyById.get(c);
   if (!def) throw new Error(`Unknown county: ${c}`);

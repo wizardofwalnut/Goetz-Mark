@@ -1,0 +1,72 @@
+[
+  {
+    "key": "overhead.castle.motteAndBailey",
+    "tool": "create_map_object",
+    "args": {
+      "description": "motte and bailey: a small wooden tower on a raised earth mound with a ditch and a fenced bailey yard, seen from high above",
+      "view": "high top-down",
+      "width": 64,
+      "height": 64,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "out": "overhead/sprite/castle-motte-and-bailey.png"
+  },
+  {
+    "key": "overhead.castle.normanKeep",
+    "tool": "create_map_object",
+    "args": {
+      "description": "square Norman stone keep with a low outer wall and a gatehouse, seen from high above",
+      "view": "high top-down",
+      "width": 72,
+      "height": 72,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "out": "overhead/sprite/castle-norman-keep.png"
+  },
+  {
+    "key": "overhead.castle.royalCastle",
+    "tool": "create_map_object",
+    "args": {
+      "description": "great royal castle: a tall central keep inside a double curtain wall with round towers, a barbican and a moat, seen from high above",
+      "view": "high top-down",
+      "width": 96,
+      "height": 96,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "out": "overhead/sprite/castle-royal-castle.png"
+  },
+  {
+    "key": "overhead.industry.quarry",
+    "tool": "create_map_object",
+    "args": {
+      "description": "stone quarry: a stepped pit cut into pale rock with cut blocks stacked beside it and a timber crane",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "out": "overhead/sprite/quarry.png"
+  },
+  {
+    "key": "overhead.industry.lumberMill",
+    "tool": "create_map_object",
+    "args": {
+      "description": "timber sawmill: a wooden shed with a waterwheel beside a stream and stacked cut logs",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "out": "overhead/sprite/lumber-mill.png"
+  }
+]

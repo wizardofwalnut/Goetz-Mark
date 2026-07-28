@@ -97,6 +97,11 @@ export interface GroundCell {
 export const MIN_FIELDS = 8;
 export const MAX_FIELDS = 16;
 
+/** Compass edge a road leaves the county by. */
+export type Exit = 'n' | 'e' | 's' | 'w';
+
+export const EXITS: readonly Exit[] = ['n', 'e', 's', 'w'];
+
 export interface CountyInterior {
   /** Every cell of the grid — the ground beneath everything else. */
   readonly ground: readonly GroundCell[];
@@ -104,11 +109,31 @@ export interface CountyInterior {
   readonly fields: readonly FieldTile[];
   /** Sprites standing ON ground cells — never tiles in their own right. */
   readonly industry: readonly IndustrySiteState[];
+  /**
+   * Cells the road runs through, town outward.
+   *
+   * Each road that leaves the county carries ONE CELL PAST the boundary. That
+   * cell is out of the grid and never drawn; it exists so the renderer can
+   * tell a road that crosses the county edge from one that merely stops at it,
+   * which position alone cannot distinguish.
+   */
+  readonly road: readonly { readonly col: number; readonly row: number }[];
+  /** Which county edges the road actually reaches. */
+  readonly exits: readonly Exit[];
   /** Grid extent, so the renderer need not recompute it. */
   readonly cols: number;
   readonly rows: number;
   /** Where the county town sits on the grid. */
   readonly town: { readonly col: number; readonly row: number };
+  /**
+   * Where the castle stands.
+   *
+   * Held in the data rather than worked out by the renderer, and deliberately
+   * NOT the town cell: the spec is explicit that the castle sits near the town
+   * without fusing into one sprite blob with it. A renderer that picked the
+   * spot itself would also have no way to stop a field being planted there.
+   */
+  readonly castle: { readonly col: number; readonly row: number };
 }
 
 const cellKey = (col: number, row: number) => `${col},${row}`;
@@ -179,17 +204,60 @@ export const destroysCrop = (field: FieldTile) =>
 export function createInterior(opts: {
   size: number;
   resource: MaterialResource | 'wheat' | 'cows';
+  /**
+   * The county's hard-mineral slot: stone OR ore, never both.
+   *
+   * Separate from `resource` because a wheat county can still sit on iron.
+   * This is what decides whether a mine or a quarry exists here at all — the
+   * exclusivity rule is enforced by there being one slot, not by the UI
+   * refusing to draw the second site.
+   */
+  mineral?: 'stone' | 'ore' | null;
   /** Injected for determinism — interiors must generate identically per device. */
   rng: () => number;
+  /**
+   * Which county edges a road leaves by — one per neighbouring county.
+   *
+   * Passed in rather than derived here because only the realm map knows who
+   * borders whom, and an interior that invented its own exits could point a
+   * road at an edge with nothing on the other side.
+   */
+  exits?: readonly Exit[];
+  /**
+   * Grid extent override.
+   *
+   * The default sizes the grid from the county's `size`, which suited the
+   * 19-county draft map. v2's four-county world wants a tighter interior: with
+   * tiles drawn large enough to tap comfortably, a county the player has to
+   * pan around in three directions costs more than the extra ground is worth.
+   */
+  grid?: { readonly cols: number; readonly rows: number };
 }): CountyInterior {
-  const { size, resource, rng } = opts;
+  const { size, resource, rng, mineral = null, exits = [], grid } = opts;
 
   // Grid grows with county size but stays hand-readable on a phone. It is
   // deliberately larger than the field count — most of a county is ground the
   // player crosses rather than farms.
-  const cols = 7 + Math.min(4, size);
-  const rows = 7 + Math.min(4, size);
+  const cols = grid?.cols ?? 7 + Math.min(4, size);
+  const rows = grid?.rows ?? 7 + Math.min(4, size);
   const town = { col: Math.floor(cols / 2), row: Math.floor(rows / 2) };
+
+  // --- roads -------------------------------------------------------------
+  // Laid FIRST, so the ground layer knows to keep them clear. A road that
+  // ends in a mountain is not a road.
+  const road = buildRoads(town, { cols, rows }, exits);
+  const onRoad = new Set(road.map((c) => cellKey(c.col, c.row)));
+
+  // Far enough from the town to read as its own building, close enough to
+  // still read as guarding it. Off the road, so the castle never buries the
+  // one part of the county that movement rules hang off.
+  // One column across and two rows back: diagonal from the town, so the two
+  // sprites never touch, and never on the grid's outer column where half the
+  // keep would sit off the edge of the view.
+  const castle = {
+    col: Math.min(cols - 2, Math.max(1, town.col - 1)),
+    row: Math.min(rows - 2, Math.max(1, town.row - 2)),
+  };
 
   // --- ground layer ------------------------------------------------------
   // Impassable terrain clusters at the edges, leaving the middle workable —
@@ -200,7 +268,9 @@ export function createInterior(opts: {
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      if (col === town.col && row === town.row) {
+      if ((col === town.col && row === town.row) || (col === castle.col && row === castle.row)) {
+        // The settlement stands on open ground. Rolling a mountain under the
+        // castle would put a building on a tile nothing can cross.
         ground.push({ col, row, kind: 'ground' });
         continue;
       }
@@ -208,7 +278,7 @@ export function createInterior(opts: {
       const roll = rng();
       let kind: GroundKind = 'ground';
       // Only the outer band gets terrain, and even there most stays walkable.
-      if (edgeness > 0.62 && roll < 0.45) {
+      if (!onRoad.has(cellKey(col, row)) && edgeness > 0.62 && roll < 0.45) {
         const pick = rng();
         kind = pick < 0.5 ? 'forest' : pick < 0.85 ? 'mountain' : 'water';
       }
@@ -216,8 +286,15 @@ export function createInterior(opts: {
     }
   }
 
+  // Fields and industry never sit on the road. The road is how armies, wagons
+  // and supplies cross the county; building over it would make the one piece
+  // of the county with movement rules attached to it disappear under a crop.
   const passable = ground.filter(
-    (g) => isPassable(g.kind) && !(g.col === town.col && g.row === town.row),
+    (g) =>
+      isPassable(g.kind) &&
+      !(g.col === town.col && g.row === town.row) &&
+      !(g.col === castle.col && g.row === castle.row) &&
+      !onRoad.has(cellKey(g.col, g.row)),
   );
 
   // --- fields ------------------------------------------------------------
@@ -265,8 +342,58 @@ export function createInterior(opts: {
   if (resource !== 'wheat' && resource !== 'cows') {
     place(INDUSTRY_FOR_RESOURCE[resource], null);
   }
+  // The hard-mineral site, if the county has that slot filled. One or the
+  // other, never both — a county cannot grow a quarry next to its mine.
+  if (mineral) place(INDUSTRY_FOR_RESOURCE[mineral], null);
   // Every county can forge, but only once it is staffed.
   place('blacksmith', 'swords');
 
-  return { ground, fields, industry, cols, rows, town };
+  return { ground, fields, industry, road, exits, cols, rows, town, castle };
+}
+
+/**
+ * Lay the county's roads: town centre out to each edge that has a neighbour.
+ *
+ * An L-path (along the row, then along the column) rather than anything
+ * cleverer. Roads are a movement discount and a landmark, not a puzzle, and a
+ * straight-then-turn run reads instantly at a glance.
+ *
+ * Every road runs ONE CELL PAST the county boundary. That cell is outside the
+ * grid and never drawn — it is there so the renderer can tell a road that
+ * leaves the county from one that stops at its edge.
+ */
+function buildRoads(
+  town: { readonly col: number; readonly row: number },
+  bounds: { readonly cols: number; readonly rows: number },
+  exits: readonly Exit[],
+): { readonly col: number; readonly row: number }[] {
+  const seen = new Set<string>();
+  const out: { col: number; row: number }[] = [];
+  const push = (col: number, row: number) => {
+    const k = cellKey(col, row);
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ col, row });
+  };
+
+  push(town.col, town.row);
+
+  for (const exit of exits) {
+    const target =
+      exit === 'n'
+        ? { col: town.col, row: -1 }
+        : exit === 's'
+          ? { col: town.col, row: bounds.rows }
+          : exit === 'w'
+            ? { col: -1, row: town.row }
+            : { col: bounds.cols, row: town.row };
+
+    const stepCol = Math.sign(target.col - town.col);
+    for (let c = town.col; c !== target.col; c += stepCol) push(c, town.row);
+    const stepRow = Math.sign(target.row - town.row);
+    for (let r = town.row; r !== target.row; r += stepRow) push(target.col, r);
+    push(target.col, target.row);
+  }
+
+  return out;
 }

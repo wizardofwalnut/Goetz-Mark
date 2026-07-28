@@ -897,3 +897,149 @@ body {
 .how-to summary { cursor: pointer; font-size: 12px; color: var(--gold); letter-spacing: .06em; }
 .how-to p { font-size: 12px; line-height: 1.55; color: var(--parchment-shadow); margin: 8px 0 0; }
 .how-to b { color: var(--parchment-dim); font-weight: 600; }
+
+/* ---------------------------------------------------------------------------
+   Overhead county view (v2 camera).
+
+   Chrome is deliberately thin: a season line, four material readouts, a
+   minimap and a county strip. The spec's governing principle is images over
+   words, so there is no labelled stat card anywhere below — every figure is a
+   picture and a number.
+   --------------------------------------------------------------------------- */
+
+.ov {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--ink, #0d0b09);
+  color: #e8dcc0;
+  overflow: hidden;
+}
+
+.ov-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-top, 0px));
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  background: #17130f;
+  border-bottom: 1px solid #2a231c;
+  flex: 0 0 auto;
+}
+
+.ov-when {
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.ov-res {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ov-readout {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #221c16;
+}
+
+.ov-readout img {
+  image-rendering: pixelated;
+  display: block;
+}
+
+/* Placeholder for a resource whose icon has not been generated. Deliberately
+   featureless — it must not be mistakable for finished art. */
+.ov-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  background: #4a3f33;
+}
+
+.ov-num {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-readout.up .ov-num { color: #8fc06a; }
+.ov-readout.down .ov-num { color: #d47a5f; }
+
+/* The land. Panning is local only — cross-county travel goes through the
+   minimap, per the spec, so this never becomes the primary way to get around. */
+.ov-stage {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: auto;
+  background: #0d0b09;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ov-map {
+  display: block;
+  flex: 0 0 auto;
+  /* Fit the county's width to the screen and scroll vertically if it runs
+     long. Fitting width rather than height is what keeps every column of the
+     county on screen at once — panning sideways to find the castle is exactly
+     the fiddliness v2 asks to design out. The interior's cell counts are
+     chosen so the result nearly fills a portrait phone. */
+  width: 100%;
+  height: auto;
+  margin: auto;
+}
+
+.ov-corner {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px;
+  border-radius: 6px;
+  background: rgba(13, 11, 9, 0.82);
+  border: 1px solid #3a3128;
+  line-height: 0;
+}
+
+.mm { display: block; }
+
+.ov-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: #17130f;
+  border-top: 1px solid #2a231c;
+  flex: 0 0 auto;
+}
+
+/* Thermometer, kept from v1 — a fill height reads at a glance where a
+   percentage would invite optimising the number instead of feeding people. */
+.ov-health {
+  margin-left: auto;
+  width: 16px;
+  height: 40px;
+  border-radius: 8px;
+  background: #221c16;
+  border: 1px solid #3a3128;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.ov-health-fill {
+  width: 100%;
+  background: #8fc06a;
+  transition: height 160ms ease;
+}
+
+.ov-health-fill[data-health='sick'] { background: #d4a24f; }
+.ov-health-fill[data-health='diseased'] { background: #b8443a; }

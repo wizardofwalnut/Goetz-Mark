@@ -4,6 +4,7 @@ import { emptyFoodStore, emptyTreasury } from '../resources';
 import { createInterior } from '../county/interior';
 import { armySpeed } from '../army/armyActions';
 import type { GameMap } from '../map/mapTypes';
+import { exitsOf, indexMap } from '../map/mapQueries';
 import {
   MATCH_SCHEMA_VERSION,
   type Army,
@@ -37,6 +38,15 @@ export interface CreateMatchOptions {
   readonly now?: number;
   /** Injected so tests and replays are deterministic. */
   readonly rng?: () => number;
+  /**
+   * Grid extent for every county interior.
+   *
+   * The default sizes each interior from its county's `size`. The overhead
+   * camera wants a tighter grid than that: tiles drawn large enough to tap
+   * comfortably mean a county has to fit the screen, and panning around one is
+   * a worse trade than having a little less ground in it.
+   */
+  readonly interiorGrid?: { readonly cols: number; readonly rows: number };
 }
 
 const DEFAULT_CONFIG: Omit<MatchConfig, 'mapId'> = {
@@ -87,6 +97,7 @@ export function createMatch(options: CreateMatchOptions): MatchState {
     startByCounty.set(start.county, player.id);
   }
 
+  const index = indexMap(map);
   const counties: Record<CountyId, CountyState> = {};
   for (const def of map.counties) {
     const owner = startByCounty.get(def.id) ?? null;
@@ -106,7 +117,15 @@ export function createMatch(options: CreateMatchOptions): MatchState {
       // Interiors are generated for every county, not just owned ones — an
       // attacker must be able to see what they are marching into, and
       // generating on capture would change the board mid-match.
-      interior: createInterior({ size: def.size, resource: def.resource, rng }),
+      interior: createInterior({
+        size: def.size,
+        resource: def.resource,
+        mineral: def.mineral ?? null,
+        rng,
+        // Roads run to the edges that actually have a neighbour behind them.
+        exits: exitsOf(index, def.id),
+        grid: options.interiorGrid,
+      }),
     };
   }
 

@@ -51,6 +51,16 @@ export interface AssetEntry {
   readonly sheet?: boolean;
   /** For a sliced entry, the kit sheet it is cut from. */
   readonly from?: string;
+  /**
+   * This entry deliberately reuses another entry's file.
+   *
+   * Aliasing is occasionally the correct answer — the plain-ground piece of
+   * the generated road set IS the ground tile, and generating grass a second
+   * time produced a different green that seamed wherever a road met a field.
+   * It has to be declared, though: an undeclared duplicate path is almost
+   * always a copy-paste slip, and a test treats it as one.
+   */
+  readonly aliasOf?: string;
 }
 
 export interface AssetManifest {
@@ -215,6 +225,46 @@ export const crestArt = (faction: FactionId) => resolveAsset([`crest.${faction}`
 export const bannerArt = (bannerId: string) => resolveAsset([`banner.${bannerId}`]);
 
 export const uiArt = (name: string) => resolveAsset([`ui.${name}`]);
+
+// ---------------------------------------------------------------------------
+// Overhead camera set.
+//
+// A SEPARATE namespace rather than a swap of the existing keys, because the
+// two sets are drawn from different cameras and mixing them on one screen is a
+// visible bug rather than a matter of taste — the acceptance checklist calls
+// out mismatched angles between layers explicitly. Keeping both addressable
+// means the ground-level isometric county screen keeps working untouched while
+// the overhead one is built beside it.
+//
+// These deliberately do NOT fall back to the isometric keys. A missing
+// overhead sprite must render as the designed placeholder, not as a tile drawn
+// from the wrong angle, which would read as finished art and hide the gap.
+// ---------------------------------------------------------------------------
+
+export const overheadGroundArt = (kind: GroundKind) => resolveAsset([`overhead.tile.${kind}`]);
+
+export const overheadFieldArt = (status: FieldStatus, stage?: GrainStage | null) =>
+  resolveAsset(
+    status === 'grain' && stage
+      ? [`overhead.field.grain.${stage}`, 'overhead.field.fallow']
+      : [`overhead.field.${status}`, 'overhead.field.fallow'],
+  );
+
+/**
+ * A road piece, addressed by its edge bitmask (bit0=N bit1=E bit2=S bit3=W).
+ *
+ * The mask IS the key. PixelLab ships the generated path set with these exact
+ * placement rules, so keying the manifest by anything else would mean a
+ * translation table that could drift out of step with the art.
+ */
+export const overheadRoadArt = (mask: number) => resolveAsset([`overhead.road.${mask}`]);
+
+export const overheadTownArt = () => resolveAsset(['overhead.town']);
+
+export const overheadCastleArt = (tier: CastleTier) => resolveAsset([`overhead.castle.${tier}`]);
+
+export const overheadIndustryArt = (kind: IndustryKind) =>
+  resolveAsset([`overhead.industry.${kind}`]);
 
 /**
  * Which manifest keys have no art yet.

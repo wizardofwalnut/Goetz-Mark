@@ -399,6 +399,130 @@
       "pending": true,
       "path": "tile/winter/water.png",
       "iso": true
+    },
+    "overhead.tile.ground": {
+      "path": "overhead/road/tile-00.png",
+      "tile": true,
+      "aliasOf": "overhead.road.0"
+    },
+    "overhead.tile.forest": {
+      "path": "overhead/tile/forest.png",
+      "tile": true
+    },
+    "overhead.tile.mountain": {
+      "path": "overhead/tile/mountain.png",
+      "tile": true
+    },
+    "overhead.tile.water": {
+      "path": "overhead/tile/water.png",
+      "tile": true
+    },
+    "overhead.field.fallow": {
+      "path": "overhead/field/fallow.png",
+      "tile": true
+    },
+    "overhead.field.barren": {
+      "path": "overhead/field/barren.png",
+      "tile": true
+    },
+    "overhead.field.cattle": {
+      "path": "overhead/field/cattle.png",
+      "tile": true
+    },
+    "overhead.field.grain.sown": {
+      "path": "overhead/field/grain-sown.png",
+      "tile": true
+    },
+    "overhead.field.grain.growing": {
+      "path": "overhead/field/grain-growing.png",
+      "tile": true
+    },
+    "overhead.field.grain.mature": {
+      "path": "overhead/field/grain.png",
+      "tile": true
+    },
+    "overhead.field.grain.spoiled": {
+      "path": "overhead/field/barren.png",
+      "tile": true,
+      "aliasOf": "overhead.field.barren"
+    },
+    "overhead.road.0": {
+      "path": "overhead/road/tile-00.png"
+    },
+    "overhead.road.1": {
+      "path": "overhead/road/tile-02.png"
+    },
+    "overhead.road.2": {
+      "path": "overhead/road/tile-03.png"
+    },
+    "overhead.road.3": {
+      "path": "overhead/road/tile-10.png"
+    },
+    "overhead.road.4": {
+      "path": "overhead/road/tile-04.png"
+    },
+    "overhead.road.5": {
+      "path": "overhead/road/tile-07.png"
+    },
+    "overhead.road.6": {
+      "path": "overhead/road/tile-08.png"
+    },
+    "overhead.road.7": {
+      "path": "overhead/road/tile-15.png"
+    },
+    "overhead.road.8": {
+      "path": "overhead/road/tile-05.png"
+    },
+    "overhead.road.9": {
+      "path": "overhead/road/tile-11.png"
+    },
+    "overhead.road.10": {
+      "path": "overhead/road/tile-06.png"
+    },
+    "overhead.road.11": {
+      "path": "overhead/road/tile-14.png"
+    },
+    "overhead.road.12": {
+      "path": "overhead/road/tile-09.png"
+    },
+    "overhead.road.13": {
+      "path": "overhead/road/tile-13.png"
+    },
+    "overhead.road.14": {
+      "path": "overhead/road/tile-12.png"
+    },
+    "overhead.road.15": {
+      "path": "overhead/road/tile-16.png"
+    },
+    "overhead.town": {
+      "path": "overhead/sprite/town.png"
+    },
+    "overhead.castle.motteAndBailey": {
+      "path": "overhead/sprite/castle-motte-and-bailey.png"
+    },
+    "overhead.castle.woodenPalisade": {
+      "path": "overhead/sprite/castle-wooden-palisade.png"
+    },
+    "overhead.castle.normanKeep": {
+      "path": "overhead/sprite/castle-norman-keep.png"
+    },
+    "overhead.castle.stoneCastle": {
+      "path": "overhead/sprite/castle-stone-castle.png"
+    },
+    "overhead.castle.royalCastle": {
+      "path": "overhead/sprite/castle-royal-castle.png"
+    },
+    "overhead.industry.blacksmith": {
+      "path": "overhead/sprite/blacksmith.png"
+    },
+    "overhead.industry.mine": {
+      "path": "overhead/sprite/mine.png"
+    },
+    "overhead.industry.quarry": {
+      "path": "overhead/sprite/quarry.png"
+    },
+    "overhead.industry.lumberMill": {
+      "path": "overhead/sprite/lumber-mill.png"
     }
   }
 }

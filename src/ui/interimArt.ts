@@ -44,6 +44,24 @@ export const INTERIM_VISUALS: readonly InterimVisual[] = [
     ],
   },
   {
+    where: 'src/ui/styles.css — .ov-top, .ov-strip, .ov-health, .ov-corner',
+    what:
+      'The overhead county screen\'s chrome is flat CSS: the top bar, the ' +
+      'county strip, the health thermometer and the minimap surround. The ' +
+      'readouts inside them are real generated art; the frames around them ' +
+      'are not.',
+    replacedBy: ['ui.panelFrame', 'ui.buttonPrimary'],
+  },
+  {
+    where: 'src/ui/county/Minimap.tsx — flat polygon fills',
+    what:
+      'County shapes are drawn as flat SVG polygons in seat colours. The spec ' +
+      'asks for shape and ownership only at this scale, so this may well be ' +
+      'the finished answer — it is listed so that is a decision someone makes ' +
+      'rather than one that happens by default.',
+    replacedBy: ['ui.panelFrame'],
+  },
+  {
     where: 'src/ui/styles.css — panel chrome',
     what:
       'CSS borders, gradients and the garrison pill, standing in for generated ' +
