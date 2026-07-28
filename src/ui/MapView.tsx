@@ -5,7 +5,7 @@ import type { MatchState } from '../domain/match/matchState';
 import { isDefended, troopCount, garrisonOf } from '../domain/match/matchState';
 import { indexMap } from '../domain/map/mapQueries';
 import { palette, seatColor, terrainTint, type } from './theme';
-import { bannerArt, castleArt, terrainArt } from '../assets/assetManifest';
+import { armyArt, bannerArt, castleArt, terrainArt } from '../assets/assetManifest';
 import type { CastleTier } from '../domain/match/matchState';
 
 /**
@@ -222,6 +222,12 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
 
               {seat !== null && <BannerMarker seat={seat} x={county.centroid.x - 26} y={county.centroid.y - 14} />}
 
+              {/* Armies standing here. The figure count reads small/medium/
+                  large without the player reading a number. */}
+              {troops > 0 && (
+                <ArmyMarker troops={troops} x={county.centroid.x + 22} y={county.centroid.y - 8} />
+              )}
+
               <text
                 x={county.centroid.x}
                 y={county.centroid.y + 16}
@@ -271,6 +277,28 @@ export function MapView({ map, match, selected, onSelect }: MapViewProps) {
 
       <rect width={map.width} height={map.height} fill="url(#vignette)" pointerEvents="none" />
     </svg>
+  );
+}
+
+/**
+ * Army standing in a county.
+ *
+ * Size is carried by the sprite itself — the manifest picks a one, two or
+ * three figure sprite from the troop count, so the player reads strength at a
+ * glance rather than from the garrison pill.
+ */
+function ArmyMarker({ troops, x, y }: { troops: number; x: number; y: number }) {
+  const art = armyArt(troops);
+  if (art.missing || !art.url) return null;
+  return (
+    <image
+      href={art.url}
+      x={x}
+      y={y - 20}
+      width="26"
+      height="26"
+      style={{ imageRendering: 'pixelated' }}
+    />
   );
 }
 

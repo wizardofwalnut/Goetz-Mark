@@ -17,6 +17,9 @@ import {
 } from '../../domain/county/actions';
 import { advanceSeason, type SeasonEvent } from '../../domain/turn/advanceTurn';
 import { takeAllAiTurns } from '../../domain/ai/countyAi';
+import { takeAllMilitaryTurns } from '../../domain/ai/militaryAi';
+import { indexMap } from '../../domain/map/mapQueries';
+import { ALDERMARCH } from '../../content/maps/aldermarch.generated';
 import { describeTurn, seasonOfTurn, type Season } from '../../domain/season';
 import {
   bannerArt,
@@ -242,8 +245,11 @@ export function CountyScreen({ county, match, onChange, onBack }: Props) {
             // AI seats act BEFORE the season resolves, so their orders are
             // carried out by the same resolution the player's are — an AI whose
             // turn ran afterwards would be a season behind for ever.
-            const withAi = takeAllAiTurns(match);
-            const result = advanceSeason(withAi.match);
+            // Counties first, then armies: an AI decides what it can afford
+            // to raise only after it knows what its counties produced.
+            const managed = takeAllAiTurns(match);
+            const marched = takeAllMilitaryTurns(managed.match, indexMap(ALDERMARCH));
+            const result = advanceSeason(marched.match, ALDERMARCH);
             onChange(result.match);
             setReport(result.events);
           }}

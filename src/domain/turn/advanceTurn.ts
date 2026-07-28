@@ -10,6 +10,10 @@ import { projectProduction, healthFromRations, HEALTH_HAPPINESS } from '../count
 import { SEASON_HAPPINESS_DRIFT, grainStage, seasonOfTurn } from '../season';
 import { getFaction } from '../../content/factions';
 import type { MaterialResource } from '../resources';
+import { refreshMovement } from '../army/armyActions';
+import { resolveConquest, type ConquestEvent } from '../army/resolveConquest';
+import { indexMap } from '../map/mapQueries';
+import type { GameMap } from '../map/mapTypes';
 
 /**
  * Season resolution.
@@ -26,7 +30,14 @@ import type { MaterialResource } from '../resources';
 
 export interface SeasonEvent {
   readonly county: CountyId;
-  readonly kind: 'harvest' | 'spoiled' | 'reclaimed' | 'starving' | 'revolt' | 'castleBuilt';
+  readonly kind:
+    | 'harvest'
+    | 'spoiled'
+    | 'reclaimed'
+    | 'starving'
+    | 'revolt'
+    | 'castleBuilt'
+    | ConquestEvent['kind'];
   readonly detail: string;
 }
 
@@ -48,14 +59,24 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
  * Seats are not stepped here. Whose turn it is within a season is the turn
  * ORDER's business; this is what happens when the season itself rolls over.
  */
-export function advanceSeason(match: MatchState): AdvanceResult {
+export function advanceSeason(match: MatchState, map?: GameMap): AdvanceResult {
   const season = seasonOfTurn(match.turn.number);
   const events: SeasonEvent[] = [];
 
-  const counties: Record<CountyId, CountyState> = { ...match.counties };
-  const treasuries = { ...match.treasuries };
+  // Marching, battles and wages settle BEFORE the economy. A county taken this
+  // season should be worked by its new owner, not resolve one more season under
+  // the lord who just lost it.
+  let working = match;
+  if (map) {
+    const conquest = resolveConquest(match, indexMap(map));
+    working = conquest.match;
+    events.push(...conquest.events);
+  }
 
-  for (const [id, county] of Object.entries(match.counties) as [CountyId, CountyState][]) {
+  const counties: Record<CountyId, CountyState> = { ...working.counties };
+  const treasuries = { ...working.treasuries };
+
+  for (const [id, county] of Object.entries(working.counties) as [CountyId, CountyState][]) {
     if (!county.interior) continue;
 
     // Unclaimed counties do not run an economy. Nobody is allocating their
@@ -66,7 +87,7 @@ export function advanceSeason(match: MatchState): AdvanceResult {
     if (!county.owner) continue;
 
     const faction = county.owner
-      ? match.players.find((p) => p.id === county.owner)?.factionId
+      ? working.players.find((p) => p.id === county.owner)?.factionId
       : null;
     const bonuses = faction ? getFaction(faction).bonuses : null;
 
@@ -207,23 +228,23 @@ export function advanceSeason(match: MatchState): AdvanceResult {
     };
   }
 
-  const nextTurn = match.turn.number + 1;
-  const timerHours = match.config.turnTimerHours;
+  const nextTurn = working.turn.number + 1;
+  const timerHours = working.config.turnTimerHours;
 
-  return {
-    match: {
-      ...match,
-      counties,
-      treasuries,
-      turn: {
-        ...match.turn,
-        number: nextTurn,
-        phase: 'orders',
-        startedAt: match.turn.startedAt,
-        deadlineAt: timerHours === null ? null : match.turn.startedAt + timerHours * 3_600_000,
-      },
-      updatedAt: match.updatedAt,
+  // Every army gets its movement allowance back for the new season.
+  const refreshed = refreshMovement({
+    ...working,
+    counties,
+    treasuries,
+    turn: {
+      ...working.turn,
+      number: nextTurn,
+      phase: 'orders',
+      startedAt: working.turn.startedAt,
+      deadlineAt: timerHours === null ? null : working.turn.startedAt + timerHours * 3_600_000,
     },
-    events,
-  };
+    updatedAt: working.updatedAt,
+  });
+
+  return { match: refreshed, events };
 }
