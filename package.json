@@ -14,7 +14,8 @@
     "gen:map": "node tools/generate-map-geometry.mjs",
     "art": "node tools/pixellab.mjs run",
     "art:balance": "node tools/pixellab.mjs balance",
-    "playtest": "vite-node tools/make-playtest.ts"
+    "playtest": "vite-node tools/make-playtest.ts",
+    "standalone": "vite build && node tools/make-standalone.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

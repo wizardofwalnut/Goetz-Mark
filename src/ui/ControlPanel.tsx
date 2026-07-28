@@ -10,6 +10,7 @@ import { palette, seatColor, type } from './theme';
 import { crestArt, resourceArt } from '../assets/assetManifest';
 import { Sprite } from './Sprite';
 import { CASTLES } from '../content/castles';
+import { ArmyPanel } from './ArmyPanel';
 
 /**
  * The control panel beside the map.
@@ -25,6 +26,8 @@ interface ControlPanelProps {
   readonly selected: CountyId | null;
   readonly onOpenReport: () => void;
   readonly onEnterCounty: (id: CountyId) => void;
+  readonly onChange: (next: MatchState) => void;
+  readonly onEndSeason: () => void;
 }
 
 export function ControlPanel({
@@ -33,6 +36,8 @@ export function ControlPanel({
   selected,
   onOpenReport,
   onEnterCounty,
+  onChange,
+  onEndSeason,
 }: ControlPanelProps) {
   const ix = indexMap(map);
   const turnPlayer = activePlayer(match);
@@ -42,6 +47,7 @@ export function ControlPanel({
   const owner = countyState?.owner
     ? match.players.find((p) => p.id === countyState.owner)
     : null;
+  const humanPlayer = match.players.find((p) => p.controller.kind === 'human');
 
   return (
     <aside className="panel">
@@ -163,6 +169,16 @@ export function ControlPanel({
         )}
       </section>
 
+      {selected && turnPlayer && (
+        <ArmyPanel
+          match={match}
+          ix={ix}
+          county={selected}
+          player={humanPlayer?.id ?? turnPlayer.id}
+          onChange={onChange}
+        />
+      )}
+
       <section className="panel-section">
         <h2 className="section-heading">Treasury</h2>
         {turnPlayer && (
@@ -205,6 +221,34 @@ export function ControlPanel({
             Enter {ix.countyById.get(selected)?.name ?? 'county'}
           </button>
         )}
+        <button className="btn end-turn" onClick={onEndSeason}>
+          End the season
+        </button>
+        {/* A standalone file arrives with no context, so the rules that are not
+            discoverable by poking at it are stated once, here. */}
+        <details className="how-to">
+          <summary>How to play</summary>
+          <p>
+            Tap a county to select it. <b>Enter</b> opens its fields — tap a field to
+            change what it grows, long-press anything for information without
+            changing it.
+          </p>
+          <p>
+            The labour slider moves peasants between field and forge; the numbers
+            under it are next season&rsquo;s net change and update as you drag.
+            Nothing grows in winter, so stores have to carry you.
+          </p>
+          <p>
+            Raise a levy to make an army, then march it into a neighbouring county.
+            Undefended ground is annexed without a fight; a defended county forces a
+            battle, and only clearing the field takes it. Counties cut off from your
+            capital are lost.
+          </p>
+          <p>
+            Grain is sown, grows, then ripens — harvest it or it rots. Rivals play to
+            their faction: the Knight attacks, the Warden builds walls.
+          </p>
+        </details>
       </section>
     </aside>
   );

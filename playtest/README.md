@@ -10,6 +10,16 @@ Regenerate after changing combat numbers or the map:
 npm run playtest
 ```
 
+## aldermarch-game.html — the game
+
+The whole thing in one file. Open it and play; no server, no build, no network.
+Regenerate with `npm run standalone`.
+
+Select a county, **Enter** it to work its fields, raise a levy and march it.
+Tap acts, long-press informs. Rivals play to their faction, so the Knight comes
+for you and the Warden digs in. A **How to play** panel sits under the End
+Season button.
+
 ## combat-tuner.html
 
 Muster two armies, pick stances and ground, and read the full round-by-round

@@ -83,8 +83,23 @@ export interface ResolvedAsset {
   readonly nineSlice: readonly number[] | null;
 }
 
-const joinPath = (base: string, path: string) =>
-  `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+/**
+ * Inlined art, for the standalone single-file build.
+ *
+ * `tools/make-standalone.mjs` sets this to a { path: dataUri } map before the
+ * app loads, so the page needs no network at all. It is empty in a normal
+ * build, and this lookup is the ONLY place that knows the option exists —
+ * callers still just ask the manifest for a logical thing.
+ */
+type InlinedArt = Record<string, string> | undefined;
+const inlinedArt = (): InlinedArt =>
+  (globalThis as { __ALDERMARCH_ART__?: Record<string, string> }).__ALDERMARCH_ART__;
+
+const joinPath = (base: string, path: string) => {
+  const inlined = inlinedArt()?.[path];
+  if (inlined) return inlined;
+  return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+};
 
 /**
  * Resolve the first key with usable art, in preference order.

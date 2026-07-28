@@ -2,6 +2,7 @@ import { armyId, countyId, matchId, playerId } from '../ids';
 import type { CountyId, FactionId, PlayerId } from '../ids';
 import { emptyFoodStore, emptyTreasury } from '../resources';
 import { createInterior } from '../county/interior';
+import { armySpeed } from '../army/armyActions';
 import type { GameMap } from '../map/mapTypes';
 import {
   MATCH_SCHEMA_VERSION,
@@ -117,7 +118,10 @@ export function createMatch(options: CreateMatchOptions): MatchState {
       owner,
       troops: { ...STARTING_GARRISON },
       location: { kind: 'garrison', county },
-      movementRemaining: 0,
+      // Ready to march on turn one. Starting at zero meant the opening season
+      // had no military move available to anyone, which reads as broken rather
+      // than as a rule.
+      movementRemaining: armySpeed(STARTING_GARRISON),
       unpaidUpkeepTurns: 0,
     };
   }

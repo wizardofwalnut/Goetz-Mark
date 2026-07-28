@@ -7,6 +7,10 @@ import { MapView } from './ui/MapView';
 import { ControlPanel } from './ui/ControlPanel';
 import { BattleReport } from './ui/BattleReport';
 import { CountyScreen } from './ui/county/CountyScreen';
+import { advanceSeason } from './domain/turn/advanceTurn';
+import { takeAllAiTurns } from './domain/ai/countyAi';
+import { takeAllMilitaryTurns } from './domain/ai/militaryAi';
+import { indexMap } from './domain/map/mapQueries';
 import './ui/styles.css';
 
 /**
@@ -48,6 +52,16 @@ export default function App() {
   // will own this later; the actions it dispatches are already the real ones.
   const [match, setMatch] = useState(initial);
 
+  /**
+   * One season-advance for both screens. The player must not get a different
+   * game depending on which button they pressed.
+   */
+  const endSeason = () => {
+    const managed = takeAllAiTurns(match);
+    const marched = takeAllMilitaryTurns(managed.match, indexMap(ALDERMARCH));
+    setMatch(advanceSeason(marched.match, ALDERMARCH).match);
+  };
+
   const countyDef = inCounty ? ALDERMARCH.counties.find((c) => c.id === inCounty) : null;
   if (countyDef) {
     return (
@@ -76,6 +90,8 @@ export default function App() {
         selected={selected}
         onOpenReport={() => setReportOpen(true)}
         onEnterCounty={setInCounty}
+        onChange={setMatch}
+        onEndSeason={endSeason}
       />
       {reportOpen && <BattleReport onClose={() => setReportOpen(false)} />}
     </div>

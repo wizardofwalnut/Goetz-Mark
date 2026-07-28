@@ -882,3 +882,18 @@ body {
 }
 .end-turn:active { background: rgb(201 162 39 / 0.26); }
 .cs-sheet .note { white-space: pre-line; }
+
+.levy-row { display:grid; grid-template-columns:18px 62px 1fr 24px; gap:7px; align-items:center; margin:5px 0; font-size:12px; }
+.levy-icon { display:block; }
+.levy-name { color: var(--parchment-dim); }
+.levy-row input[type=range] { width:100%; accent-color: var(--gold); }
+.levy-count { font-family: var(--numeric); font-size:11px; text-align:right; color: var(--parchment-shadow); }
+.host { border:1px solid var(--ink-line); border-radius:3px; padding:8px; margin-top:6px; }
+.host-head { display:flex; justify-content:space-between; font-size:13px; }
+.host-comp { font-size:11px; color: var(--parchment-shadow); margin-top:2px; }
+.panel-action:disabled, .chip:disabled { opacity:.45; }
+
+.how-to { margin-top: 12px; }
+.how-to summary { cursor: pointer; font-size: 12px; color: var(--gold); letter-spacing: .06em; }
+.how-to p { font-size: 12px; line-height: 1.55; color: var(--parchment-shadow); margin: 8px 0 0; }
+.how-to b { color: var(--parchment-dim); font-weight: 600; }

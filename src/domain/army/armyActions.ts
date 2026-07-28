@@ -115,7 +115,10 @@ export function recruitArmy(
     owner,
     troops: { ...troops },
     location: { kind: 'garrison', county: countyId },
-    movementRemaining: 0,
+    // A new levy can march the season it is raised. Conscription already costs
+    // peasants, materials and happiness; making it also sit idle a season made
+    // the March button dead on arrival and read as a bug rather than a rule.
+    movementRemaining: armySpeed(troops),
     unpaidUpkeepTurns: 0,
   };
 
