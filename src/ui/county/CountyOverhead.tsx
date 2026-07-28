@@ -388,15 +388,15 @@ function IndustrySprite({ site }: { site: IndustrySiteState }) {
 }
 
 /**
- * The globally pooled raw materials, in the order the spec names them.
+ * Everything that pools empire-wide, materials first and money last.
  *
- * These three and no others: they are the resources that pool empire-wide with
- * no shipping decision attached, which is exactly why they can be shown as one
- * realm-wide total. Food is deliberately absent — it is held per county and
- * must be carted, so a single number for it would be a lie. Gold pools too but
- * is money rather than material, and belongs behind the Treasury.
+ * These four and no others. What they have in common is that they need no
+ * shipping decision, which is exactly why a single realm-wide total is a true
+ * statement about them. Food is deliberately absent for the opposite reason —
+ * it is held per county and must be carted, so one number for it would be a
+ * lie however convenient.
  */
-const POOLED_MATERIALS = ['wood', 'stone', 'ore'] as const;
+const POOLED_RESOURCES = ['wood', 'stone', 'ore', 'gold'] as const;
 
 /**
  * Top bar — an OVERLAY, not a header.
@@ -420,7 +420,7 @@ function TopBar({ match, label }: { match: MatchState; label: string }) {
     <header className="ov-top">
       <div className="ov-when">{label}</div>
       <div className="ov-res">
-        {POOLED_MATERIALS.map((resource) => (
+        {POOLED_RESOURCES.map((resource) => (
           <Readout key={resource} resource={resource} value={purse?.[resource] ?? 0} />
         ))}
       </div>
