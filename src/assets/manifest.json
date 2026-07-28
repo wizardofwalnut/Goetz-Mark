@@ -303,6 +303,102 @@
     },
     "industry.blacksmith.working": {
       "path": "industry/blacksmith-working.png"
+    },
+    "tile.ground": {
+      "path": "tile/ground.png",
+      "iso": true
+    },
+    "tile.ground.spring": {
+      "pending": true,
+      "path": "tile/spring/ground.png",
+      "iso": true
+    },
+    "tile.ground.summer": {
+      "pending": true,
+      "path": "tile/summer/ground.png",
+      "iso": true
+    },
+    "tile.ground.autumn": {
+      "pending": true,
+      "path": "tile/autumn/ground.png",
+      "iso": true
+    },
+    "tile.ground.winter": {
+      "pending": true,
+      "path": "tile/winter/ground.png",
+      "iso": true
+    },
+    "tile.forest": {
+      "path": "tile/forest.png",
+      "iso": true
+    },
+    "tile.forest.spring": {
+      "pending": true,
+      "path": "tile/spring/forest.png",
+      "iso": true
+    },
+    "tile.forest.summer": {
+      "pending": true,
+      "path": "tile/summer/forest.png",
+      "iso": true
+    },
+    "tile.forest.autumn": {
+      "pending": true,
+      "path": "tile/autumn/forest.png",
+      "iso": true
+    },
+    "tile.forest.winter": {
+      "pending": true,
+      "path": "tile/winter/forest.png",
+      "iso": true
+    },
+    "tile.mountain": {
+      "path": "tile/mountain.png",
+      "iso": true
+    },
+    "tile.mountain.spring": {
+      "pending": true,
+      "path": "tile/spring/mountain.png",
+      "iso": true
+    },
+    "tile.mountain.summer": {
+      "pending": true,
+      "path": "tile/summer/mountain.png",
+      "iso": true
+    },
+    "tile.mountain.autumn": {
+      "pending": true,
+      "path": "tile/autumn/mountain.png",
+      "iso": true
+    },
+    "tile.mountain.winter": {
+      "pending": true,
+      "path": "tile/winter/mountain.png",
+      "iso": true
+    },
+    "tile.water": {
+      "path": "tile/water.png",
+      "iso": true
+    },
+    "tile.water.spring": {
+      "pending": true,
+      "path": "tile/spring/water.png",
+      "iso": true
+    },
+    "tile.water.summer": {
+      "pending": true,
+      "path": "tile/summer/water.png",
+      "iso": true
+    },
+    "tile.water.autumn": {
+      "pending": true,
+      "path": "tile/autumn/water.png",
+      "iso": true
+    },
+    "tile.water.winter": {
+      "pending": true,
+      "path": "tile/winter/water.png",
+      "iso": true
     }
   }
 }

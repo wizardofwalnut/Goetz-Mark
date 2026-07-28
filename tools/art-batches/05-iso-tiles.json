@@ -1,0 +1,287 @@
+[
+  {
+    "key": "tiles.ground",
+    "tool": "create_tiles_pro",
+    "palette": false,
+    "outs": [
+      {
+        "key": "scratch.n0",
+        "out": "_scratch/n0.png",
+        "tileIndex": 0
+      },
+      {
+        "key": "scratch.n1",
+        "out": "_scratch/n1.png",
+        "tileIndex": 1
+      },
+      {
+        "key": "scratch.n2",
+        "out": "_scratch/n2.png",
+        "tileIndex": 2
+      },
+      {
+        "key": "scratch.n3",
+        "out": "_scratch/n3.png",
+        "tileIndex": 3
+      },
+      {
+        "key": "scratch.n4",
+        "out": "_scratch/n4.png",
+        "tileIndex": 4
+      },
+      {
+        "key": "scratch.n5",
+        "out": "_scratch/n5.png",
+        "tileIndex": 5
+      },
+      {
+        "key": "scratch.n6",
+        "out": "_scratch/n6.png",
+        "tileIndex": 6
+      },
+      {
+        "key": "scratch.n7",
+        "out": "_scratch/n7.png",
+        "tileIndex": 7
+      },
+      {
+        "key": "scratch.n8",
+        "out": "_scratch/n8.png",
+        "tileIndex": 8
+      },
+      {
+        "key": "scratch.n9",
+        "out": "_scratch/n9.png",
+        "tileIndex": 9
+      },
+      {
+        "key": "scratch.n10",
+        "out": "_scratch/n10.png",
+        "tileIndex": 10
+      },
+      {
+        "key": "scratch.n11",
+        "out": "_scratch/n11.png",
+        "tileIndex": 11
+      },
+      {
+        "key": "scratch.n12",
+        "out": "_scratch/n12.png",
+        "tileIndex": 12
+      },
+      {
+        "key": "scratch.n13",
+        "out": "_scratch/n13.png",
+        "tileIndex": 13
+      },
+      {
+        "key": "scratch.n14",
+        "out": "_scratch/n14.png",
+        "tileIndex": 14
+      },
+      {
+        "key": "scratch.n15",
+        "out": "_scratch/n15.png",
+        "tileIndex": 15
+      }
+    ],
+    "args": {
+      "description": "1). plain green grass ground tile 2). dense dark forest treetops tile 3). grey rocky mountain crag tile 4). blue river water tile",
+      "tile_type": "isometric",
+      "tile_view": "high top-down",
+      "tile_size": 64,
+      "outline_mode": "segmentation",
+      "seed": 9101
+    }
+  },
+  {
+    "key": "tiles.field",
+    "tool": "create_tiles_pro",
+    "palette": false,
+    "outs": [
+      {
+        "key": "scratch.f0",
+        "out": "_scratch/f0.png",
+        "tileIndex": 0
+      },
+      {
+        "key": "scratch.f1",
+        "out": "_scratch/f1.png",
+        "tileIndex": 1
+      },
+      {
+        "key": "scratch.f2",
+        "out": "_scratch/f2.png",
+        "tileIndex": 2
+      },
+      {
+        "key": "scratch.f3",
+        "out": "_scratch/f3.png",
+        "tileIndex": 3
+      },
+      {
+        "key": "scratch.f4",
+        "out": "_scratch/f4.png",
+        "tileIndex": 4
+      },
+      {
+        "key": "scratch.f5",
+        "out": "_scratch/f5.png",
+        "tileIndex": 5
+      },
+      {
+        "key": "scratch.f6",
+        "out": "_scratch/f6.png",
+        "tileIndex": 6
+      },
+      {
+        "key": "scratch.f7",
+        "out": "_scratch/f7.png",
+        "tileIndex": 7
+      },
+      {
+        "key": "scratch.f8",
+        "out": "_scratch/f8.png",
+        "tileIndex": 8
+      },
+      {
+        "key": "scratch.f9",
+        "out": "_scratch/f9.png",
+        "tileIndex": 9
+      },
+      {
+        "key": "scratch.f10",
+        "out": "_scratch/f10.png",
+        "tileIndex": 10
+      },
+      {
+        "key": "scratch.f11",
+        "out": "_scratch/f11.png",
+        "tileIndex": 11
+      },
+      {
+        "key": "scratch.f12",
+        "out": "_scratch/f12.png",
+        "tileIndex": 12
+      },
+      {
+        "key": "scratch.f13",
+        "out": "_scratch/f13.png",
+        "tileIndex": 13
+      },
+      {
+        "key": "scratch.f14",
+        "out": "_scratch/f14.png",
+        "tileIndex": 14
+      },
+      {
+        "key": "scratch.f15",
+        "out": "_scratch/f15.png",
+        "tileIndex": 15
+      }
+    ],
+    "args": {
+      "description": "1). ploughed bare brown farm field tile with neat furrow rows 2). dry cracked pale barren field tile 3). fenced green pasture field tile 4). ripe golden wheat crop field tile",
+      "tile_type": "isometric",
+      "tile_view": "high top-down",
+      "tile_size": 64,
+      "outline_mode": "segmentation",
+      "seed": 9102
+    }
+  },
+  {
+    "key": "tiles.grain",
+    "tool": "create_tiles_pro",
+    "palette": false,
+    "outs": [
+      {
+        "key": "scratch.r0",
+        "out": "_scratch/r0.png",
+        "tileIndex": 0
+      },
+      {
+        "key": "scratch.r1",
+        "out": "_scratch/r1.png",
+        "tileIndex": 1
+      },
+      {
+        "key": "scratch.r2",
+        "out": "_scratch/r2.png",
+        "tileIndex": 2
+      },
+      {
+        "key": "scratch.r3",
+        "out": "_scratch/r3.png",
+        "tileIndex": 3
+      },
+      {
+        "key": "scratch.r4",
+        "out": "_scratch/r4.png",
+        "tileIndex": 4
+      },
+      {
+        "key": "scratch.r5",
+        "out": "_scratch/r5.png",
+        "tileIndex": 5
+      },
+      {
+        "key": "scratch.r6",
+        "out": "_scratch/r6.png",
+        "tileIndex": 6
+      },
+      {
+        "key": "scratch.r7",
+        "out": "_scratch/r7.png",
+        "tileIndex": 7
+      },
+      {
+        "key": "scratch.r8",
+        "out": "_scratch/r8.png",
+        "tileIndex": 8
+      },
+      {
+        "key": "scratch.r9",
+        "out": "_scratch/r9.png",
+        "tileIndex": 9
+      },
+      {
+        "key": "scratch.r10",
+        "out": "_scratch/r10.png",
+        "tileIndex": 10
+      },
+      {
+        "key": "scratch.r11",
+        "out": "_scratch/r11.png",
+        "tileIndex": 11
+      },
+      {
+        "key": "scratch.r12",
+        "out": "_scratch/r12.png",
+        "tileIndex": 12
+      },
+      {
+        "key": "scratch.r13",
+        "out": "_scratch/r13.png",
+        "tileIndex": 13
+      },
+      {
+        "key": "scratch.r14",
+        "out": "_scratch/r14.png",
+        "tileIndex": 14
+      },
+      {
+        "key": "scratch.r15",
+        "out": "_scratch/r15.png",
+        "tileIndex": 15
+      }
+    ],
+    "args": {
+      "description": "1). dark tilled soil with tiny green seedlings tile 2). short young green wheat crop tile 3). tall ripe golden wheat crop tile 4). rotted flattened grey dead wheat tile",
+      "tile_type": "isometric",
+      "tile_view": "high top-down",
+      "tile_size": 64,
+      "outline_mode": "segmentation",
+      "seed": 9103
+    }
+  }
+]

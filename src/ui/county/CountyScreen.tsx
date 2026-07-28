@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { CountyId } from '../../domain/ids';
 import type { CountyDef } from '../../domain/map/mapTypes';
 import type { MatchState } from '../../domain/match/matchState';
-import type { FieldTile, IndustrySiteState } from '../../domain/county/interior';
+import type { FieldTile, GroundKind, IndustrySiteState } from '../../domain/county/interior';
 import {
   MAX_HERD_PER_FIELD,
   allowedTransitions,
@@ -15,11 +15,12 @@ import {
   setLabourSplit,
   toggleIndustry,
 } from '../../domain/county/actions';
-import { describeTurn, seasonOfTurn } from '../../domain/season';
+import { describeTurn, seasonOfTurn, type Season } from '../../domain/season';
 import {
   bannerArt,
   castleArt,
   fieldArt,
+  groundArt,
   industryArt,
   spriteArt,
 } from '../../assets/assetManifest';
@@ -55,6 +56,21 @@ interface Props {
 
 const isoX = (col: number, row: number) => ((col - row) * TILE_W) / 2;
 const isoY = (col: number, row: number) => ((col + row) * TILE_H) / 2;
+
+/**
+ * Generated isometric tiles are 64x64 BLOCKS: a 64x32 top face with roughly
+ * another 32px of side depth below it. They must be drawn whole and unclipped —
+ * clipping to the flat diamond shears the depth off and the county goes back to
+ * looking like paper cut-outs. Painter's order (col+row) makes nearer blocks
+ * overlap correctly.
+ */
+const TILE_IMG = 64;
+const tileImageProps = (x: number, y: number) => ({
+  x: x - TILE_W / 2,
+  y: y - TILE_H / 2,
+  width: TILE_IMG,
+  height: TILE_IMG,
+});
 
 const diamond = (cx: number, cy: number) =>
   `${cx},${cy - TILE_H / 2} ${cx + TILE_W / 2},${cy} ${cx},${cy + TILE_H / 2} ${cx - TILE_W / 2},${cy}`;
@@ -111,7 +127,9 @@ export function CountyScreen({ county, match, onChange, onBack }: Props) {
     dispatch(setFieldUse(match, county.id, field.id, to as FieldTile['status'], { confirmed }));
 
   // Painter's order: tiles further back drawn first so nearer ones overlap.
-  const ordered = [...interior.fields].sort((a, b) => a.col + a.row - (b.col + b.row));
+  const depth = (c: { col: number; row: number }) => c.col + c.row;
+  const ordered = [...interior.fields].sort((a, b) => depth(a) - depth(b));
+  const orderedGround = [...interior.ground].sort((a, b) => depth(a) - depth(b));
 
   // Headroom only above, for the castle and banner that overhang the town tile.
   const overhang = TILE_H * 1.5;
@@ -143,6 +161,19 @@ export function CountyScreen({ county, match, onChange, onBack }: Props) {
             role="img"
             aria-label={`${county.name} fields`}
           >
+            {/* Ground first — the surface everything else stands on. Most of a
+                county is plain walkable ground with nothing to manage. */}
+            {orderedGround.map((cell) => (
+              <GroundCellView
+                key={`g_${cell.col}_${cell.row}`}
+                kind={cell.kind}
+                season={season}
+                x={originX + isoX(cell.col, cell.row)}
+                y={originY + isoY(cell.col, cell.row)}
+              />
+            ))}
+
+            {/* The bounded workable set, drawn over the ground. */}
             {ordered.map((field) => (
               <FieldTileView
                 key={field.id}
@@ -302,6 +333,57 @@ const labourInfo = (): InfoContent => ({
   note: 'Drag the labour slider below to move workers between field and forge.',
 });
 
+const GROUND_TINT: Record<GroundKind, string> = {
+  ground: '#6f7d4f',
+  forest: '#3f5238',
+  mountain: '#6d6659',
+  water: '#3f5f74',
+};
+
+/**
+ * A plain ground cell.
+ *
+ * Deliberately NOT interactive: generic ground has nothing to assign, and
+ * making it tappable would teach players that every tile does something.
+ */
+function GroundCellView({
+  kind,
+  season,
+  x,
+  y,
+}: {
+  kind: GroundKind;
+  season: Season;
+  x: number;
+  y: number;
+}) {
+  const art = groundArt(kind, season);
+
+  if (art.missing || !art.url) {
+    return (
+      <g pointerEvents="none">
+        <polygon points={diamond(x, y)} fill={GROUND_TINT[kind]} />
+        <polygon
+          points={diamond(x, y)}
+          fill="none"
+          stroke={palette.ink}
+          strokeWidth="0.5"
+          opacity="0.35"
+        />
+      </g>
+    );
+  }
+
+  return (
+    <image
+      href={art.url}
+      {...tileImageProps(x, y)}
+      pointerEvents="none"
+      style={{ imageRendering: 'pixelated' }}
+    />
+  );
+}
+
 function FieldTileView({
   field,
   x,
@@ -317,46 +399,44 @@ function FieldTileView({
 }) {
   const { handlers, holding } = useLongPress({ onTap, onInfo });
   const art = fieldArt(field.status, stageOf(field));
-  const clipId = `clip-${field.id}`;
 
   return (
     <g className={`cs-tile${holding ? ' cs-holding' : ''}`} {...handlers}>
-      {/* Each tile needs its own clip: the diamonds sit on half-offsets, so a
-          single shared clip path or a tiled pattern cannot align to all of
-          them. Without this the art draws as overlapping squares. */}
-      {!art.missing && art.url && (
-        <clipPath id={clipId}>
-          <polygon points={diamond(x, y)} />
-        </clipPath>
-      )}
-      <polygon
-        points={diamond(x, y)}
-        fill={art.missing || !art.url ? FIELD_TINT[field.status] ?? '#8a6f4a' : '#2a231c'}
-      />
-      {!art.missing && art.url && (
+      {art.missing || !art.url ? (
+        <polygon
+          points={diamond(x, y)}
+          fill={FIELD_TINT[field.status] ?? '#8a6f4a'}
+          pointerEvents="none"
+        />
+      ) : (
         <image
           href={art.url}
-          x={x - TILE_W / 2}
-          y={y - TILE_H / 2}
-          width={TILE_W}
-          height={TILE_H}
-          preserveAspectRatio="none"
+          {...tileImageProps(x, y)}
+          pointerEvents="none"
           style={{ imageRendering: 'pixelated' }}
-          clipPath={`url(#${clipId})`}
         />
       )}
+      {/* Fields must read as workable at a glance even when fallow — this ring
+          is what separates the bounded set from the generic ground around it. */}
       <polygon
         points={diamond(x, y)}
         fill="none"
-        stroke={palette.inkLine}
-        strokeWidth="0.8"
-        opacity="0.6"
+        stroke={palette.parchmentDeep}
+        strokeWidth="1.2"
+        opacity="0.7"
       />
       {/* Herd size reads from sprite count, not a number the player looks up. */}
       {field.status === 'cattle' &&
         Array.from({ length: field.herd }).map((_, i) => (
           <CowSprite key={i} x={x - 12 + i * 11} y={y - 4} />
         ))}
+
+      {/* The ONLY hit target: the visible top face. The block art is drawn
+          unclipped so its side depth shows, which makes each image rectangle
+          overlap its neighbours — without this, taps land on whichever tile
+          happened to render last rather than the one under the finger. Top-face
+          diamonds tile exactly and never overlap, so this is precise. */}
+      <polygon points={diamond(x, y)} fill="transparent" />
     </g>
   );
 }
@@ -453,12 +533,17 @@ function IndustryView({
 
   return (
     <g className={`cs-tile${holding ? ' cs-holding' : ''}`} {...handlers}>
-      <polygon
-        points={diamond(x, y)}
-        fill={site.active ? '#7a6247' : '#4f463a'}
-        stroke={site.active ? palette.gold : palette.inkLine}
-        strokeWidth={site.active ? 1.8 : 1}
-      />
+      {/* A sprite standing ON the ground, never a tile of its own. Only the
+          active ring is drawn on the tile beneath it. */}
+      {site.active && (
+        <polygon
+          points={diamond(x, y)}
+          fill="none"
+          stroke={palette.gold}
+          strokeWidth="1.8"
+          opacity="0.9"
+        />
+      )}
       {!art.missing && art.url ? (
         <image
           href={art.url}

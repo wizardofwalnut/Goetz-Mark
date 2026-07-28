@@ -97,7 +97,15 @@ export const PLANNED_ART: readonly PlannedArt[] = [
   },
   {
     forSurface: 'Seasonal palette swaps on the realm and county maps',
-    keyPrefixes: ['terrain.forest.', 'terrain.hills.', 'terrain.chokepoint.'],
+    keyPrefixes: [
+      'terrain.forest.',
+      'terrain.hills.',
+      'terrain.chokepoint.',
+      'tile.ground.',
+      'tile.forest.',
+      'tile.mountain.',
+      'tile.water.',
+    ],
   },
   {
     forSurface: 'Castle build screen — the two tiers the county spec added',

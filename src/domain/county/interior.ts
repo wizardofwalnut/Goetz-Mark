@@ -64,14 +64,58 @@ export const RECLAIM_PER_SEASON = 0.25;
 
 export const MAX_HERD_PER_FIELD = 3;
 
+/**
+ * The ground layer.
+ *
+ * TWO LAYERS, and conflating them is a real bug rather than a shortcut:
+ *
+ *   - The TILE layer is the ground itself. Most of a county is plain walkable
+ *     ground with nothing to assign — it is a surface armies cross, not
+ *     something the player manages. Forest, mountain and water are impassable
+ *     decoration on the same layer.
+ *   - FIELDS are a bounded, countable subset (8-16 per county) and are the ONLY
+ *     tiles carrying the fallow/grain/cattle interaction. They must read as
+ *     visibly workable even when fallow, so a player can see at a glance which
+ *     ground is theirs to plant.
+ *
+ * Treating every tile as a field — which an earlier pass did — makes the whole
+ * county one undifferentiated management surface and destroys that glance.
+ */
+export type GroundKind = 'ground' | 'forest' | 'mountain' | 'water';
+
+/** Only plain ground can be walked, built on, or turned into a field. */
+export const PASSABLE: readonly GroundKind[] = ['ground'];
+export const isPassable = (kind: GroundKind) => PASSABLE.includes(kind);
+
+export interface GroundCell {
+  readonly col: number;
+  readonly row: number;
+  readonly kind: GroundKind;
+}
+
+/** Field count per county, by size. The spec's bounded 8-16 range. */
+export const MIN_FIELDS = 8;
+export const MAX_FIELDS = 16;
+
 export interface CountyInterior {
+  /** Every cell of the grid — the ground beneath everything else. */
+  readonly ground: readonly GroundCell[];
+  /** The bounded workable subset. Positions index into the ground grid. */
   readonly fields: readonly FieldTile[];
+  /** Sprites standing ON ground cells — never tiles in their own right. */
   readonly industry: readonly IndustrySiteState[];
   /** Grid extent, so the renderer need not recompute it. */
   readonly cols: number;
   readonly rows: number;
   /** Where the county town sits on the grid. */
   readonly town: { readonly col: number; readonly row: number };
+}
+
+const cellKey = (col: number, row: number) => `${col},${row}`;
+
+/** Look up what kind of ground is under a position. */
+export function groundAt(interior: CountyInterior, col: number, row: number): GroundKind {
+  return interior.ground.find((g) => g.col === col && g.row === row)?.kind ?? 'ground';
 }
 
 /** Which industry a resource supports, or null if it is farmed rather than worked. */
@@ -140,56 +184,89 @@ export function createInterior(opts: {
 }): CountyInterior {
   const { size, resource, rng } = opts;
 
-  // Grid grows with county size but stays hand-readable on a phone.
-  const cols = 4 + Math.min(3, Math.floor(size / 2));
-  const rows = 4 + Math.min(3, Math.floor(size / 2));
+  // Grid grows with county size but stays hand-readable on a phone. It is
+  // deliberately larger than the field count — most of a county is ground the
+  // player crosses rather than farms.
+  const cols = 7 + Math.min(4, size);
+  const rows = 7 + Math.min(4, size);
   const town = { col: Math.floor(cols / 2), row: Math.floor(rows / 2) };
 
-  const fields: FieldTile[] = [];
+  // --- ground layer ------------------------------------------------------
+  // Impassable terrain clusters at the edges, leaving the middle workable —
+  // scattering mountains through the centre would strand fields at random.
+  const ground: GroundCell[] = [];
+  const centre = { col: (cols - 1) / 2, row: (rows - 1) / 2 };
+  const maxDist = Math.hypot(centre.col, centre.row);
+
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      if (col === town.col && row === town.row) continue;
-
-      // A minority of tiles start barren so reclamation has a reason to exist
-      // from turn one rather than being a mechanic nobody meets.
+      if (col === town.col && row === town.row) {
+        ground.push({ col, row, kind: 'ground' });
+        continue;
+      }
+      const edgeness = Math.hypot(col - centre.col, row - centre.row) / maxDist;
       const roll = rng();
-      const status: FieldStatus = roll < 0.15 ? 'barren' : 'fallow';
-
-      fields.push({
-        id: `f_${col}_${row}`,
-        col,
-        row,
-        status,
-        seasonsGrown: 0,
-        herd: 0,
-        reclaimed: 0,
-      });
+      let kind: GroundKind = 'ground';
+      // Only the outer band gets terrain, and even there most stays walkable.
+      if (edgeness > 0.62 && roll < 0.45) {
+        const pick = rng();
+        kind = pick < 0.5 ? 'forest' : pick < 0.85 ? 'mountain' : 'water';
+      }
+      ground.push({ col, row, kind });
     }
   }
 
+  const passable = ground.filter(
+    (g) => isPassable(g.kind) && !(g.col === town.col && g.row === town.row),
+  );
+
+  // --- fields ------------------------------------------------------------
+  // A bounded set, not the whole grid. Placed nearest the town first, so a
+  // county's workable land reads as belonging to it rather than scattered.
+  const target = Math.min(
+    MAX_FIELDS,
+    Math.max(MIN_FIELDS, MIN_FIELDS + size * 2),
+    passable.length,
+  );
+  const byDistance = [...passable].sort(
+    (a, b) =>
+      Math.hypot(a.col - town.col, a.row - town.row) -
+      Math.hypot(b.col - town.col, b.row - town.row),
+  );
+
+  const fields: FieldTile[] = byDistance.slice(0, target).map((cell) => ({
+    id: `f_${cell.col}_${cell.row}`,
+    col: cell.col,
+    row: cell.row,
+    // A minority start barren so reclamation is met from turn one rather than
+    // being a mechanic nobody encounters.
+    status: (rng() < 0.15 ? 'barren' : 'fallow') as FieldStatus,
+    seasonsGrown: 0,
+    herd: 0,
+    reclaimed: 0,
+  }));
+
+  // --- industry sprites --------------------------------------------------
+  // Sprites stand ON ground cells; they are never tiles themselves. Placed
+  // outside the field block so they do not sit on workable land.
+  const taken = new Set(fields.map((f) => cellKey(f.col, f.row)));
+  const freeGround = byDistance
+    .slice(target)
+    .filter((c) => !taken.has(cellKey(c.col, c.row)));
+
   const industry: IndustrySiteState[] = [];
+  const place = (kind: IndustrySiteState['kind'], weapon: IndustrySiteState['weapon']) => {
+    const cell = freeGround.shift() ?? byDistance[byDistance.length - 1];
+    if (!cell) return;
+    taken.add(cellKey(cell.col, cell.row));
+    industry.push({ kind, col: cell.col, row: cell.row, active: false, workers: 0, weapon });
+  };
+
   if (resource !== 'wheat' && resource !== 'cows') {
-    const kind = INDUSTRY_FOR_RESOURCE[resource];
-    // Placed off-centre so it does not fight the town for attention.
-    industry.push({
-      kind,
-      col: Math.max(0, town.col - 2),
-      row: Math.max(0, town.row - 1),
-      active: false,
-      workers: 0,
-      weapon: null,
-    });
+    place(INDUSTRY_FOR_RESOURCE[resource], null);
   }
-
   // Every county can forge, but only once it is staffed.
-  industry.push({
-    kind: 'blacksmith',
-    col: Math.min(cols - 1, town.col + 1),
-    row: Math.min(rows - 1, town.row + 1),
-    active: false,
-    workers: 0,
-    weapon: 'swords',
-  });
+  place('blacksmith', 'swords');
 
-  return { fields, industry, cols, rows, town };
+  return { ground, fields, industry, cols, rows, town };
 }

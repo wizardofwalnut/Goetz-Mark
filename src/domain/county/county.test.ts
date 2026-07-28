@@ -9,11 +9,15 @@ import {
   yearOfTurn,
 } from '../season';
 import {
+  MAX_FIELDS,
   MAX_HERD_PER_FIELD,
+  MIN_FIELDS,
   allowedTransitions,
   createInterior,
   destroysCrop,
   fieldYieldShare,
+  groundAt,
+  isPassable,
   type FieldTile,
 } from './interior';
 import { healthFromRations, projectProduction } from './labour';
@@ -146,6 +150,65 @@ describe('interior generation', () => {
     // slider appears to do nothing on turn one.
     const interior = createInterior({ size: 4, resource: 'ore', rng: createRng(7).next });
     expect(interior.industry.every((i) => !i.active)).toBe(true);
+  });
+
+  it('keeps fields a bounded set, not the whole grid', () => {
+    // The correction the county spec calls out explicitly: fields are 8-16 per
+    // county, and most of the map is generic ground. An earlier pass made every
+    // tile a field, which turns the whole county into one management surface
+    // and destroys the glance that tells a player which land is workable.
+    for (const size of [1, 2, 3, 4, 5]) {
+      const interior = createInterior({ size, resource: 'wheat', rng: createRng(size).next });
+      expect(interior.fields.length, `size ${size}`).toBeGreaterThanOrEqual(MIN_FIELDS);
+      expect(interior.fields.length, `size ${size}`).toBeLessThanOrEqual(MAX_FIELDS);
+      expect(interior.fields.length, `size ${size}`).toBeLessThan(interior.ground.length);
+    }
+  });
+
+  it('covers every grid cell with ground', () => {
+    const interior = createInterior({ size: 3, resource: 'wheat', rng: createRng(21).next });
+    expect(interior.ground.length).toBe(interior.cols * interior.rows);
+  });
+
+  it('places every field on passable ground', () => {
+    // A field on a mountain is unreachable and unworkable.
+    for (const seed of [1, 7, 13, 29]) {
+      const interior = createInterior({ size: 4, resource: 'stone', rng: createRng(seed).next });
+      for (const f of interior.fields) {
+        expect(isPassable(groundAt(interior, f.col, f.row)), `seed ${seed} ${f.id}`).toBe(true);
+      }
+    }
+  });
+
+  it('never puts a field or a site on the town', () => {
+    const interior = createInterior({ size: 4, resource: 'ore', rng: createRng(33).next });
+    const onTown = (c: { col: number; row: number }) =>
+      c.col === interior.town.col && c.row === interior.town.row;
+    expect(interior.fields.some(onTown)).toBe(false);
+    expect(interior.industry.some(onTown)).toBe(false);
+  });
+
+  it('keeps impassable terrain out of the middle', () => {
+    // Clustered at the edges on purpose — mountains scattered through the
+    // centre would strand fields at random.
+    const interior = createInterior({ size: 5, resource: 'wheat', rng: createRng(44).next });
+    const centreCol = (interior.cols - 1) / 2;
+    const centreRow = (interior.rows - 1) / 2;
+    const maxDist = Math.hypot(centreCol, centreRow);
+
+    for (const cell of interior.ground) {
+      if (isPassable(cell.kind)) continue;
+      const dist = Math.hypot(cell.col - centreCol, cell.row - centreRow) / maxDist;
+      expect(dist, `${cell.kind} at ${cell.col},${cell.row}`).toBeGreaterThan(0.5);
+    }
+  });
+
+  it('does not stack industry sites on fields', () => {
+    const interior = createInterior({ size: 3, resource: 'stone', rng: createRng(55).next });
+    const fieldCells = new Set(interior.fields.map((f) => `${f.col},${f.row}`));
+    for (const site of interior.industry) {
+      expect(fieldCells.has(`${site.col},${site.row}`), site.kind).toBe(false);
+    }
   });
 
   it('seeds some barren land so reclamation is met early', () => {

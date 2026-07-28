@@ -4,7 +4,7 @@ import type { CastleTier, UnitKind } from '../domain/match/matchState';
 import type { Terrain } from '../domain/map/mapTypes';
 import type { Resource } from '../domain/resources';
 import type { Season, GrainStage } from '../domain/season';
-import type { FieldStatus, IndustryKind } from '../domain/county/interior';
+import type { FieldStatus, GroundKind, IndustryKind } from '../domain/county/interior';
 
 /**
  * Asset manifest.
@@ -146,6 +146,16 @@ export function resolveAsset(
  */
 export const terrainArt = (terrain: Terrain, season?: Season) =>
   resolveAsset(season ? [`terrain.${terrain}.${season}`, `terrain.${terrain}`] : [`terrain.${terrain}`]);
+
+/**
+ * Ground tile — the layer beneath everything.
+ *
+ * Distinct from `fieldArt`: most of a county is plain walkable ground with no
+ * crop or furrow detail, and drawing field art under the whole grid is what
+ * made an earlier pass read as one undifferentiated farm.
+ */
+export const groundArt = (kind: GroundKind, season?: Season) =>
+  resolveAsset(season ? [`tile.${kind}.${season}`, `tile.${kind}`] : [`tile.${kind}`]);
 
 /** Field tile art. Grain resolves by growth stage. */
 export const fieldArt = (status: FieldStatus, stage?: GrainStage | null) =>
