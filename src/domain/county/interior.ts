@@ -245,19 +245,13 @@ export function createInterior(opts: {
   // --- roads -------------------------------------------------------------
   // Laid FIRST, so the ground layer knows to keep them clear. A road that
   // ends in a mountain is not a road.
-  const road = buildRoads(town, castleAt(cols, rows), { cols, rows }, exits);
+  // ONE castle position, shared by the roads and by everything after them.
+  // An earlier edit left an inline copy here as well as the call in
+  // buildRoads, and the two drifted: the branch was laid to one cell while the
+  // keep was drawn at another.
+  const castle = castleAt(cols, rows, exits);
+  const road = buildRoads(town, castle, { cols, rows }, exits);
   const onRoad = new Set(road.map((c) => cellKey(c.col, c.row)));
-
-  // Far enough from the town to read as its own building, close enough to
-  // still read as guarding it. Off the road, so the castle never buries the
-  // one part of the county that movement rules hang off.
-  // One column across and two rows back: diagonal from the town, so the two
-  // sprites never touch, and never on the grid's outer column where half the
-  // keep would sit off the edge of the view.
-  const castle = {
-    col: Math.min(cols - 2, Math.max(1, town.col - 1)),
-    row: Math.min(rows - 2, Math.max(1, town.row - 2)),
-  };
 
   // --- ground layer ------------------------------------------------------
   // Impassable terrain clusters at the edges, leaving the middle workable —
@@ -367,20 +361,56 @@ export function createInterior(opts: {
 /**
  * Where the keep stands.
  *
- * One column across and two rows back from the town: diagonal, so the two
- * sprites never touch, and never on the grid's outer ring where half the keep
- * would sit off the edge of the view.
+ * SET BACK FROM THE TOWN AND OFF A THROUGH-ROAD, not tucked beside the square.
+ * An earlier placement put it one cell from the town, which made its spur look
+ * like it left from the market square — so a march to the keep read as "up the
+ * road, through the town, back out again" even though the path never touched
+ * the town cell. Where it LOOKS like the traffic goes matters as much as where
+ * it goes.
  *
- * Computed rather than stored because the roads have to know it before the
- * interior exists — a castle a road cannot reach is a castle nothing can
- * relieve, resupply or besiege by the rules the map is drawn to.
+ * So: walk out along the county's first exit road, away from the town, then
+ * step off it. The keep ends up a few cells down the highway with a short
+ * branch of its own, which is how a real castle sits relative to its village.
+ *
+ * Computed rather than stored because the roads need it before the interior
+ * exists.
  */
-function castleAt(cols: number, rows: number) {
-  const town = { col: Math.floor(cols / 2), row: Math.floor(rows / 2) };
-  return {
-    col: Math.min(cols - 2, Math.max(1, town.col - 1)),
-    row: Math.min(rows - 2, Math.max(1, town.row - 2)),
-  };
+const ALONG_ROAD = 3;
+const OFF_ROAD = 2;
+
+const townAt = (cols: number, rows: number) => ({
+  col: Math.floor(cols / 2),
+  row: Math.floor(rows / 2),
+});
+
+/** Unit step along an exit, and the perpendicular the keep steps off by. */
+const HEADING: Record<Exit, { along: readonly [number, number]; off: readonly [number, number] }> = {
+  n: { along: [0, -1], off: [-1, 0] },
+  s: { along: [0, 1], off: [1, 0] },
+  e: { along: [1, 0], off: [0, -1] },
+  w: { along: [-1, 0], off: [0, 1] },
+};
+
+function castleAt(cols: number, rows: number, exits: readonly Exit[]) {
+  const town = townAt(cols, rows);
+  // Never on the outer ring, where half the keep would sit off the view.
+  const clamp = (c: { col: number; row: number }) => ({
+    col: Math.min(cols - 2, Math.max(1, c.col)),
+    row: Math.min(rows - 2, Math.max(1, c.row)),
+  });
+
+  const exit = exits[0];
+  if (!exit) {
+    // No neighbours means no through-road to sit beside. Nothing is passing
+    // through this county anyway, so there is no traffic to route badly.
+    return clamp({ col: town.col - 1, row: town.row - 2 });
+  }
+
+  const { along, off } = HEADING[exit];
+  return clamp({
+    col: town.col + along[0] * ALONG_ROAD + off[0] * OFF_ROAD,
+    row: town.row + along[1] * ALONG_ROAD + off[1] * OFF_ROAD,
+  });
 }
 
 /**
@@ -428,74 +458,35 @@ function buildRoads(
     push(target.col, target.row);
   }
 
-  // A spur to the keep, joining the network WITHOUT crossing the market square.
+  // A SHORT BRANCH off the highway, not a path back through the village.
   //
-  // Every castle must be reachable by road — a garrison is relieved, resupplied
-  // and besieged along one — but an army riding to the keep should not have to
-  // file through the town centre to get there.
-  //
-  // Shortest path rather than another L-path: the castle sits diagonally from
-  // the town and the exit runs lie along the town's row and column, so which
-  // side the spur ought to join depends on which exits the county actually has.
-  // That case analysis goes wrong before it goes long.
-  for (const cell of pathToRoad(castle, town, bounds, seen)) push(cell.col, cell.row);
+  // The junction is the point on the exit road level with the keep, so the
+  // branch runs straight off the road it already passes — two cells, clearly
+  // an offshoot. Nothing routes via the town, and nothing looks like it does.
+  const exit = exits[0];
+  if (exit) {
+    const { along } = HEADING[exit];
+    const horizontal = along[0] !== 0;
+    const junction = horizontal
+      ? { col: castle.col, row: town.row }
+      : { col: town.col, row: castle.row };
+    push(junction.col, junction.row);
+    const step = horizontal
+      ? Math.sign(castle.row - junction.row)
+      : Math.sign(castle.col - junction.col);
+    if (horizontal) {
+      for (let r = junction.row; r !== castle.row; r += step) push(junction.col, r);
+    } else {
+      for (let c = junction.col; c !== castle.col; c += step) push(c, junction.row);
+    }
+  } else {
+    // Degenerate county: no exits, so the only road is the town itself.
+    const stepRow = Math.sign(castle.row - town.row);
+    for (let r = town.row; r !== castle.row; r += stepRow) push(town.col, r);
+    const stepCol = Math.sign(castle.col - town.col);
+    for (let c = town.col; c !== castle.col; c += stepCol) push(c, castle.row);
+  }
+  push(castle.col, castle.row);
 
   return out;
-}
-
-/**
- * Shortest path from the castle to the road network, never through the town.
- *
- * Breadth-first over the grid, with the town cell removed from the graph
- * entirely — not merely avoided as a goal. A county whose only road IS the town
- * has nothing else to reach, so the search finds nothing and the spur is just
- * the gate cell: there is no through-route to divert, because there is no
- * through-route.
- */
-function pathToRoad(
-  castle: { readonly col: number; readonly row: number },
-  town: { readonly col: number; readonly row: number },
-  bounds: { readonly cols: number; readonly rows: number },
-  road: ReadonlySet<string>,
-): { col: number; row: number }[] {
-  const start = { col: castle.col, row: castle.row };
-  const isTown = (c: { col: number; row: number }) => c.col === town.col && c.row === town.row;
-
-  const queue: { col: number; row: number }[] = [start];
-  const cameFrom = new Map<string, string | null>([[cellKey(start.col, start.row), null]]);
-  const at = new Map<string, { col: number; row: number }>([
-    [cellKey(start.col, start.row), start],
-  ]);
-
-  let goal: string | null = null;
-  while (queue.length > 0) {
-    const cell = queue.shift()!;
-    const key = cellKey(cell.col, cell.row);
-    if (road.has(key) && !isTown(cell) && key !== cellKey(start.col, start.row)) {
-      goal = key;
-      break;
-    }
-    for (const [dc, dr] of [[0, -1], [1, 0], [0, 1], [-1, 0]] as const) {
-      const next = { col: cell.col + dc, row: cell.row + dr };
-      const nk = cellKey(next.col, next.row);
-      if (cameFrom.has(nk)) continue;
-      if (next.col < 0 || next.row < 0 || next.col >= bounds.cols || next.row >= bounds.rows) {
-        continue;
-      }
-      if (isTown(next)) continue;
-      cameFrom.set(nk, key);
-      at.set(nk, next);
-      queue.push(next);
-    }
-  }
-
-  // Nothing to join: the gate still gets its cell so the castle is on a road.
-  if (goal === null) return [start];
-
-  const path: { col: number; row: number }[] = [];
-  for (let key: string | null = goal; key !== null; key = cameFrom.get(key) ?? null) {
-    const cell = at.get(key);
-    if (cell) path.push(cell);
-  }
-  return path;
 }

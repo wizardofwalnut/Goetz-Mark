@@ -205,3 +205,44 @@ describe('field art follows field state', () => {
     expect(new Set(stages).size).toBeGreaterThan(1);
   });
 });
+
+describe('the keep sits off the highway, not off the square', () => {
+  const build = (exits: readonly ('n' | 'e' | 's' | 'w')[]) =>
+    createInterior({
+      size: 4,
+      resource: 'wheat',
+      rng: createRng(4).next,
+      exits,
+      grid: { cols: 7, rows: 19 },
+    });
+
+  it('sets the castle back from the town rather than beside it', () => {
+    // It previously sat one cell away, which made its spur look like it left
+    // from the market square even though the path never crossed the town.
+    for (const exits of [['e', 's'], ['n'], ['w']] as const) {
+      const { castle, town } = build(exits);
+      const gap = Math.abs(castle.col - town.col) + Math.abs(castle.row - town.row);
+      expect(gap, `exits=[${exits.join(',')}]`).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it('joins the road by a short branch, not a long detour', () => {
+    // The branch is what makes it read as an offshoot. A long one reads as a
+    // second road and puts the traffic back through the middle of the county.
+    const interior = build(['e', 's']);
+    const road = new Set(interior.road.map((c) => `${c.col},${c.row}`));
+    const { castle, town } = interior;
+
+    // Walking from the keep back along the branch must reach the highway
+    // within a couple of cells, and must not pass the town on the way.
+    let steps = 0;
+    let cell = { ...castle };
+    while (cell.row !== town.row && steps < 5) {
+      cell = { col: cell.col, row: cell.row + Math.sign(town.row - cell.row) };
+      expect(road.has(`${cell.col},${cell.row}`)).toBe(true);
+      expect(cell.col === town.col && cell.row === town.row).toBe(false);
+      steps += 1;
+    }
+    expect(steps).toBeLessThanOrEqual(3);
+  });
+});
