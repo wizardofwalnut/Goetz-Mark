@@ -261,6 +261,27 @@ export const overheadRoadArt = (mask: number) => resolveAsset([`overhead.road.${
 
 export const overheadTownArt = () => resolveAsset(['overhead.town']);
 
+/**
+ * A ploughed-field piece, addressed by its CORNER mask (NW|NE|SE|SW = 1|2|4|8).
+ *
+ * This is a Wang set from PixelLab's tileset generator rather than four
+ * independent tiles: the fifteen transition pieces are what let worked land
+ * meet grass on a soft diagonal. The mask is the key for the same reason it is
+ * on roads — the art ships keyed that way, so no translation table exists to
+ * fall out of step with it.
+ */
+export const overheadPloughArt = (mask: number) => resolveAsset([`overhead.plough.${mask}`]);
+
+/**
+ * The mountain peak sprite.
+ *
+ * Mountains are a SPRITE standing on rocky ground, not a flat texture tile.
+ * From a god's-eye camera a mountain is the one piece of terrain whose whole
+ * character is its height, and a top-down rock texture throws exactly that
+ * away — it reads as grey gravel rather than as something impassable.
+ */
+export const overheadMountainArt = () => resolveAsset(['overhead.sprite.mountain']);
+
 export const overheadCastleArt = (tier: CastleTier) => resolveAsset([`overhead.castle.${tier}`]);
 
 export const overheadIndustryArt = (kind: IndustryKind) =>

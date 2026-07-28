@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { E, N, S, W, STRIDE_Y, TILE_W, gridSize, roadMasks } from './overheadCamera';
+import { E, N, S, W, STRIDE_Y, TILE_W, cornerMasks, gridSize, roadMasks } from './overheadCamera';
 import { createInterior } from '../../domain/county/interior';
 import { createRng } from '../../domain/rng';
 
@@ -131,5 +131,48 @@ describe('county roads', () => {
     const kinds = ore.industry.map((s) => s.kind);
     expect(kinds).toContain('mine');
     expect(kinds).not.toContain('quarry');
+  });
+});
+
+describe('terrain region autotiling', () => {
+  const bounds = { cols: 4, rows: 4 };
+
+  it('renders a lone cell as fully worked land', () => {
+    // The reason corners are read as "any touching cell", not "all". Under an
+    // all-rule a single field has no fully-inside corner and vanishes.
+    const masks = cornerMasks([{ col: 1, row: 1 }], bounds);
+    expect(masks['1,1']).toBe(N | E | S | W);
+  });
+
+  it('bleeds half a tile into the surrounding ground', () => {
+    // Deliberate: it is what merges neighbouring fields into one worked area.
+    // The renderer's tap targets must stay the field cells themselves.
+    const masks = cornerMasks([{ col: 1, row: 1 }], bounds);
+    expect(masks['0,0']).toBeDefined();
+    expect(masks['2,2']).toBeDefined();
+    // ...but not two cells out.
+    expect(masks['3,3']).toBeUndefined();
+  });
+
+  it('leaves untouched ground with no piece at all', () => {
+    // Mask 0 must not be recorded — drawing it would paint a tile of plain
+    // background over every cell in the county.
+    const masks = cornerMasks([{ col: 0, row: 0 }], bounds);
+    expect(masks['3,0']).toBeUndefined();
+    expect(Object.values(masks).every((m) => m !== 0)).toBe(true);
+  });
+
+  it('joins neighbouring cells into one region', () => {
+    // The cell between two fields is fully worked, which is the whole point of
+    // a corner set over four independent tiles.
+    const masks = cornerMasks(
+      [
+        { col: 1, row: 1 },
+        { col: 2, row: 1 },
+      ],
+      bounds,
+    );
+    expect(masks['1,1']).toBe(N | E | S | W);
+    expect(masks['2,1']).toBe(N | E | S | W);
   });
 });

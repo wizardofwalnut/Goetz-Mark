@@ -240,6 +240,18 @@ function withPalette(job) {
     });
     return { ...job.args, style_images: JSON.stringify(files) };
   }
+  // `references` points at images checked into tools/references/ and tells the
+  // model what to take from each. Kept in the repo rather than pasted in from
+  // a chat so a regeneration a month from now produces the same thing —
+  // a style reference that only ever existed in an upload is a batch file
+  // that cannot be re-run.
+  if (job.references) {
+    const refs = job.references.map((r) => ({
+      base64: readFileSync(join(ROOT, r.file)).toString('base64'),
+      usage: r.usage,
+    }));
+    return { ...job.args, reference_images: JSON.stringify(refs) };
+  }
   if (job.palette === false) return job.args;
   if (job.tool.startsWith('create_image_')) {
     return { ...job.args, color_image_base64: paletteBase64() };

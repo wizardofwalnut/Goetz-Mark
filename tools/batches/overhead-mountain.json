@@ -1,0 +1,20 @@
+[
+  {
+    "key": "overhead.sprite.mountain",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "tools/references/mountain-style.png",
+        "usage": "the mountain's silhouette, camera angle, faceted rock shading and colouring — match this closely"
+      }
+    ],
+    "args": {
+      "description": "A single rocky mountain peak on a transparent background, seen from high above at a steep angle. Faceted crags rising to one sharp summit, a pale snow-dusted cap, cool grey-blue stone with subtle warm and green mineral streaks in the rock faces, dark shadowed clefts. No ground, no grass, no sky.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 4410
+    },
+    "outDir": "overhead/candidates/mountain"
+  }
+]

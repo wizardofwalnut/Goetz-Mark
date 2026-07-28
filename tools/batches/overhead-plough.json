@@ -1,0 +1,18 @@
+[
+  {
+    "key": "overhead.plough",
+    "tool": "create_topdown_tileset",
+    "args": {
+      "lower_description": "green grass field",
+      "upper_description": "dark brown tilled farmland soil with soft diagonal plough ridges",
+      "tile_size": 32,
+      "view": "high top-down",
+      "transition_size": 0,
+      "outline": "lineless",
+      "shading": "medium shading",
+      "detail": "medium detail",
+      "text_guidance_scale": 12
+    },
+    "outDir": "overhead/plough-c"
+  }
+]
