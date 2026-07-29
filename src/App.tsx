@@ -28,9 +28,13 @@ import './ui/styles.css';
  * one opponent rather than three.
  *
  * The county screen is still the ground-level isometric one. Swapping it for
- * the overhead view is the next step and is deliberately NOT bundled here —
- * CountyOverhead is static, so trading it in before it can plant a field or
+ * the overhead living map is the next step and is deliberately NOT bundled
+ * here — LivingMap is static, so trading it in before it can plant a field or
  * move the labour slider would cost the management loop the game is about.
+ *
+ * When that swap happens, MapView goes with it: the living map now covers the
+ * whole realm on one scrollable surface, so a separate strategic map is a
+ * second, worse picture of the same world.
  */
 
 export default function App() {

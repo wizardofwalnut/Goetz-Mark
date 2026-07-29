@@ -64,6 +64,24 @@ export interface CountyDef {
   readonly shape: readonly Point[];
   /** Where the castle marker and county label are drawn. */
   readonly centroid: Point;
+  /**
+   * Where this county sits in a TILED world, if the map is laid out as a grid.
+   *
+   * The living map draws every county's interior on one continuous surface, so
+   * it needs to know that Greyfen goes to the right of Hollowmere rather than
+   * merely that their polygons happen to touch. A plot is a position in county
+   * units — `{ col: 1, row: 0 }` — which the renderer multiplies by the
+   * interior extent to get a world offset.
+   *
+   * OPTIONAL because not every map is a grid. A map pack of irregular shires
+   * has no plot to give, and the living map falls back to one county at a time
+   * rather than inventing a layout the map never claimed.
+   *
+   * Deliberately NOT derived from `centroid` at render time: the polygons are
+   * jittered for looks, and a world tiled from jittered centroids would tear
+   * along its seams.
+   */
+  readonly plot?: { readonly col: number; readonly row: number };
   /** Which basin this county sits in — used by map analysis and AI. */
   readonly region: string;
 }

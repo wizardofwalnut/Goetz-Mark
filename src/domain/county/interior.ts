@@ -257,7 +257,6 @@ export function createInterior(opts: {
   // Impassable terrain clusters at the edges, leaving the middle workable —
   // scattering mountains through the centre would strand fields at random.
   const ground: GroundCell[] = [];
-  const centre = { col: (cols - 1) / 2, row: (rows - 1) / 2 };
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -267,25 +266,26 @@ export function createInterior(opts: {
         ground.push({ col, row, kind: 'ground' });
         continue;
       }
-      // How close to the RIM, measured per axis rather than as a radius.
+      // How close to the RIM, COUNTED IN CELLS.
       //
-      // A radial distance normalised by the corner distance only reads as
-      // "edge" along whichever axis is longer: on a 7x17 county it put crags
-      // in thick bands across the top and bottom while the left and right
-      // columns never qualified at all. Taking the worst axis separately
-      // hugs the actual boundary whatever shape the county is.
-      const edgeness = Math.max(
-        Math.abs(col - centre.col) / Math.max(1, centre.col),
-        Math.abs(row - centre.row) / Math.max(1, centre.row),
-      );
+      // Previously a normalised per-axis fraction, which sounds equivalent and
+      // is not: a fraction of the half-width claims more rows than columns the
+      // moment a county is taller than it is wide. On the 7x19 grid it meant
+      // one column of wilderness down each side but TWO rows along the top and
+      // bottom — invisible in a single county, and glaring once counties are
+      // tiled into one world, where every horizontal seam became a four-row
+      // band of crags. A border should be a border, not a wall.
+      //
+      // Counting cells gives a true one-cell rim on all four sides whatever
+      // shape the grid is, which is what the per-axis fix was already reaching
+      // for.
+      const edge = Math.min(col, cols - 1 - col, row, rows - 1 - row);
       const roll = rng();
       let kind: GroundKind = 'ground';
-      // Only the outer band gets terrain, and even there most stays walkable.
-      // A ONE-CELL rim, not a wide frontier. At 0.62 a tall county came out as
-      // a corridor of farmland hemmed in by wilderness on every side: the
-      // threshold is a fraction of the half-width, so a low one claims most of
-      // a grid that is much longer than it is wide.
-      if (!onRoad.has(cellKey(col, row)) && edgeness > 0.78 && roll < 0.4) {
+      // Only the outermost ring gets terrain, and even there most stays
+      // walkable — roads are excluded outright, so a road always has a way
+      // through the frontier.
+      if (!onRoad.has(cellKey(col, row)) && edge === 0 && roll < 0.4) {
         const pick = rng();
         kind = pick < 0.5 ? 'forest' : pick < 0.85 ? 'mountain' : 'water';
       }

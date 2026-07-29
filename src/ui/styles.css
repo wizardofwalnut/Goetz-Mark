@@ -998,26 +998,26 @@ body {
 /* The land. Panning is local only — cross-county travel goes through the
    minimap, per the spec, so this never becomes the primary way to get around. */
 .ov-stage {
-  position: relative;
+  /* NOT position: relative. The minimap is pinned to the screen rather than to
+     the land, so its containing block must be .ov — which does not scroll. */
   flex: 1 1 auto;
   overflow: auto;
   background: #0d0b09;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* A PLAIN BLOCK scroll container, deliberately not a centring flex one.
+     A centred flex item that overflows its scroller is unreachable at the top
+     and left: the overflow is split to both sides and scrollLeft cannot go
+     below zero, so the first county would be permanently half off-screen. The
+     world always overflows, so there is nothing to centre anyway. */
+  -webkit-overflow-scrolling: touch;
 }
 
 .ov-map {
   display: block;
-  flex: 0 0 auto;
-  /* Fit the county's width to the screen and scroll vertically if it runs
-     long. Fitting width rather than height is what keeps every column of the
-     county on screen at once — panning sideways to find the castle is exactly
-     the fiddliness v2 asks to design out. The interior's cell counts are
-     chosen so the result nearly fills a portrait phone. */
-  width: 100%;
+  /* Width is set inline, from the world's column count, so ONE COUNTY fills
+     the screen's width and the rest of the realm is scrolled to. Fitting the
+     whole world here instead would shrink every tile below the tap floor —
+     the map would fit, and nothing on it would be usable. */
   height: auto;
-  margin: auto;
 }
 
 .ov-corner {
@@ -1041,6 +1041,16 @@ body {
   background: #17130f;
   border-top: 1px solid #2a231c;
   flex: 0 0 auto;
+}
+
+/* Which county the camera is on. The strip's figures are per-county, and once
+   the map covers the whole realm "whose numbers are these?" needs an answer. */
+.ov-where {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-right: 2px;
+  white-space: nowrap;
 }
 
 /* Thermometer, kept from v1 — a fill height reads at a glance where a

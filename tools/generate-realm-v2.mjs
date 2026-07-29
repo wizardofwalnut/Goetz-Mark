@@ -161,6 +161,35 @@ for (const c of COUNTIES) {
   }
 }
 
+// The plot grid and the border list must describe the SAME world.
+//
+// The living map tiles county interiors by plot, so a border between counties
+// that are not orthogonally adjacent in the grid would draw a road running into
+// open ground, and a pair of touching plots with no border would draw two roads
+// meeting at a seam armies cannot cross. Neither is visible in the emitted file
+// — it only shows up as a broken map — so it is checked here.
+const plotted = new Map(COUNTIES.map((c) => [c.id, c]));
+for (const c of COUNTIES) {
+  const clash = COUNTIES.find((o) => o !== c && o.col === c.col && o.row === c.row);
+  if (clash) throw new Error(`${c.id} and ${clash.id} share plot ${c.col},${c.row}`);
+}
+for (const [a, b] of ADJACENT) {
+  const p = plotted.get(a);
+  const q = plotted.get(b);
+  const step = Math.abs(p.col - q.col) + Math.abs(p.row - q.row);
+  if (step !== 1) throw new Error(`${a} and ${b} border but are not adjacent plots`);
+}
+const bordered = new Set(ADJACENT.map(([a, b]) => [a, b].sort().join('|')));
+for (const p of COUNTIES) {
+  for (const q of COUNTIES) {
+    if (p === q) continue;
+    const step = Math.abs(p.col - q.col) + Math.abs(p.row - q.row);
+    if (step === 1 && !bordered.has([p.id, q.id].sort().join('|'))) {
+      throw new Error(`${p.id} and ${q.id} are adjacent plots with no border`);
+    }
+  }
+}
+
 const fmt = (pts) => pts.map((p) => `{ x: ${p.x}, y: ${p.y} }`).join(', ');
 
 const src = `// GENERATED FILE — do not edit by hand.
@@ -184,6 +213,7 @@ ${COUNTIES.map((c) => {
     yield: ${c.yield},
     region: 'realm',
     centroid: { x: ${cen.x}, y: ${cen.y} },
+    plot: { col: ${c.col}, row: ${c.row} },
     shape: [${fmt(shape)}],
   },`;
 }).join('\n')}

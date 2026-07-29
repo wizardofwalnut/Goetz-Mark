@@ -4,17 +4,21 @@ import { REALM } from './content/maps/realm.generated';
 import { createMatch } from './domain/match/createMatch';
 import { createRng } from './domain/rng';
 import { factionId } from './domain/ids';
-import { CountyOverhead } from './ui/county/CountyOverhead';
+import { LivingMap } from './ui/county/LivingMap';
 import './ui/styles.css';
 
 /**
  * Checkpoint render — DEV ENTRY, not part of the game.
  *
- * The county-map spec asks for one static county to be rendered and looked at
- * before any interaction is built on it. This page is that render and nothing
- * else: real map data, real match state, the real component, no click
- * handlers. It has its own entry point so the checkpoint can be screenshotted
- * without threading a debug route through the app the player actually uses.
+ * The county-map spec asks for the map to be rendered and looked at before any
+ * interaction is built on it. This page is that render and nothing else: real
+ * map data, real match state, the real component. It has its own entry point so
+ * the checkpoint can be screenshotted without threading a debug route through
+ * the app the player actually uses.
+ *
+ * It now draws the WHOLE REALM rather than one county: four counties tiled onto
+ * one scrollable surface, opening on the first seat's town. The only
+ * interaction is the minimap — tap a county to travel to it.
  *
  * Delete this file once the interactive county screen replaces it.
  */
@@ -50,11 +54,11 @@ const match = createMatch({
   ],
 });
 
-const county = REALM.counties.find((c) => c.id === REALM.starts[0]?.county);
-if (!county) throw new Error('Realm has no starting county to render');
+const opensOn = REALM.starts[0]?.county;
+if (!opensOn) throw new Error('Realm has no starting county to open on');
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <CountyOverhead county={county} map={REALM} match={match} />
+    <LivingMap map={REALM} match={match} initialFocus={opensOn} />
   </StrictMode>,
 );
