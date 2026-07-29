@@ -19,7 +19,10 @@ import { join, relative, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = join(ROOT, 'dist');
+// Built by `vite build --mode standalone`, which is UNMINIFIED and has its own
+// outDir so it can never overwrite the real `dist/`. See vite.config.ts.
+const DIST = join(ROOT, 'dist-standalone');
+const ENTRY = 'standalone.html';
 const ART = join(ROOT, 'public', 'art');
 const OUT = join(ROOT, 'playtest', 'aldermarch-game.html');
 
@@ -38,14 +41,30 @@ for (const file of walk(ART)) {
 }
 
 // --- pull the built bundle --------------------------------------------------
-const html = readFileSync(join(DIST, 'index.html'), 'utf8');
+const html = readFileSync(join(DIST, ENTRY), 'utf8');
 
 const jsMatch = html.match(/<script[^>]+src="([^"]+)"[^>]*><\/script>/);
 const cssMatch = html.match(/<link[^>]+href="([^"]+\.css)"[^>]*>/);
-if (!jsMatch) throw new Error('No script tag in dist/index.html — run vite build first');
+if (!jsMatch) {
+  throw new Error(
+    `No script tag in ${DIST}/${ENTRY} — run \`vite build --mode standalone\` first`,
+  );
+}
 
 const js = readFileSync(join(DIST, jsMatch[1].replace(/^\//, '')), 'utf8');
 const css = cssMatch ? readFileSync(join(DIST, cssMatch[1].replace(/^\//, '')), 'utf8') : '';
+
+// The build must be READABLE — that is the entire reason this page exists.
+// A minified bundle runs fine, so nothing else here would notice; the failure
+// would only surface as an assistant unable to find anything to edit.
+for (const marker of ['resolveConquest', 'bakeCounty', 'projectProduction']) {
+  if (!js.includes(marker)) {
+    throw new Error(
+      `Bundle looks minified: "${marker}" is missing. ` +
+        'Build with `vite build --mode standalone` so identifiers survive.',
+    );
+  }
+}
 
 const title = (html.match(/<title>([^<]*)<\/title>/) ?? [, 'The Aldermarch'])[1];
 const icon = art['ui/app-icon.png'];

@@ -1,6 +1,9 @@
 node_modules/
 dist/
 dist-ssr/
+# Intermediate build for the one-file playtest page. The finished page in
+# playtest/ IS committed — this is only the scaffolding it is assembled from.
+dist-standalone/
 *.local
 .DS_Store
 .vite/

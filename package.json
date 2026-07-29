@@ -15,7 +15,7 @@
     "art": "node tools/pixellab.mjs run",
     "art:balance": "node tools/pixellab.mjs balance",
     "playtest": "vite-node tools/make-playtest.ts",
-    "standalone": "vite build && node tools/make-standalone.mjs",
+    "standalone": "vite build --mode standalone && node tools/make-standalone.mjs",
     "gen:realm": "node tools/generate-realm-v2.mjs",
     "shot": "node tools/shot.mjs"
   },

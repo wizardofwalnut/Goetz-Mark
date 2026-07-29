@@ -1,0 +1,15 @@
+[
+  {
+    "key": "overhead.industry.blacksmith",
+    "tool": "create_map_object",
+    "out": "overhead/sprite/blacksmith.png",
+    "args": {
+      "description": "village blacksmith forge: a small stone workshop with a chimney and an anvil under an open lean-to roof",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48
+    },
+    "source": "pixellab-app",
+    "note": "Generated in the PixelLab app and imported from an export zip, NOT produced by `node tools/pixellab.mjs run` against this file. The prompt and parameters are transcribed from the export's metadata.json so the sprite is traceable and re-orderable, but re-running this entry will produce a NEW generation rather than this exact image — generation is not deterministic. The shipped file is the authority; this record is provenance. Replaced an earlier forge that read as a generic lit hut: the anvil and the smith standing at it are what make the building identifiable at map scale."
+  }
+]

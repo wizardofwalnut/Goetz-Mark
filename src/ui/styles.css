@@ -1224,3 +1224,59 @@ body {
 .vision-deut {
   filter: url(#deuteranopia);
 }
+
+/* ------------------------------------------------- standalone playtest ---- */
+/* Only the one-file handoff build uses these — see src/standalone.tsx. They
+   are here rather than inline so the build has no second stylesheet to inline
+   and the "one file, no external requests" rule stays trivially true. */
+
+.sa {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--ink, #0d0b09);
+}
+
+.sa-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid #2a231c;
+  background: #14100c;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.sa-tab {
+  flex: 1 1 0;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #8a7a5e;
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 13px;
+  padding: 10px 8px;
+}
+
+.sa-tab.on {
+  color: #e3bf4a;
+  border-bottom-color: #c9a227;
+}
+
+/* The panes are siblings that fill what the tab strip leaves. `hidden` does
+   the switching, so neither is unmounted — the living map would otherwise
+   re-bake its whole world on every switch, and the app would lose the match. */
+.sa-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sa-pane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sa-pane[hidden] {
+  display: none;
+}
