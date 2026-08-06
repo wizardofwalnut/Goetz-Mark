@@ -325,6 +325,10 @@ async function runBatch(batchPath) {
           console.log(`  saved   ${`${job.key}[${i}]`.padEnd(24)} public/art/${out} (${bytes}b)`);
         });
         console.log(`  ${job.key}: ${images.length} tiles — map indices to keys by inspection`);
+        // Count it. Dumping a set IS the job succeeding, and not recording that
+        // made every outDir run end "0/N generated" with a failing exit code
+        // while having saved every file — a green run that reported red.
+        done.push(job.key);
         continue;
       }
 

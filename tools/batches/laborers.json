@@ -1,0 +1,110 @@
+[
+  {
+    "key": "overhead.sprite.laborer-farmer",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "public/art/overhead/sprite/army-soldier.png",
+        "usage": "figure proportions, camera angle, outline weight, shading simplicity and palette temperature — match this sprite's style exactly, these stand on the same map"
+      }
+    ],
+    "args": {
+      "description": "Aldermarch laborer sprite: a medieval peasant FARMER standing, on a transparent background, seen from high above at a steep angle. He holds a long curved SCYTHE and wears a wide straw hat and a plain undyed tunic. No armour. Bold simple silhouette, dark outline, minimal flat shading, muted earthy browns and straw yellow. Must read clearly at very small size. No ground, no grass, no sky, no shadow.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 7101
+    },
+    "outDir": "overhead/candidates/laborer-farmer"
+  },
+  {
+    "key": "overhead.sprite.laborer-herder",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "public/art/overhead/sprite/army-soldier.png",
+        "usage": "figure proportions, camera angle, outline weight, shading simplicity and palette temperature — match this sprite's style exactly, these stand on the same map"
+      }
+    ],
+    "args": {
+      "description": "Aldermarch laborer sprite: a medieval peasant CATTLE HERDER standing, on a transparent background, seen from high above at a steep angle. He leans on a tall wooden staff with a hooked crook at the top and wears a plain undyed tunic and a short cloak. No armour, no hat. Bold simple silhouette, dark outline, minimal flat shading, muted earthy browns and dull green. Must read clearly at very small size. No ground, no grass, no sky, no shadow, no animals.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 7102
+    },
+    "outDir": "overhead/candidates/laborer-herder"
+  },
+  {
+    "key": "overhead.sprite.laborer-woodcutter",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "public/art/overhead/sprite/army-soldier.png",
+        "usage": "figure proportions, camera angle, outline weight, shading simplicity and palette temperature — match this sprite's style exactly, these stand on the same map"
+      }
+    ],
+    "args": {
+      "description": "Aldermarch laborer sprite: a medieval peasant WOODCUTTER standing, on a transparent background, seen from high above at a steep angle. He carries a broad felling AXE resting over one shoulder, the axe head large and clearly visible in silhouette. Rolled sleeves, plain undyed tunic, leather belt. No armour. Bold simple silhouette, dark outline, minimal flat shading, muted earthy browns. Must read clearly at very small size. No ground, no grass, no sky, no shadow, no trees.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 7103
+    },
+    "outDir": "overhead/candidates/laborer-woodcutter"
+  },
+  {
+    "key": "overhead.sprite.laborer-miner",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "public/art/overhead/sprite/army-soldier.png",
+        "usage": "figure proportions, camera angle, outline weight, shading simplicity and palette temperature — match this sprite's style exactly, these stand on the same map"
+      }
+    ],
+    "args": {
+      "description": "Aldermarch laborer sprite: a medieval peasant MINER standing, on a transparent background, seen from high above at a steep angle. He holds a PICKAXE with a clearly angled head, and a small lit lantern hangs from his other hand giving a tiny warm glow. Soot-darkened tunic, simple cap. No armour. Bold simple silhouette, dark outline, minimal flat shading, muted earthy browns and slate grey. Must read clearly at very small size. No ground, no rocks, no sky, no shadow.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 7104
+    },
+    "outDir": "overhead/candidates/laborer-miner"
+  },
+  {
+    "key": "overhead.sprite.laborer-blacksmith",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "public/art/overhead/sprite/army-soldier.png",
+        "usage": "figure proportions, camera angle, outline weight, shading simplicity and palette temperature — match this sprite's style exactly, these stand on the same map"
+      }
+    ],
+    "args": {
+      "description": "Aldermarch laborer sprite: a medieval BLACKSMITH standing, on a transparent background, seen from high above at a steep angle. He holds a heavy short-handled HAMMER raised in one hand and wears a thick dark leather apron over bare arms. No armour, no helmet. Broad shouldered, bold simple silhouette, dark outline, minimal flat shading, muted earthy browns and dark leather. Must read clearly at very small size. No anvil, no forge, no ground, no sky, no shadow.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 7105
+    },
+    "outDir": "overhead/candidates/laborer-blacksmith"
+  },
+  {
+    "key": "overhead.sprite.laborer-idle",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "public/art/overhead/sprite/army-soldier.png",
+        "usage": "figure proportions, camera angle, outline weight, shading simplicity and palette temperature — match this sprite's style exactly, these stand on the same map"
+      }
+    ],
+    "args": {
+      "description": "Aldermarch laborer sprite: an IDLE UNEMPLOYED medieval peasant standing with EMPTY HANDS, holding no tool of any kind, on a transparent background, seen from high above at a steep angle. His POSTURE alone says waiting: shoulders slumped, head lowered, arms folded across his chest. Plain undyed tunic, no hat, no armour. The slouched idle stance must be obvious in silhouette alone without any colour cue. Bold simple silhouette, dark outline, minimal flat shading, muted drab earthy browns. Must read clearly at very small size. No tools, no ground, no sky, no shadow.",
+      "width": 64,
+      "height": 64,
+      "no_background": true,
+      "seed": 7106
+    },
+    "outDir": "overhead/candidates/laborer-idle"
+  }
+]
