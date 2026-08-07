@@ -1,0 +1,20 @@
+[
+  {
+    "key": "overhead.sprite.sheep",
+    "tool": "create_image_pro",
+    "references": [
+      {
+        "file": "public/art/overhead/sprite/laborer-herder.png",
+        "usage": "camera angle, outline weight, shading simplicity and palette temperature — this animal stands in the same pasture as this herder"
+      }
+    ],
+    "args": {
+      "description": "A single white woolly SHEEP standing side-on, grazing, on a transparent background, seen from high above at a steep angle. Fat rounded fleece body, small dark head and legs, dark outline. Small and simple enough to read clearly at tiny size with several in a field. No ground, no grass, no fence, no sky, no shadow.",
+      "width": 48,
+      "height": 48,
+      "no_background": true,
+      "seed": 7201
+    },
+    "outDir": "overhead/candidates/sheep"
+  }
+]
