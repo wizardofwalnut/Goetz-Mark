@@ -1,0 +1,44 @@
+[
+  {
+    "key": "overhead.sprite.cow",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A single brown and white dairy COW standing side-on grazing in a field, seen from above at a steep angle. Heavy rounded body, dark head lowered to the grass, short legs, dark outline. Simple and chunky enough to read clearly at small size with several in a pasture. Just the animal, nothing else.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/cow"
+  },
+  {
+    "key": "overhead.sprite.ore-cart",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A small wooden mine cart on iron wheels, heaped with dark grey iron ore rock, seen from above at a steep angle. Rough plank sides, iron banding, a couple of loose ore lumps spilled beside it. Simple and chunky enough to read at small size. Just the cart, no rails, no ground.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/ore-cart"
+  },
+  {
+    "key": "overhead.tile.yard",
+    "tool": "create_tiles_pro",
+    "args": {
+      "description": "1). a hard packed dirt working yard of trodden bare brown earth with scattered small grey cobblestones pressed into it, flat and even, no plants and NO PLOUGH FURROWS 2). a hard packed dirt working yard of trodden bare brown earth with scattered small grey cobblestones pressed into it, flat and even, no plants and NO PLOUGH FURROWS 3). a hard packed dirt working yard of trodden bare brown earth with scattered small grey cobblestones pressed into it, flat and even, no plants and NO PLOUGH FURROWS 4). a hard packed dirt working yard of trodden bare brown earth with scattered small grey cobblestones pressed into it, flat and even, no plants and NO PLOUGH FURROWS",
+      "tile_type": "square_topdown",
+      "tile_size": 32,
+      "tile_view_angle": 60,
+      "tile_depth_ratio": 0.2,
+      "outline_mode": "segmentation",
+      "seed": 7301
+    },
+    "outDir": "overhead/candidates/yard"
+  }
+]

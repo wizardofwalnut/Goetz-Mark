@@ -1,0 +1,30 @@
+[
+  {
+    "key": "overhead.sprite.castle-yard",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A small square castle bailey seen from directly above: a grey stone curtain wall with square corner turrets and a gate on the near side, enclosing a COMPLETELY EMPTY open courtyard of pale flagstones. The middle must be bare, flat and unobstructed with nothing standing in it — no keep, no tower, no buildings, no people inside the walls. Only the wall ring and the empty paved yard it encloses.",
+      "view": "high top-down",
+      "width": 128,
+      "height": 96,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/castle-yard"
+  },
+  {
+    "key": "overhead.sprite.forge-open",
+    "tool": "create_map_object",
+    "args": {
+      "description": "An open-air medieval blacksmith's workshop seen from above: a timber post-and-beam canopy with an open shingled lean-to roof on four corner posts and NO WALLS, sheltering a dark iron anvil on a block and a stone forge hearth with glowing orange coals. A rack of tools and a quench barrel beside it. Open on every side so the anvil and fire are plainly visible from above.",
+      "view": "high top-down",
+      "width": 80,
+      "height": 80,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/forge-open"
+  }
+]
