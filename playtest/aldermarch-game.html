@@ -1773,14 +1773,51 @@ body {
 .ov-town {
   display: flex;
   gap: 14px;
-  align-items: flex-start;
-  padding: 12px 14px 18px;
+  align-items: stretch;
+  padding: 10px 12px 12px;
+  /* Fill what the overlay gives it, and let the children divide it. `auto`
+     overflow stays for the narrow case where the rail stacks underneath. */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
-.ov-town-left { flex: 1 1 auto; min-width: 0; }
+.ov-town-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Between the game's own bars, never over them — the resource totals and the
+   county strip stay readable while labour is being moved, which is most of
+   why anyone opens this screen. Heights come from JS because both bars carry
+   safe-area padding. */
+.ov-labor-overlay {
+  top: var(--ov-chrome-top, 0px) !important;
+  bottom: var(--ov-chrome-bottom, 0px) !important;
+  inset-inline: 0 !important;
+}
 
 .ov-plan-frame {
+  /* Fits itself into the space the rail and stepper leave, KEEPING THE MAP'S
+     SHAPE. Letting the frame fill the box instead made it taller than the plan
+     and left green bands above and below — the frame is a border round the
+     land, so it has to be the land's shape. Aspect comes from the plan's own
+     dimensions, set inline, so the two can never disagree. */
+  /* WIDTH-DRIVEN, height from the aspect. Setting an explicit height instead
+     beat the aspect ratio — CSS only derives the dimension you leave out — so
+     the frame came out the container's shape and the map letterboxed inside it
+     with green bands top and bottom. Width is also the axis that matters on a
+     phone, which is what this screen is for. */
+  aspect-ratio: var(--plan-aspect, 4 / 3);
+  align-self: center;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+  display: flex;
   /* The ornate border of the references, rebuilt from this game's own
      materials: a double rule in aged gold over ink, rather than a bitmap
      frame that would have to be redrawn at every size. */
@@ -1793,7 +1830,7 @@ body {
   padding: 3px;
 }
 
-.ov-plan { display: block; width: 100%; height: auto; }
+.ov-plan { display: block; width: 100%; height: 100%; min-height: 0; }
 
 .ov-idle-pill {
   display: inline-block;
@@ -17239,7 +17276,7 @@ function TownPlan({ plots, idle, selected, onSelect, seat }) {
 		nodes.push(h("g", { key: `sc${i}`, transform: `translate(${s.x} ${s.y})`, opacity: 0.9 }, trees));
 	}
 
-	return h("div", { className: "ov-plan-frame" },
+	return h("div", { className: "ov-plan-frame", style: { "--plan-aspect": `${PLAN_W} / ${PLAN_H}` } },
 		h("svg", {
 			className: "ov-plan", viewBox: `0 0 ${PLAN_W} ${PLAN_H}`,
 			role: "group", "aria-label": "County labor plan",
@@ -17291,6 +17328,29 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
 	const [selected, setSelected] = import_react.useState(null);
 	const h = import_react.createElement;
 
+	/**
+	 * Sit between the game's own chrome rather than on top of it.
+	 *
+	 * The heights are MEASURED, not hardcoded: both bars carry
+	 * env(safe-area-inset-*) padding, so their real height differs between a
+	 * desktop window and a notched phone, and a fixed 56/85 would either clip
+	 * the map or leave a gap exactly on the devices that can least afford it.
+	 */
+	const shell = import_react.useRef(null);
+	import_react.useEffect(() => {
+		const fit = () => {
+			const el = shell.current;
+			if (!el) return;
+			const top = document.querySelector(".ov-top");
+			const strip = document.querySelector(".ov-strip");
+			el.style.setProperty("--ov-chrome-top", `${top ? top.getBoundingClientRect().height : 0}px`);
+			el.style.setProperty("--ov-chrome-bottom", `${strip ? strip.getBoundingClientRect().height : 0}px`);
+		};
+		fit();
+		window.addEventListener("resize", fit);
+		return () => window.removeEventListener("resize", fit);
+	}, []);
+
 	const plots = planPlots(county, {
 		quarryOrMine, blacksmith, lumberMill,
 		grainRequired, cattleRequired, grainFields, cattleFields,
@@ -17308,7 +17368,7 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
 	const harvestAtRisk = grainFields.some((f) => grainStage(f.seasonsGrown) === "mature")
 		&& county.farmWorkers < grainRequired;
 
-	return h("div", { className: "ov-labor-overlay" }, [
+	return h("div", { className: "ov-labor-overlay", ref: shell }, [
 		h("div", { className: "ov-labor-header", key: "hd" }, [
 			h("h2", { key: "t" }, `${countyName ?? countyId} — Town Centre`),
 			h("button", { key: "x", className: "ov-labor-close", onClick: onClose }, "✕"),
