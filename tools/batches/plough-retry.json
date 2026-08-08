@@ -1,0 +1,16 @@
+[
+  {
+    "key": "overhead.prop.plough",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A farm HAND CART loaded with bulging grain sacks, standing in a field, seen from above at a steep angle. Two large spoked wooden wheels clearly visible on either side, plank sides, pale sacks heaped above the rim, two long pull-handles at the front. The wheels and the sacks are what must read first.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/graincart"
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "key": "overhead.prop.timber",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A neat stack of sawn timber planks lying on the ground, seen from above at a steep angle. Pale cut wood ends, rough bark edges, a couple of loose boards fallen beside the pile. Small and chunky enough to read at tiny size. Just the timber, no ground, no background.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/timber"
+  },
+  {
+    "key": "overhead.prop.barrels",
+    "tool": "create_map_object",
+    "args": {
+      "description": "Two wooden barrels and a small crate standing together on the ground, seen from above at a steep angle. Iron-banded oak barrels, one upright and one on its side, a plain nailed crate beside them. Small and chunky enough to read at tiny size. Just the barrels and crate, no ground, no background.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/barrels"
+  },
+  {
+    "key": "overhead.prop.plough",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A wooden medieval plough left standing in a field, seen from above at a steep angle. Timber beam and handles with a dark iron ploughshare, resting at an angle on the soil. Small and chunky enough to read at tiny size. Just the plough, no oxen, no ground, no background.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/plough"
+  },
+  {
+    "key": "overhead.prop.spoil",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A heap of broken grey mine spoil rock piled on the ground, seen from above at a steep angle. Angular fractured stones of mixed size with darker iron-streaked lumps, a few scattered around the base. Small and chunky enough to read at tiny size. Just the rock heap, no ground, no background.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/spoil"
+  },
+  {
+    "key": "overhead.prop.sawhorse",
+    "tool": "create_map_object",
+    "args": {
+      "description": "A wooden carpenter's sawhorse trestle with a plank laid across it, seen from above at a steep angle. Four splayed legs, a rough beam, a hand saw resting on the plank and wood shavings below. Small and chunky enough to read at tiny size. Just the sawhorse, no ground, no background.",
+      "view": "high top-down",
+      "width": 48,
+      "height": 48,
+      "outline": "selective outline",
+      "shading": "medium shading",
+      "detail": "medium detail"
+    },
+    "outDir": "overhead/candidates/sawhorse"
+  }
+]

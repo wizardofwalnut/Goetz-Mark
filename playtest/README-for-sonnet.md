@@ -18,28 +18,38 @@ original repo path:
 //#endregion
 ```
 
-There are 36 such regions for this project's own source. **Everything before
-the first `//#region src/` is React** — roughly the first 7,500 lines. Skip it.
+There are 30 such regions for this project's own source. **Everything before
+the first `//#region src/` is React** — roughly the first 9,500 lines. Skip it.
 
-## The two tabs
+## What this build is
 
-| Tab | What it is |
-| --- | --- |
-| **Realm — playable** | The actual game. Turn loop, AI opponents, battles, county management, treasury. This is `src/App.tsx`. |
-| **Living map — new** | The new overhead world: four counties tiled onto one scrollable surface, roads joining across the borders, minimap to travel. This is `src/ui/county/LivingMap.tsx`. Currently **static** — it draws, it does not yet accept input. |
+A single screen: the **living map**, four counties tiled onto one scrollable
+surface with roads joining across the borders and a minimap to travel between
+them. There are no tabs — the old isometric `CountyScreen`, `MapView` and
+`App.tsx` were removed when the map migration landed.
 
-## The open task
+Tapping a county's **town centre** opens the **town-centre labor screen**
+(`LaborScreen` → `TownPlan`): a framed plan of that county laid out 3×3 with the
+town at the middle of a crossroads and the work plots ringing it. Tapping a plot
+opens a +/- stepper that moves real workers through `adjustSlot`.
 
-**Those two are not joined yet, and joining them is the work.**
+## How the labor screen is put together
 
-The Realm tab still uses the ground-level isometric `CountyScreen`. The Living
-map is where the game is going, but it has no interaction: you cannot tap a
-field to plant it, move the labour slider, or end a season from it.
-
-So the job is to make `LivingMap` interactive — tap-to-assign fields, the labour
-panel, end-season — and then retire `CountyScreen`. `MapView` (the old strategic
-map) goes at the same time: the living map already covers the whole realm, so a
-separate strategic map is a second, worse picture of the same world.
+- `planPlots(county, ctx)` decides which plots exist. Sites the county lacks are
+  **omitted** — no quarry unless `mineral === 'stone'`, no mine unless `'ore'`,
+  no lumber mill without wood. Do not assume a fixed set.
+- Per-site staffing already works. `adjustSlot` handles the named slots
+  (`farm`, `cattle`, `repair`, `castle`) *and* industry by kind, via
+  `interior.industry.find(s => s.kind === slot).workers`. `projectProduction`
+  sums those per site.
+- Each plot carries its own ground, an optional building, an optional `props`
+  list, and figures. **Props draw regardless of staffing** — they say what a
+  plot *is*, where figures say who is *on* it. An unstaffed Repair plot still
+  shows timber and sawhorses.
+- The castle is an `enclosure`: a wall ring whose figure scatter is inset to the
+  bailey floor, so builders stand inside the walls.
+- Staffing rings are only drawn where the model knows what "enough" means —
+  grain and cattle have a required figure, industry does not.
 
 ## Where things live
 
