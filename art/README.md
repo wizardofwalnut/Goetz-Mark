@@ -41,3 +41,22 @@ end caps for free and hide the run seams).
 Look: low dry-stone field wall, knee-to-waist on a soldier. Purely cosmetic
 (wallSegments/CountyWalls — no effect on movement). A road crossing simply
 has no segment there. One variant year-round.
+
+## Roads (generator ready Oct 6; texture pending)
+
+`tools/roadgen.py <dirt_texture.png> <out_dir> [scale]` builds all 16 road
+autotiles (mask bits N=1 E=2 S=4 W=8, same as `roadMasks`) from ONE dirt
+texture. Output is transparent overlays for the existing "roads" bake layer,
+so one set works on every season's ground (checked on spring, autumn, winter).
+- Road width = 0.34 tile; curved corners; ragged edge from tileable noise;
+  dark rim so the road still reads on brown autumn ground.
+- Surface is cropped to one tile and made seamless at that size, so tiles
+  join invisibly. Arms and noise run past the border before cropping — no
+  seam lines.
+- Default output is 4x (232x168) for downscaling to the bake resolution.
+
+`art/road-placeholder/` is built from a stand-in texture synthesised from the
+canon road colours. Replace by re-running the script on the Grok texture
+(prompt: seamless overhead packed-dirt surface, no ruts or directional marks).
+Manifest note: current keys `overhead.road.0..15` point at shuffled file names
+(tile-00/02/03/10/...) — wire road-NN.png directly by mask number in Phase B.
