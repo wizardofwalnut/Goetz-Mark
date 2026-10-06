@@ -20,7 +20,7 @@ the game mirrors each horizontally for the other two directions.
 |---|---|---|---|
 | overhead.sprite.wagon | canon wagon_caravan (no slab) | TODO | Merchant and player caravans share it. Player caravans already get a seat-colour flag overlay (castleFlagArt) — no flagged wagon art needed. |
 | overhead.army.bearer.<seat> | TODO | TODO | One render per view, recoloured to crimson/azure/gold/sable. |
-| overhead.army.soldier | TODO | TODO | |
+| overhead.army.soldier | army/soldier-toward.png ✓ | army/soldier-away.png ✓ | Canon militia kit. Both files share one frame (420x852) so they swap in place. |
 
 Phase B code: track each wagon's/army's last move direction, pick view +
 CSS mirror from it, and mirror the flag overlay's x-offset with the sprite.
