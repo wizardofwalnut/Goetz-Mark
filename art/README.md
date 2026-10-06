@@ -19,7 +19,7 @@ the game mirrors each horizontally for the other two directions.
 | Sprite | Toward | Away | Notes |
 |---|---|---|---|
 | overhead.sprite.wagon | wagon/wagon-toward.png ✓ | wagon/wagon-away.png ✓ | Merchant and player caravans share it. Player caravans already get a seat-colour flag overlay (castleFlagArt) — no flagged wagon art needed. |
-| overhead.army.bearer.<seat> | TODO | TODO | One render per view, recoloured to crimson/azure/gold/sable. |
+| overhead.army.bearer.<seat> | army/bearer-<colour>-toward.png ✓ | army/bearer-<colour>-away.png ✓ | Colours crimson/azure/gold/sable (seat 0-3), recoloured from one render per view. Body scaled to match the soldier (701px helmet-to-feet in both). Flag flies sideways from the pole (reads better on the map than the hanging banner). |
 | overhead.army.soldier | army/soldier-toward.png ✓ | army/soldier-away.png ✓ | Canon militia kit. Both files share one frame (420x852) so they swap in place. |
 
 Phase B code: track each wagon's/army's last move direction, pick view +
