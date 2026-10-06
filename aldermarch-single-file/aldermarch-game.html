@@ -13903,29 +13903,48 @@ var STARTING_TREASURY = {
 };
 var STARTING_GARRISON = { militia: 12 };
 /**
-* Oct 5 — every starting county, human or AI, is set up by the same rule
-* rather than hand-placed numbers, so new maps get a sane start for free.
-* Previously only the human seat got planted fields and workers (and an
-* overcrowded 100-cow herd on 2 pastures that died off to ~10 within two
-* years), while AI seats started with every field fallow and nobody
-* working. The rule:
-* - 3 grain fields, 2 pastures (fallow fields picked before barren ones);
-* - a herd that fits its pastures in the "Low" crowding tier, with enough
-*   dairy maids per cow that births outpace deaths;
-* - enough farmers to sow a year's grain (plus headroom) at Winter;
-* - everyone else working the lumber mill / quarry / mine;
-* - tax at the happiness-neutral 5%.
+* Starting setup — a DEFAULT that any map or scenario can override.
+*
+* Why it exists (Oct 5): only the human seat used to get planted fields
+* and workers (plus an overcrowded 100-cow herd on 2 pastures that died
+* off to ~10 within two years), while AI seats started with every field
+* fallow and nobody working. Now every county goes through one setup
+* function; what differs between maps/scenarios is just the numbers.
+*
+* How to override, most general to most specific (later wins):
+*   DEFAULT_START_SETUP / DEFAULT_NEUTRAL_SETUP  (below)
+*   map.startSetup / map.neutralSetup            (whole map)
+*   map.starts[i].setup                          (one seat's start)
+* e.g. a siege scenario: `starts: [{ seat: 0, county: "x", setup: { herd: 0, food: 300 } }]`.
+*
+* Fields:
+*   grainFields, cattleFields — fields planted at the start (fallow picked before barren)
+*   herd     — "fit" = what the pastures hold in the Low crowding tier, or a number
+*   maidsPerCow — dairy maids per cow (~2 keeps births ahead of deaths)
+*   farmers  — "fit" = enough to sow a year's grain (+ foodHeadroom) at Winter, or a number
+*   industry — "assign" = everyone left works the mill/quarry/mine; "idle" = left unassigned
+*   taxRate  — percent; 0 by default so the tutorial can teach the tax lever
+*   food     — starting grain; for neutral counties `foodYears` (years of eating) is used instead
 */
-var STARTING_GRAIN_FIELDS = 3;
-var STARTING_CATTLE_FIELDS = 2;
-var STARTING_MAIDS_PER_COW = 2.2;
-var STARTING_TAX_RATE = 5;
-var STARTING_FOOD_HEADROOM = 1.3;
-var NEUTRAL_FOOD_YEARS = 2;
-function applyStartingEstate(county) {
+var DEFAULT_START_SETUP = {
+	grainFields: 3,
+	cattleFields: 2,
+	herd: "fit",
+	maidsPerCow: 2.2,
+	farmers: "fit",
+	foodHeadroom: 1.3,
+	industry: "assign",
+	taxRate: 0,
+	food: 1e3
+};
+var DEFAULT_NEUTRAL_SETUP = {
+	...DEFAULT_START_SETUP,
+	foodYears: 2
+};
+function applyStartingEstate(county, setup) {
 	const order = county.interior.fields.map((f, i) => ({ f, i })).sort((a, b) => (a.f.status === "barren") - (b.f.status === "barren") || a.i - b.i).map(({ i }) => i);
-	const cattleIdx = new Set(order.slice(0, STARTING_CATTLE_FIELDS));
-	const grainIdx = new Set(order.slice(STARTING_CATTLE_FIELDS, STARTING_CATTLE_FIELDS + STARTING_GRAIN_FIELDS));
+	const cattleIdx = new Set(order.slice(0, setup.cattleFields));
+	const grainIdx = new Set(order.slice(setup.cattleFields, setup.cattleFields + setup.grainFields));
 	const fields = county.interior.fields.map((f, i) => cattleIdx.has(i) || grainIdx.has(i) ? {
 		...f,
 		status: cattleIdx.has(i) ? "cattle" : "grain",
@@ -13934,24 +13953,25 @@ function applyStartingEstate(county) {
 		plantedSacks: 0,
 		harvestPending: 0
 	} : f);
-	const herd = cattleIdx.size * COWS_PER_FIELD_LOW_MAX;
-	const cattleWorkers = Math.ceil(herd * STARTING_MAIDS_PER_COW);
-	const sacks = Math.ceil(county.population * GRAIN_PER_HEAD * 4 * STARTING_FOOD_HEADROOM / GRAIN_YIELD_RATIO);
+	const herd = setup.herd === "fit" ? cattleIdx.size * COWS_PER_FIELD_LOW_MAX : Math.max(0, setup.herd);
+	const cattleWorkers = Math.min(county.population, Math.ceil(herd * setup.maidsPerCow));
+	const sacks = Math.ceil(county.population * GRAIN_PER_HEAD * 4 * setup.foodHeadroom / GRAIN_YIELD_RATIO);
 	const perField = Math.min(MAX_SACKS_PER_FIELD, Math.ceil(sacks / Math.max(1, grainIdx.size)));
-	const farmWorkers = Math.min(county.population - cattleWorkers, perField * grainIdx.size * LABORERS_PER_SACK);
+	const farmersWanted = setup.farmers === "fit" ? perField * grainIdx.size * LABORERS_PER_SACK : setup.farmers;
+	const farmWorkers = Math.max(0, Math.min(county.population - cattleWorkers, farmersWanted));
 	const left = Math.max(0, county.population - farmWorkers - cattleWorkers);
-	const producers = county.interior.industry.filter((site) => site.kind !== "blacksmith");
+	const producers = setup.industry === "assign" ? county.interior.industry.filter((site) => site.kind !== "blacksmith") : [];
 	const perSite = producers.length > 0 ? Math.floor(left / producers.length) : 0;
 	return {
 		...county,
 		herd,
 		farmWorkers,
 		cattleWorkers,
-		taxRate: STARTING_TAX_RATE,
+		taxRate: setup.taxRate,
 		interior: {
 			...county.interior,
 			fields,
-			industry: county.interior.industry.map((site) => site.kind === "blacksmith" ? site : {
+			industry: county.interior.industry.map((site) => !producers.includes(site) ? site : {
 				...site,
 				active: perSite > 0,
 				workers: perSite
@@ -14042,17 +14062,27 @@ function createMatch(options) {
 	* bigger number sitting inert in storage.
 	*/
 	/**
-	* Neutral counties get the same working estate plus two years of grain.
-	* They don't simulate while unowned, so without this a captured county
-	* had no fields, no workers and an empty store — it starved and
-	* revolted back to neutral within a few seasons of being taken.
+	* Every county goes through the same setup (see DEFAULT_START_SETUP).
+	* Neutral counties don't simulate while unowned, so they're given a
+	* working estate and a few years of grain — otherwise a captured
+	* county had no fields, no workers and an empty store, and starved
+	* back into revolt within a few seasons of being taken.
 	*/
 	for (const [countyId, county] of Object.entries(counties)) {
-		const estate = applyStartingEstate(county);
-		counties[countyId] = county.owner ? estate : {
-			...estate,
-			food: { ...estate.food, wheat: Math.round(county.population * GRAIN_PER_HEAD * 4 * NEUTRAL_FOOD_YEARS) }
-		};
+		if (county.owner) {
+			const start = map.starts.find((st) => st.county === countyId);
+			const setup = { ...DEFAULT_START_SETUP, ...map.startSetup ?? {}, ...start?.setup ?? {} };
+			counties[countyId] = {
+				...applyStartingEstate(county, setup),
+				food: { ...county.food, wheat: setup.food }
+			};
+		} else {
+			const setup = { ...DEFAULT_NEUTRAL_SETUP, ...map.neutralSetup ?? {} };
+			counties[countyId] = {
+				...applyStartingEstate(county, setup),
+				food: { ...county.food, wheat: Math.round(county.population * GRAIN_PER_HEAD * 4 * setup.foodYears) }
+			};
+		}
 	}
 	const armies = {};
 	for (const [county, owner] of startByCounty) {
