@@ -9,5 +9,18 @@
 | icons/item_knight_helm.png | item_knight_helm (replaces item_knight_plate_helm) | Great helm matching unit_knight. Navy #020A1F background, same as the other catalog icons. |
 
 Seat colours: crimson #C0392B, azure #2F6FD0, gold #E8C33A, sable #26262E.
-| wagon/supply-crimson.png, -steel, -gold, -sable | overhead.sprite.wagon.supply.<seat> (new) | Player supply caravans: the merchant's wagon plus a seat-coloured pennant. Flags recoloured from the crimson original so all four are identical. |
-| wagon/merchant.png | overhead.sprite.wagon | PENDING — same wagon with the pole and flag removed (Grok edit requested). |
+
+## Facing (decided Oct 5)
+
+Wagons and armies turn to face the way they last moved. Each moving sprite
+needs TWO views — toward camera (down-left) and away from camera (up-left);
+the game mirrors each horizontally for the other two directions.
+
+| Sprite | Toward | Away | Notes |
+|---|---|---|---|
+| overhead.sprite.wagon | canon wagon_caravan (no slab) | TODO | Merchant and player caravans share it. Player caravans already get a seat-colour flag overlay (castleFlagArt) — no flagged wagon art needed. |
+| overhead.army.bearer.<seat> | TODO | TODO | One render per view, recoloured to crimson/azure/gold/sable. |
+| overhead.army.soldier | TODO | TODO | |
+
+Phase B code: track each wagon's/army's last move direction, pick view +
+CSS mirror from it, and mirror the flag overlay's x-offset with the sprite.
