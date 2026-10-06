@@ -13902,6 +13902,63 @@ var STARTING_TREASURY = {
 	gold: 500
 };
 var STARTING_GARRISON = { militia: 12 };
+/**
+* Oct 5 — every starting county, human or AI, is set up by the same rule
+* rather than hand-placed numbers, so new maps get a sane start for free.
+* Previously only the human seat got planted fields and workers (and an
+* overcrowded 100-cow herd on 2 pastures that died off to ~10 within two
+* years), while AI seats started with every field fallow and nobody
+* working. The rule:
+* - 3 grain fields, 2 pastures (fallow fields picked before barren ones);
+* - a herd that fits its pastures in the "Low" crowding tier, with enough
+*   dairy maids per cow that births outpace deaths;
+* - enough farmers to sow a year's grain (plus headroom) at Winter;
+* - everyone else working the lumber mill / quarry / mine;
+* - tax at the happiness-neutral 5%.
+*/
+var STARTING_GRAIN_FIELDS = 3;
+var STARTING_CATTLE_FIELDS = 2;
+var STARTING_MAIDS_PER_COW = 2.2;
+var STARTING_TAX_RATE = 5;
+var STARTING_FOOD_HEADROOM = 1.3;
+var NEUTRAL_FOOD_YEARS = 2;
+function applyStartingEstate(county) {
+	const order = county.interior.fields.map((f, i) => ({ f, i })).sort((a, b) => (a.f.status === "barren") - (b.f.status === "barren") || a.i - b.i).map(({ i }) => i);
+	const cattleIdx = new Set(order.slice(0, STARTING_CATTLE_FIELDS));
+	const grainIdx = new Set(order.slice(STARTING_CATTLE_FIELDS, STARTING_CATTLE_FIELDS + STARTING_GRAIN_FIELDS));
+	const fields = county.interior.fields.map((f, i) => cattleIdx.has(i) || grainIdx.has(i) ? {
+		...f,
+		status: cattleIdx.has(i) ? "cattle" : "grain",
+		reclaimed: 0,
+		seasonsGrown: 0,
+		plantedSacks: 0,
+		harvestPending: 0
+	} : f);
+	const herd = cattleIdx.size * COWS_PER_FIELD_LOW_MAX;
+	const cattleWorkers = Math.ceil(herd * STARTING_MAIDS_PER_COW);
+	const sacks = Math.ceil(county.population * GRAIN_PER_HEAD * 4 * STARTING_FOOD_HEADROOM / GRAIN_YIELD_RATIO);
+	const perField = Math.min(MAX_SACKS_PER_FIELD, Math.ceil(sacks / Math.max(1, grainIdx.size)));
+	const farmWorkers = Math.min(county.population - cattleWorkers, perField * grainIdx.size * LABORERS_PER_SACK);
+	const left = Math.max(0, county.population - farmWorkers - cattleWorkers);
+	const producers = county.interior.industry.filter((site) => site.kind !== "blacksmith");
+	const perSite = producers.length > 0 ? Math.floor(left / producers.length) : 0;
+	return {
+		...county,
+		herd,
+		farmWorkers,
+		cattleWorkers,
+		taxRate: STARTING_TAX_RATE,
+		interior: {
+			...county.interior,
+			fields,
+			industry: county.interior.industry.map((site) => site.kind === "blacksmith" ? site : {
+				...site,
+				active: perSite > 0,
+				workers: perSite
+			})
+		}
+	};
+}
 function createMatch(options) {
 	const { map, seats } = options;
 	const now = options.now ?? Date.now();
@@ -13984,38 +14041,17 @@ function createMatch(options) {
 	* 1000 grain to start" wouldn't actually be testable production, just a
 	* bigger number sitting inert in storage.
 	*/
-	const humanId = players.find((p) => p.controller.kind === "human")?.id;
-	const humanCountyId = humanId ? [...startByCounty.entries()].find(([, owner]) => owner === humanId)?.[0] : null;
-	if (humanCountyId && counties[humanCountyId]) {
-		const county = counties[humanCountyId];
-		const fields = county.interior.fields.map((f, i) => {
-			if (i === 0 || i === 1) return {
-				...f,
-				status: "cattle",
-				seasonsGrown: 0,
-				plantedSacks: 0,
-				harvestPending: 0
-			};
-			if (i === 2 || i === 3 || i === 4) return {
-				...f,
-				status: "grain",
-				seasonsGrown: 0,
-				plantedSacks: 0,
-				harvestPending: 0
-			};
-			return f;
-		});
-		counties[humanCountyId] = {
-			...county,
-			farmWorkers: 90,
-			cattleWorkers: 20,
-			grainEfficiency: 1,
-			cattleEfficiency: 1,
-			herd: 100,
-			interior: {
-				...county.interior,
-				fields
-			}
+	/**
+	* Neutral counties get the same working estate plus two years of grain.
+	* They don't simulate while unowned, so without this a captured county
+	* had no fields, no workers and an empty store — it starved and
+	* revolted back to neutral within a few seasons of being taken.
+	*/
+	for (const [countyId, county] of Object.entries(counties)) {
+		const estate = applyStartingEstate(county);
+		counties[countyId] = county.owner ? estate : {
+			...estate,
+			food: { ...estate.food, wheat: Math.round(county.population * GRAIN_PER_HEAD * 4 * NEUTRAL_FOOD_YEARS) }
 		};
 	}
 	const armies = {};
@@ -16910,50 +16946,6 @@ function setBlacksmithWeapon(match, countyId, weapon) {
 	};
 }
 /**
-* Move the workforce between agriculture and industry. Kept for the AI
-* (`countyAi.ts` calls this every turn via `chooseLabourSplit` and should not
-* need to know about the granular slots below) and for anything that just
-* wants "roughly this much on farming" without micromanaging every field.
-* Internally fans out into the real per-slot fields `projectProduction` now
-* reads: farm workers split proportionally between wheat and cattle by how
-* many fields of each currently exist (an even-per-field default, matching
-* the old behavior before slots existed), and industry workers split evenly
-* across whichever sites are active. `repairWorkers`/`castleWorkers` are
-* untouched — this function only ever moves people between farm and
-* industry, same as it always did.
-*/
-function setLabourSplit(match, countyId, agricultureShare) {
-	if (!Number.isFinite(agricultureShare)) return fail("Share must be a number");
-	const clamped = Math.min(1, Math.max(0, agricultureShare));
-	const county = match.counties[countyId];
-	if (!county) return fail("No such county");
-	const farmTotal = Math.round(county.population * clamped);
-	const industryTotal = county.population - farmTotal;
-	const grainFieldCount = county.interior.fields.filter((f) => f.status === "grain").length;
-	const cattleFieldCount = county.interior.fields.filter((f) => f.status === "cattle").length;
-	const totalFields = grainFieldCount + cattleFieldCount;
-	const farmWorkers = totalFields > 0 ? Math.round(farmTotal * grainFieldCount / totalFields) : farmTotal;
-	const cattleWorkers = farmTotal - farmWorkers;
-	const activeSites = county.interior.industry.filter((s) => s.active);
-	const perSite = activeSites.length > 0 ? Math.round(industryTotal / activeSites.length) : 0;
-	return {
-		ok: true,
-		match: updateCounty(match, countyId, (c) => ({
-			...c,
-			agricultureShare: clamped,
-			farmWorkers,
-			cattleWorkers,
-			interior: {
-				...c.interior,
-				industry: c.interior.industry.map((s) => ({
-					...s,
-					workers: s.active ? perSite : 0
-				}))
-			}
-		}))
-	};
-}
-/**
 * The unemployed labor pool — derived, not a separately-stored field, so
 * it can never drift out of sync with what's actually assigned. Every
 * worker not currently on a named task (farm, cattle, repair, castle, or
@@ -18517,23 +18509,39 @@ function takeAiTurn(match, playerId) {
 		if (!county?.interior) continue;
 		const buffer = county.population * GRAIN_PER_HEAD * FOOD_BUFFER_SEASONS;
 		const hungry = county.food.wheat < buffer;
-		const fallow = county.interior.fields.filter((f) => f.status === "fallow");
+		/**
+		* Oct 5: sow only as many grain fields as the county can actually
+		* staff at Winter sowing (sowing is floor(workers / fields / 6) per
+		* field, so spreading a small workforce over every fallow field
+		* rounds each one down to zero sacks), and graze only as many
+		* pastures as the herd needs to stay out of the crowding tiers.
+		*/
+		const fields = county.interior.fields;
+		const grainTarget = Math.min(fields.length, Math.max(2, aiGrainFieldsWanted(county)));
+		const cattleTarget = (county.herd ?? 0) > 0 ? Math.min(4, Math.max(1, Math.ceil(county.herd / COWS_PER_FIELD_LOW_MAX))) : 0;
+		let grainCount = fields.filter((f) => f.status === "grain").length;
+		let cattleCount = fields.filter((f) => f.status === "cattle").length;
 		let sown = 0;
 		let grazed = 0;
-		for (const [index, field] of fallow.entries()) {
-			const wantCattle = !hungry && index % 4 === 3;
-			const result = setFieldUse(current, countyId, field.id, wantCattle ? "cattle" : "grain");
-			if (result.ok) {
-				current = result.match;
-				if (wantCattle) grazed++;
-				else sown++;
-			}
+		for (const field of fields.filter((f) => f.status === "fallow")) {
+			const use = grainCount < grainTarget ? "grain" : cattleCount < cattleTarget ? "cattle" : null;
+			if (!use) break;
+			const result = setFieldUse(current, countyId, field.id, use);
+			if (!result.ok) continue;
+			current = result.match;
+			if (use === "grain") { grainCount++; sown++; }
+			else { cattleCount++; grazed++; }
 		}
 		if (sown > 0 || grazed > 0) decisions.push({
 			county: countyId,
 			what: `sowed ${sown} field${sown === 1 ? "" : "s"}${grazed ? `, grazed ${grazed}` : ""}`
 		});
-		const runIndustry = weighting.economy >= .45;
+		/**
+		* Oct 5: always run industry. Closing it for low-economy factions
+		* (the knight, 0.425) just left those workers idle — `aiAssignLabour`
+		* has nowhere else to put them — and meant no ore for the forge.
+		*/
+		const runIndustry = true;
 		for (const site of current.counties[countyId]?.interior?.industry ?? []) {
 			if (site.active === runIndustry) continue;
 			const result = toggleIndustry(current, countyId, site.kind);
@@ -18565,14 +18573,13 @@ function takeAiTurn(match, playerId) {
 				if (result.ok) current = result.match;
 			}
 		}
-		const share = chooseLabourSplit({
-			weighting,
-			hungry,
-			winter: season === "winter",
-			buildingCastle: county.building !== null
-		});
-		const setShare = setLabourSplit(current, countyId, share);
-		if (setShare.ok) current = setShare.match;
+		current = aiAssignLabour(current, countyId, season === "winter");
+		const taxNow = current.counties[countyId];
+		const taxWanted = aiTaxRate(taxNow, weighting, current.treasuries[playerId]?.gold ?? 0);
+		if (taxNow && taxNow.taxRate !== taxWanted) {
+			const taxed = setTaxRate(current, countyId, taxWanted);
+			if (taxed.ok) current = taxed.match;
+		}
 		/**
 		* Repair takes priority over pursuing a new tier — an active breach
 		* is a real vulnerability right now, where a new tier is a
@@ -18595,7 +18602,7 @@ function takeAiTurn(match, playerId) {
 				const treasury = current.treasuries[playerId];
 				const cost = repairResourceCost(beforeRepair.castleTier);
 				if (treasury && canAfford(treasury, cost)) {
-					const castleRepairWorkers = Math.min(unemployedWorkersOf(beforeRepair), 60);
+					const castleRepairWorkers = Math.min(AI_BUILDERS_MAX, Math.floor(beforeRepair.population * AI_BUILDER_SHARE));
 					current = {
 						...current,
 						treasuries: {
@@ -18638,7 +18645,7 @@ function takeAiTurn(match, playerId) {
 					* doesn't necessarily throw its entire spare workforce at
 					* one castle; simple heuristic, not deeply tuned.
 					*/
-					const castleWorkers = Math.min(unemployedWorkersOf(after), 60);
+					const castleWorkers = Math.min(AI_BUILDERS_MAX, Math.floor(after.population * AI_BUILDER_SHARE));
 					current = {
 						...current,
 						treasuries: {
@@ -18664,6 +18671,8 @@ function takeAiTurn(match, playerId) {
 				}
 			}
 		}
+		/** Re-spread labour now that any new castle/repair crew is reserved. */
+		current = aiAssignLabour(current, countyId, season === "winter");
 	}
 	return {
 		match: current,
@@ -18677,13 +18686,56 @@ function takeAiTurn(match, playerId) {
 * lost, and no bonus is worth that. Only once fed does the faction's own
 * leaning decide anything.
 */
-function chooseLabourSplit(opts) {
-	const { weighting, hungry, winter, buildingCastle } = opts;
-	if (hungry && !winter) return .9;
-	if (winter) return .15;
-	let share = .65 - weighting.economy * .3;
-	if (buildingCastle) share -= .2 * weighting.turtling;
-	return Math.min(.95, Math.max(.1, share));
+/**
+* Oct 5 — AI food and tax rules. The old labour split sent only 15% of
+* the county to the farms in Winter, on the assumption Winter farming
+* does nothing; under the current grain mechanic Winter is the ONLY
+* season farm labour matters (that's when sowing happens), so the AI
+* sowed almost nothing and starved within a few years. Grain labour now
+* goes in at Winter, sized to a year's food plus headroom for growth;
+* the rest of the year those hands work the herd and industry instead.
+*/
+var AI_FOOD_HEADROOM = 1.3;
+/** Builders for a castle or repair job. Taken off the top before `aiAssignLabour` spreads the rest (it reserves castle/repair crews), since the AI no longer leaves anyone idle to draw from. */
+var AI_BUILDERS_MAX = 60;
+var AI_BUILDER_SHARE = .25;
+var AI_MAIDS_PER_COW = 2.2;
+/** Sacks to sow at Winter so the harvest four seasons later feeds this population for a year, with headroom. */
+var aiSacksWanted = (county) => Math.ceil(county.population * GRAIN_PER_HEAD * 4 * (county.rationLevel ?? 1) * AI_FOOD_HEADROOM / GRAIN_YIELD_RATIO);
+var aiGrainFieldsWanted = (county) => Math.ceil(aiSacksWanted(county) / MAX_SACKS_PER_FIELD);
+function aiAssignLabour(match, countyId, winter) {
+	const county = match.counties[countyId];
+	if (!county?.interior) return match;
+	const reserved = (county.repairWorkers ?? 0) + (county.castleWorkers ?? 0) + (county.ramWorkers ?? 0) + (county.castleRepairWorkers ?? 0);
+	let avail = Math.max(0, county.population - reserved);
+	const grainFields = county.interior.fields.filter((f) => f.status === "grain").length;
+	const cattleFields = county.interior.fields.filter((f) => f.status === "cattle").length;
+	const perField = grainFields > 0 ? Math.min(MAX_SACKS_PER_FIELD, Math.ceil(aiSacksWanted(county) / grainFields)) : 0;
+	const farmWorkers = winter ? Math.min(avail, perField * grainFields * LABORERS_PER_SACK) : 0;
+	avail -= farmWorkers;
+	const cattleWorkers = cattleFields > 0 && (county.herd ?? 0) > 0 ? Math.min(avail, Math.ceil(county.herd * AI_MAIDS_PER_COW)) : 0;
+	avail -= cattleWorkers;
+	const activeSites = county.interior.industry.filter((s) => s.active);
+	const perSite = activeSites.length > 0 ? Math.floor(avail / activeSites.length) : 0;
+	return updateCounty(match, countyId, (c) => ({
+		...c,
+		farmWorkers,
+		cattleWorkers,
+		interior: {
+			...c.interior,
+			industry: c.interior.industry.map((s) => ({
+				...s,
+				workers: s.active ? perSite : 0
+			}))
+		}
+	}));
+}
+/** 5% is the happiness-neutral rate on the tax table; content counties pay more, unhappy ones get relief. */
+function aiTaxRate(county, weighting, gold) {
+	if (!county) return 0;
+	if (county.happiness < 40) return 0;
+	if (county.happiness < 70) return 5;
+	return Math.min(12, 5 + Math.round(weighting.economy * 6) + (gold < 100 ? 2 : 0));
 }
 /** The next rung up the ladder, or null at the top. */
 function nextCastleTier(current) {
@@ -18756,6 +18808,85 @@ function scoreTarget(match, ix, countyId) {
 * Order: garrison what is held, raise what can be afforded, then march. An AI
 * that marches before it garrisons loses the county it just left.
 */
+/**
+* Oct 5 rewrite. The old version had two silent gaps a 40-turn playtest
+* exposed: (1) it only counted and only marched `garrison` armies, but
+* `recruitArmy` always spawns `field` armies next to the town — so every
+* AI levy became a 1-3 man band that stood beside its own town forever
+* and new levies stopped once the town-adjacent tiles filled up; (2) a
+* hard `aggression >= .4` gate meant a defensive faction (warden 0.15,
+* steward 0.375) could never move at all, not even into empty land.
+*
+* Now: home field armies are folded into the garrison first, levies are
+* sized to a real target and armed from the weapons actually stockpiled,
+* and ANY AI will march on undefended land. Attacking a defended enemy
+* still respects personality — aggressive factions need their usual
+* advantage, cautious ones only strike at overwhelming odds.
+*/
+var AI_MAX_LEVY_SHARE = .12;
+var AI_OVERWHELMING_ODDS = 3;
+var AI_MIN_EXPEDITION = 5;
+var AI_MIN_LEVY_POPULATION = 150;
+var AI_MIN_LEVY_HAPPINESS = 45;
+var aiHomeGuard = (weighting) => Math.round(8 + weighting.turtling * 12);
+/** A castleless county (usually freshly taken) keeps only a token watch, so it can still send its stack onward. */
+var AI_OUTPOST_GUARD = 5;
+/** Counties this populous raise a strike force even without a castle — a grown conquest shouldn't sit idle. */
+var AI_STRIKE_POPULATION = 300;
+var aiGuardFor = (county, weighting) => county && county.castleTier !== "none" ? aiHomeGuard(weighting) : AI_OUTPOST_GUARD;
+var aiTroopsAt = (match, playerId, countyId) => Object.values(match.armies).filter((a) => a.owner === playerId && a.location.county === countyId && (a.location.kind === "garrison" || a.location.kind === "field")).reduce((sum, a) => sum + troopCount(a.troops), 0);
+/** Clamp a desired levy to the weapons actually in the treasury; whatever can't be armed is raised as militia instead. */
+function equipLevy(levy, treasury) {
+	const out = {};
+	let unarmed = 0;
+	for (const [kind, count] of Object.entries(levy)) {
+		if (!count) continue;
+		const cost = UNITS[kind].buildCost;
+		let affordable = count;
+		for (const [res, per] of Object.entries(cost)) affordable = Math.min(affordable, Math.floor((treasury[res] ?? 0) / per));
+		if (affordable > 0) out[kind] = affordable;
+		unarmed += count - affordable;
+	}
+	if (unarmed > 0) out.militia = (out.militia ?? 0) + unarmed;
+	/**
+	* Then arm as many of the militia as the remaining stockpile allows —
+	* otherwise a forge that only makes one weapon piles it up unused
+	* (a 40-turn test ended with 425 crossbows in the treasury).
+	*/
+	const left = { ...treasury };
+	for (const [kind, count] of Object.entries(out)) for (const [res, per] of Object.entries(UNITS[kind].buildCost)) left[res] = (left[res] ?? 0) - per * count;
+	for (const kind of Object.keys(UNITS)) {
+		if ((out.militia ?? 0) <= 0) break;
+		const cost = Object.entries(UNITS[kind].buildCost);
+		if (!UNITS[kind].recruitable || cost.length !== 1) continue;
+		const [res, per] = cost[0];
+		const take = Math.min(out.militia, Math.floor(Math.max(0, left[res] ?? 0) / per));
+		if (take <= 0) continue;
+		out[kind] = (out[kind] ?? 0) + take;
+		out.militia -= take;
+		left[res] -= take * per;
+	}
+	if (out.militia === 0) delete out.militia;
+	return out;
+}
+/** Peel `count` troops off an army into a new army at the same location (used to send an expedition while leaving a home guard). */
+function splitArmy(match, armyId, count) {
+	const army = match.armies[armyId];
+	if (!army || count <= 0 || count >= troopCount(army.troops)) return null;
+	const { moving, staying } = transferTroops(army.troops, 0, count);
+	const newId = freeArmyId(match, army.owner);
+	return {
+		match: {
+			...match,
+			armies: {
+				...match.armies,
+				[armyId]: { ...army, troops: staying },
+				[newId]: { ...army, id: newId, troops: moving }
+			}
+		},
+		newId
+	};
+}
 function takeMilitaryTurn(match, ix, playerId) {
 	const player = match.players.find((p) => p.id === playerId);
 	if (!player || !isAi(player) || player.status !== "active") return {
@@ -18765,62 +18896,87 @@ function takeMilitaryTurn(match, ix, playerId) {
 	const weighting = aiWeightingOf(getFaction(player.factionId));
 	const decisions = [];
 	let current = match;
+	const guard = aiHomeGuard(weighting);
+	for (const army of Object.values(current.armies)) {
+		if (army.owner !== playerId || army.location.kind !== "field") continue;
+		if (current.counties[army.location.county]?.owner !== playerId) continue;
+		const folded = garrisonArmy(current, army.id);
+		if (folded.ok) current = folded.match;
+	}
 	for (const countyId of countiesOwnedBy(current, playerId)) {
-		if (!current.counties[countyId]) continue;
-		const here = garrisonOf(current, countyId).reduce((sum, a) => sum + troopCount(a.troops), 0);
-		const want = Math.round(10 + weighting.aggression * 30);
+		const county = current.counties[countyId];
+		if (!county?.interior) continue;
+		const here = aiTroopsAt(current, playerId, countyId);
+		/**
+		* Only a county with a castle raises the strike force on top of its
+		* guard — a freshly taken, castleless county just holds what it has.
+		* Without this, small conquered counties were bled down to a few
+		* dozen people (160 -> 20) by repeated levies they couldn't afford.
+		*/
+		const hasCastle = county.castleTier !== "none";
+		const strike = hasCastle || county.population >= AI_STRIKE_POPULATION ? Math.round(10 + weighting.aggression * 30) : 0;
+		const want = aiGuardFor(county, weighting) + strike;
 		if (here >= want) continue;
+		if (county.population < AI_MIN_LEVY_POPULATION || county.happiness < AI_MIN_LEVY_HAPPINESS) continue;
 		const treasury = current.treasuries[playerId];
 		if (!treasury) continue;
-		const batch = composeLevy(want - here, weighting);
-		const projectedWages = (Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + upkeepOf(a.troops), 0) + upkeepOf(batch)) * WAGE_RESERVE_SEASONS;
-		if (treasury.gold < projectedWages) continue;
-		/**
-		* `recruitArmy` checks every equipment resource in the batch at once
-		* and fails the WHOLE call if even one kind is short — there's no
-		* partial recruit. The AI's blacksmith only ever forges one weapon
-		* type at a time (see `chooseAiBlacksmithWeapon` below), so most
-		* seasons it simply doesn't have bows/armor/crossbows/maces/pikes in
-		* stock for whatever mix `composeLevy` asked for, and the entire
-		* recruit call silently did nothing — the actual mechanism behind
-		* "the AI never recruits [anything but militia]," not just a missing
-		* unit kind in the mix. Falling back to a same-size militia-only
-		* batch (militia needs no equipment at all) means a short season for
-		* the armoury still grows the garrison instead of raising nothing.
-		*/
+		const byPopulation = Math.min(Math.floor(county.population * AI_MAX_LEVY_SHARE), county.population - CONSCRIPTION_POPULATION_FLOOR);
+		const upkeepNow = Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + upkeepOf(a.troops), 0);
+		const byWages = Math.floor((treasury.gold / WAGE_RESERVE_SEASONS - upkeepNow) / UNIT_UPKEEP_PER_SEASON);
+		const size = Math.min(want - here, byPopulation, byWages);
+		if (size < 3) continue;
+		const batch = equipLevy(composeLevy(size, weighting), treasury);
 		let result = recruitArmy(current, countyId, batch);
-		if (!result.ok) result = recruitArmy(current, countyId, { militia: troopCount(batch) });
-		if (result.ok) {
-			current = result.match;
-			decisions.push({
-				county: countyId,
-				what: `raised ${troopCount(batch)} troops`
-			});
+		if (!result.ok) result = recruitArmy(current, countyId, { militia: size });
+		if (!result.ok) continue;
+		current = result.match;
+		for (const id of result.armyIds ?? [result.armyId]) {
+			const folded = garrisonArmy(current, id);
+			if (folded.ok) current = folded.match;
 		}
+		decisions.push({
+			county: countyId,
+			what: `raised ${troopCount(batch)} troops`
+		});
 	}
-	if (weighting.aggression >= .4) for (const army of Object.values(current.armies)) {
+	for (const army of Object.values(current.armies)) {
 		if (army.owner !== playerId) continue;
-		if (army.location.kind !== "garrison") continue;
+		if (army.location.kind !== "garrison" && army.location.kind !== "field") continue;
 		if (army.movementRemaining <= 0) continue;
 		const from = army.location.county;
-		const strength = troopCount(army.troops);
-		if (strength <= 10) continue;
+		if (current.counties[from]?.owner !== playerId) continue;
+		/**
+		* The guard is per county, not per army: in a castleless county the
+		* troops stand in the field, possibly as several stacks, so leave
+		* the guard with whichever stack is largest and let the rest march.
+		*/
+		const stacksHere = Object.values(current.armies).filter((a) => a.owner === playerId && a.location.county === from && (a.location.kind === "garrison" || a.location.kind === "field")).sort((a, b) => troopCount(b.troops) - troopCount(a.troops) || a.id.localeCompare(b.id));
+		const keepsGuard = stacksHere[0]?.id === army.id;
+		const surplus = troopCount(army.troops) - (keepsGuard ? aiGuardFor(current.counties[from], weighting) : 0);
+		if (surplus < AI_MIN_EXPEDITION) continue;
 		const held = new Set(countiesOwnedBy(current, playerId));
 		const connects = (target) => held.size === 0 || neighboursOf(ix, target).some((n) => held.has(n));
-		const best = neighboursOf(ix, from).filter((n) => current.counties[n]?.owner !== playerId).filter(connects).map((n) => ({
-			id: n,
-			score: scoreTarget(current, ix, n)
-		})).filter((t) => t.score > 0).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))[0];
+		const options = neighboursOf(ix, from).filter((n) => current.counties[n] && current.counties[n].owner !== playerId).filter(connects).map((n) => {
+			const defenders = garrisonOf(current, n).filter((a) => a.owner !== playerId).reduce((sum, a) => sum + troopCount(a.troops), 0);
+			const allowed = defenders === 0 || (weighting.aggression >= .4 && surplus >= defenders * requiredAdvantage(weighting)) || surplus >= defenders * AI_OVERWHELMING_ODDS;
+			return {
+				id: n,
+				defenders,
+				ok: allowed,
+				score: scoreTarget(current, ix, n) + (defenders === 0 ? 50 : 0)
+			};
+		}).filter((t) => t.ok && Number.isFinite(t.score)).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+		const best = options[0];
 		if (!best) continue;
-		const defenders = garrisonOf(current, best.id).reduce((sum, a) => sum + troopCount(a.troops), 0);
-		const needed = defenders * requiredAdvantage(weighting);
-		if (defenders > 0 && strength < needed) continue;
-		const result = moveArmy(current, ix, army.id, best.id);
+		const split = splitArmy(current, army.id, surplus);
+		const sendId = split ? split.newId : army.id;
+		const base = split ? split.match : current;
+		const result = moveArmy(base, ix, sendId, best.id);
 		if (result.ok) {
 			current = result.match;
 			decisions.push({
 				county: best.id,
-				what: defenders === 0 ? `marched on undefended ${best.id}` : `attacked ${best.id}`
+				what: best.defenders === 0 ? `marched on undefended ${best.id}` : `attacked ${best.id}`
 			});
 		}
 	}
@@ -18829,14 +18985,6 @@ function takeMilitaryTurn(match, ix, playerId) {
 		decisions
 	};
 }
-/**
-* Which single weapon an AI faction's blacksmiths should be forging this
-* season, derived from the same weighting that shapes `composeLevy` so the
-* two never drift apart — a faction that wants crossbowmen also arms them,
-* rather than one deciding a roster the other can't equip. One weapon per
-* county at a time is the real constraint (see `setBlacksmithWeapon`), so
-* this is necessarily a single pick, not a proportional mix like the levy.
-*/
 function chooseAiBlacksmithWeapon(weighting) {
 	if (weighting.turtling >= .55) return "crossbows";
 	if (weighting.aggression >= .65) return "maces";
@@ -20838,7 +20986,7 @@ function LevyPanel({ match, countyId, onChange, onClose }) {
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "ov-labor-header",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
-					children: [county.name, " — Raise an Army"]
+					children: [countyDisplayName(countyId), " — Raise an Army"]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 					className: "ov-labor-close",
 					onClick: onClose,
@@ -21135,7 +21283,7 @@ function nobleStats(match, playerId) {
 		castleTier: bestCastle,
 		castleScore,
 		troops,
-		gold: match.treasuries[playerId]?.gold ?? 0,
+		gold: Math.floor(match.treasuries[playerId]?.gold ?? 0),
 		happiness: owned.length ? Math.round(owned.reduce((s, c) => s + c.happiness, 0) / owned.length) : 0,
 		population: owned.reduce((s, c) => s + c.population, 0)
 	};
@@ -21321,7 +21469,7 @@ function BestNoblePanel({ match, onClose }) {
 	const tied = heights.filter((h) => h === heights[leaderIdx]).length > 1;
 	const caption = tied
 		? `${category.label} — tied for the lead among ${heights.filter((h) => h === heights[leaderIdx]).length} lords`
-		: `${category.label} — led by ${players[leaderIdx]?.name ?? players[leaderIdx]?.id}`;
+		: `${category.label} — led by ${players[leaderIdx]?.displayName ?? players[leaderIdx]?.id}`;
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "ov-noble-overlay",
 		children: [
@@ -21370,7 +21518,7 @@ function BestNoblePanel({ match, onClose }) {
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "ov-noble-pole", style: { height: heights[i] } }),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 									className: "ov-noble-lord-tag",
-									children: [p.name ?? p.id, isComposite ? "" : ` \u2014 ${displayValues[i]}`]
+									children: [p.displayName ?? p.id, isComposite ? "" : ` \u2014 ${displayValues[i]}`]
 								})
 							]
 						});
@@ -21874,6 +22022,13 @@ function CaravanPanel({ match, caravan, county, onChange, onDeselect }) {
 * selected it (for movement — see `toggleArmy`), but nothing ever showed
 * what was actually IN it.
 */
+/**
+* County display name. Match state (`match.counties[id]`) carries no
+* name — names live on the map definition — so reading `.name` off the
+* state silently fell back to the raw id ("Defending hollowmere") or to
+* nothing at all ("— Raise an Army"). Oct 5 playtest.
+*/
+var countyDisplayName = (id) => REALM.counties.find((c) => c.id === id)?.name ?? id;
 function ArmyPanel({ match, army, onDeselect }) {
 	const owner = match.players.find((p) => p.id === army.owner);
 	const kinds = Object.keys(army.troops).filter((k) => (army.troops[k] ?? 0) > 0);
@@ -21902,7 +22057,7 @@ function ArmyPanel({ match, army, onDeselect }) {
 					justifyContent: "space-between",
 					marginBottom: 6
 				},
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("b", { children: [owner?.name ?? "Unclaimed", " Army \u00B7 ", total, " troops"] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("b", { children: [!owner ? "Unclaimed Army" : owner.controller.kind === "human" ? "Your Army" : `${owner.displayName}'s Army`, " \u00B7 ", total, " troops"] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 					onClick: onDeselect,
 					style: {
 						background: "none",
@@ -21919,7 +22074,7 @@ function ArmyPanel({ match, army, onDeselect }) {
 					color: palette.parchmentShadow,
 					marginBottom: 4
 				},
-				children: besieging ? `Besieging ${county.name ?? army.location.county}` : `Defending ${county.name ?? army.location.county}`
+				children: besieging ? `Besieging ${countyDisplayName(army.location.county)}` : `Defending ${countyDisplayName(army.location.county)}`
 			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				style: {
 					fontSize: 12,
@@ -22050,7 +22205,16 @@ function TopBar({ match, label, onOpenSave, onOpenHistory, onOpenSettings, onFoc
 			*/
 			alert && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 				className: "ov-save-btn ov-advisor-btn",
-				onClick: onFocusCounty ? () => onFocusCounty(alert.countyId) : void 0,
+				/**
+				* The message used to live only in `title`, i.e. a hover
+				* tooltip — invisible on a touch screen, so on the S10e the
+				* icon pulsed with no way to learn what it meant. Tapping now
+				* says it in an in-app notice as well as jumping to the county.
+				*/
+				onClick: () => {
+					onFocusCounty?.(alert.countyId);
+					noticeAsync(alert.text);
+				},
 				title: alert.text,
 				children: alert.icon
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -23876,7 +24040,7 @@ function DiplomacyScreen({ match, onClose }) {
 				h("span", { className: `ov-ration-row-val ${toneFor(label)}`, key: "v" }, `${label} (${value > 0 ? "+" : ""}${value})`)
 			]);
 		})),
-		h("div", { className: "ov-title-footnote", key: "hint" }, "Attacking armies, sieges, and capturing caravans all cost relation. Doesn't yet require declaring war \u2014 that's a natural next step once this exists to gate against."),
+		h("div", { className: "ov-title-footnote", key: "hint" }, "Attacking armies, sieges, and capturing caravans all cost relation."),
 	]);
 }
 /**
@@ -23896,7 +24060,7 @@ function BattleReportScreen({ match, countyId, countyName, onClose }) {
 	const county = match.counties[countyId];
 	if (!county) return null;
 	const report = county.lastBattleReport;
-	const nameOf = (id) => id ? match.players.find((p) => p.id === id)?.name ?? id : "Nobody";
+	const nameOf = (id) => id ? match.players.find((p) => p.id === id)?.displayName ?? id : "Nobody";
 	const fmtMods = (mods) => mods.length === 0 ? "no modifiers" : mods.map((m) => `${m.label} \u00D7${m.factor.toFixed(2)}`).join(", ");
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
@@ -24117,7 +24281,7 @@ function PopulationReportScreen({ match, countyId, countyName, onClose }) {
 			h("h2", { key: "t" }, `\u{1F465} Population Report \u2014 ${countyName ?? countyId}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
-		h("div", { className: "ov-health-section-label", key: "l1" }, `${history.length} - ${match.turn.number}`),
+		h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`),
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
 			h("div", { className: "ov-health-chart", key: "chart" }, history.map((value, i) => h("div", { className: "ov-health-bar-col", key: i }, [
 				h("div", {
