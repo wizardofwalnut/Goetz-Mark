@@ -24,3 +24,20 @@ the game mirrors each horizontally for the other two directions.
 
 Phase B code: track each wagon's/army's last move direction, pick view +
 CSS mirror from it, and mirror the flag overlay's x-offset with the sprite.
+
+## County border wall (accepted Oct 6)
+
+Run-and-post kit (replaces the straight/corner/T/end-cap plan — the overhead
+camera makes left-right and front-back edges different drawings, so a
+4-piece kit would need 8+ pieces; posts at every vertex give corners, Ts and
+end caps for free and hide the run seams).
+
+| File | Use | Placement at map scale (tile = 58 x 42 px) |
+|---|---|---|
+| wall/wall-run-leftright.png | north/south tile edges | scale to 58 px wide (~18 px tall); bottom of wall on the edge line |
+| wall/wall-run-frontback.png | east/west tile edges | scale UNIFORMLY to 11 px wide (stone size then matches the left-right run); tiles seamlessly — crop a 42 px slice per tile, offset by row so slices don't repeat |
+| wall/wall-post.png | every vertex where segments meet or end | scale to ~1.2x wall height (~21 px tall), centred on the vertex, drawn last |
+
+Look: low dry-stone field wall, knee-to-waist on a soldier. Purely cosmetic
+(wallSegments/CountyWalls — no effect on movement). A road crossing simply
+has no segment there. One variant year-round.
