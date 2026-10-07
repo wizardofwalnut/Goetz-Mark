@@ -84,7 +84,7 @@ plain SVG lines in `CountyWalls`.
 |---|---|---|
 | castle.{woodenPalisade, motteAndBailey, normanKeep, stoneCastle, royalCastle} | ✅ HAVE | The `4pjSa` file was a duplicate of the Norman keep. |
 | overhead.castle.* (5) | ⚠️ CHECK | Need transparent versions. The `canon_no_tile` batch may cover them; list exactly once the canon zip is attached. |
-| overhead.castle.flag.0–3 | ❌ MISSING | Four seat colours. Also drawn on player caravans (`castleFlagArt`). Could be cut from the accepted banners — your call. |
+| overhead.castle.flag.0–3 | ✅ HAVE | `art/flag/flag-{crimson,azure,gold,sable}.png`, cut from the banner-bearers (Oct 7). Also drawn on player caravans; raise it above the canopy in Phase B. |
 
 ## Town (1 key)
 
@@ -109,7 +109,8 @@ plain SVG lines in `CountyWalls`.
 |---|---|---|
 | field.grain.growing | ✅ HAVE | Green wheat. |
 | field.grain.mature, field.grain.sown, field.cattle | ⚠️ CHECK | Likely matches, not confirmed. |
-| field.fallow / field.barren | ⚠️ DECISION | The furrowed-dirt tile is one of these. Which? |
+| field.barren | ✅ HAVE (furrowed dirt) | The code defines barren as bare dirt that must be reclaimed, and also draws it under half-sown crops and as the quarry pit floor. The furrowed tile fits. |
+| field.fallow | ❌ MISSING | Code defines fallow as wild grass (unused, plantable). Needs a grassy unplanted field tile. |
 | overhead.field.* (6) | ⚠️ CHECK | Transparent second pass, pending the zip. |
 
 The code also builds keys for parched and flooded fields that don't exist in
@@ -189,9 +190,9 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ## Scorecard
 
-- **Done:** castles (5), roads (16), wall kit, army soldier + 4 bearers, wagon (3 keys), banners (4), knight helm, laborers (6 + builder), terrain open/forest/hills.
+- **Done:** castles (5), roads (16), wall kit, army soldier + 4 bearers, wagon (3 keys), banners (4), castle flags (4), knight helm, barren field, laborers (6 + builder), terrain open/forest/hills.
 - **Waiting on the canon zip:** unit mapping, every `overhead.*` second pass, weapon icon check, props/cow/yard.
-- **Not started:** crests, castle flags, mine, resource icons, mercenary offer.
+- **Not started:** crests, fallow field, mine, resource icons, mercenary offer.
 - **Being removed:** 5 chokepoint keys.
 
 ## Decisions only you can make
@@ -199,7 +200,5 @@ central counties stone, outskirts dirt — not decided), audio.
 1. Bake resolution (64px was not good enough on the S10e).
 2. Best Noble fleur-de-lis.
 3. Town: `building_town_center`, `village_cluster`, or both by county size.
-4. Furrowed-dirt tile: fallow or barren?
-5. Parched/flooded fields: add art or drop the states?
-6. Castle flags: cut from the banners, or a new render?
-7. Industry: do idle and working need different art?
+4. Parched/flooded fields: add art or drop the states?
+5. Industry: do idle and working need different art?

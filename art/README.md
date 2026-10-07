@@ -58,3 +58,15 @@ set works on every season's ground (checked spring, autumn, winter — see
 - Output is 4x (232x168) for downscaling to the bake resolution.
 Manifest note: current keys `overhead.road.0..15` point at shuffled file names
 (tile-00/02/03/10/...) — wire road-NN.png directly by mask number in Phase B.
+
+## Castle / caravan flags (accepted Oct 7)
+
+`art/flag/flag-{crimson,azure,gold,sable}.png` → `overhead.castle.flag.0..3`
+(seat 0-3). Cut from the banner-bearer "toward" renders (pole top + flag,
+helmet erased), so castles, caravans and armies all fly the same flag. All
+four share one 486x404 frame. Transparent.
+- On a caravan: raise it so the pole foot sits on the canopy and the cloth
+  flies fully above the wagon (`_preview-on-wagon.png`). The current offset
+  (y -0.95) puts it across the canopy — move it up in Phase B, check on the S10e.
+- The hanging banners (`art/banner/`) are NOT used as flags; on the map they
+  read as a tapestry.
