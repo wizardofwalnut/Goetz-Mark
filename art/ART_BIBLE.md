@@ -25,6 +25,35 @@ castle yard, open forge, ore cart).
 
 ---
 
+## Target look (decided Oct 7)
+
+Reference: `art/_reference/target-look-hollowmere.jpg`. Match its **style**,
+not the exact picture:
+- **Zoomed in:** about 4 tiles across the phone (today 7). One number in code
+  (`VIEW_COLS`); tune it on the S10e in Phase B.
+- **Chunky diorama tiles:** each tile reads as a raised slab with soil showing
+  on its front edge; rich texture (wheat stalks, furrows, cracked earth).
+- **Small figures on big tiles:** soldiers, horses, cows and wagons are small
+  next to a field, so the land dominates.
+- **Warm, soft light; saturated but natural colour.**
+- **Grid stays square** (front-facing camera). The reference's 45° diamond
+  angle is not adopted: the accepted roads, wall kit and all tap/click code
+  are built for the square grid.
+- From the reference: the **parched field** (cracked earth) is in; the
+  **town is a village cluster** (several houses).
+
+## Bake resolution (decided Oct 7)
+
+**288 px per tile.** At ~4 tiles across, the S10e shows ~270 real pixels per
+tile; 288 covers that with a little headroom for larger phones. Tested Oct 7:
+below the on-screen size the art goes soft (64 and 96 clearly; 128 slightly);
+at or above it, no visible gain from going higher.
+
+Memory: baking all 4 counties' 4 layers at 288 would need ~1 GB — too much.
+Phase B therefore (a) bakes only the county in view (+ neighbours lazily) and
+(b) merges the flat layers (ground + fields + roads) into one. First Phase B
+step: check memory and smoothness on the S10e; fallback is 224.
+
 ## Style rules (locked)
 
 - 3D diorama style, warm soft light, the same camera angle for everything.
@@ -95,7 +124,7 @@ plain SVG lines in `CountyWalls`.
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.town | ⚠️ DECISION | Open: `building_town_center` or `village_cluster` (maybe village for small counties, town center for large). |
+| overhead.town | ⚠️ CHECK | Village cluster (decided Oct 7 from the target look). Use the canon `village_cluster` image. |
 
 ## Industry (8 `industry.*` UNREAD + 4 overhead + open forge)
 
@@ -207,8 +236,6 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ## Decisions only you can make
 
-1. Bake resolution (64px was not good enough on the S10e).
-2. Best Noble fleur-de-lis.
-3. Town: `building_town_center`, `village_cluster`, or both by county size.
-4. Parched/flooded fields: add art or drop the states?
-5. The 79 unread keys: delete from the manifest, or keep dormant? (Either way, no art for them this pass.)
+1. Best Noble fleur-de-lis.
+2. Flooded fields: add art or drop the state? (Parched is in — it's in the target look.)
+3. The 79 unread keys: delete from the manifest, or keep dormant? (Either way, no art for them this pass.)

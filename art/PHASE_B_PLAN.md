@@ -88,8 +88,16 @@ being ready.
 
 Each step depends on the ones above it.
 
-1. **Lock the bake resolution** (still your decision; 64px rejected). Everything
-   below is resized against it.
+1. **Zoom and bake (decided Oct 7: ~4 tiles across, 288 px bake).**
+   - `VIEW_COLS` 7 → 4; tune on the S10e.
+   - Replace the hard-coded 32 px native tile in `nativeX/nativeY/bakeSize/
+     blitTile` (line ~19460) with one `BAKE_TILE_PX = 288` constant; scale
+     `BAKE_PAD_PX` with it.
+   - Bake only the county in view (+ neighbours lazily), and merge the
+     ground/fields/roads layers into one canvas — all 4 counties x 4 layers at
+     288 would be ~1 GB.
+   - Check memory and smoothness on the S10e before anything else; fallback 224.
+   Everything below is resized against this.
 2. **Fix the two old manifest bugs.**
    - `overhead.tile.ground`: drop `aliasOf: overhead.road.0`; point at a real
      ground tile.

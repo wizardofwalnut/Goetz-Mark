@@ -8,9 +8,15 @@ separate Grok chat with its own attached references.
 `art/` (open the file, then "Download raw file"). Canon images from the Art
 Bible docx are named by their bible label.
 
+**Always attach as an extra reference:** `art/_reference/target-look-hollowmere.jpg`
+(the target look) and add to the prompt: "Match the overall style, lighting and
+colour of the third image (it is a style reference, do not copy its layout)."
+The camera stays the square front-facing view of the wagon reference, not the
+reference's 45-degree angle.
+
 **When a result comes back:** send it to Claude. It gets checked for real
 transparency (pixel level) and at true in-game size before it's accepted —
-props are drawn only 20–28 px tall on the labour screen, so the silhouette
+props are small on the labour screen, so the silhouette
 has to read at that size.
 
 ---
