@@ -3,9 +3,14 @@
 **Version:** Oct 6, 2026 (replaces the Sep 5 version).
 **What this is:** every art key in the game's manifest, with its status and
 where the art lives. Checked against the live game file on GitHub
-(`aldermarch-single-file/aldermarch-game.html`): **172 manifest keys** (the
-Sep 5 count of 162 missed 10 keys with hyphens in their names — laborers,
+(`aldermarch-single-file/aldermarch-game.html`): **171 manifest keys** (the
+Sep 5 count of 162 missed 9 keys with hyphens in their names — laborers,
 castle yard, open forge, ore cart).
+
+**Important (Oct 7):** 79 of the 171 keys are never read by the game code
+(`terrain.*`, `tile.*`, `castle.*`, `industry.*`, `field.*`, `sprite.*`,
+`crest.*`, `ui.*`, `equipment.*`). Art for those would never appear. See
+`PHASE_B_PLAN.md` — the rows below are marked **UNREAD** where this applies.
 
 **Where accepted art lives:** GitHub `wizardofwalnut/goetz-mark`, folder
 `art/`. Placement numbers, facing rules and seat colours are in
@@ -40,7 +45,7 @@ castle yard, open forge, ore cart).
 
 ---
 
-## Terrain (20 keys)
+## Terrain (20 keys) — UNREAD by the game
 
 | Key | Status | Notes |
 |---|---|---|
@@ -48,7 +53,7 @@ castle yard, open forge, ore cart).
 | terrain.chokepoint + 4 seasonal | 🚫 REMOVE | Chokepoint was never a tile: it's a map layout idea (one way into a county). Nothing but the manifest uses these keys. Delete in Phase B. |
 | terrain.{open,forest,hills}.{spring,summer,autumn,winter} (12) | ⏸ DEFERRED | Seasonal art waits until after this pass. The code for it is ready. |
 
-## Base tiles (20 `tile.*` + 5 `overhead.tile.*`)
+## Base tiles (20 `tile.*` UNREAD + 5 `overhead.tile.*` used)
 
 | Key | Status | Notes |
 |---|---|---|
@@ -78,7 +83,7 @@ mask number.
 Phase B: add manifest keys for the three pieces. The wall is drawn today as
 plain SVG lines in `CountyWalls`.
 
-## Castles (5 keys + 5 overhead + 4 flags)
+## Castles (5 `castle.*` UNREAD + 5 overhead + 4 flags)
 
 | Key | Status | Notes |
 |---|---|---|
@@ -92,7 +97,7 @@ plain SVG lines in `CountyWalls`.
 |---|---|---|
 | overhead.town | ⚠️ DECISION | Open: `building_town_center` or `village_cluster` (maybe village for small counties, town center for large). |
 
-## Industry (8 keys + 4 overhead + open forge)
+## Industry (8 `industry.*` UNREAD + 4 overhead + open forge)
 
 | Key | Status | Notes |
 |---|---|---|
@@ -103,14 +108,14 @@ plain SVG lines in `CountyWalls`.
 | overhead.industry.{blacksmith, mine, quarry, lumberMill} | ⚠️ CHECK | Second-pass transparent renders, list pending the zip. |
 | overhead.sprite.forge-open | ⚠️ CHECK | Not in the Sep 5 bible. |
 
-## Fields (6 keys + 6 overhead)
+## Fields (6 `field.*` UNREAD + 6 overhead used)
 
 | Key | Status | Notes |
 |---|---|---|
 | field.grain.growing | ✅ HAVE | Green wheat. |
 | field.grain.mature, field.grain.sown, field.cattle | ⚠️ CHECK | Likely matches, not confirmed. |
 | field.barren | ✅ HAVE (furrowed dirt) | The code defines barren as bare dirt that must be reclaimed, and also draws it under half-sown crops and as the quarry pit floor. The furrowed tile fits. |
-| field.fallow | ❌ MISSING | Code defines fallow as wild grass (unused, plantable). Needs a grassy unplanted field tile. |
+| field.fallow / overhead.field.fallow | ❌ MISSING | Wild grass (unused, plantable). Prompt in `GROK_PROMPTS.md`; only the overhead key is drawn. |
 | overhead.field.* (6) | ⚠️ CHECK | Transparent second pass, pending the zip. |
 
 The code also builds keys for parched and flooded fields that don't exist in
@@ -120,7 +125,11 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 
 | Key | Status | Notes |
 |---|---|---|
-| unit.militia, unit.archers, unit.knights, unit.mercenaries, unit.militia.knight, unit.knights.knight | ⚠️ CHECK | 8 images for 6 keys: pikeman, militia, archer, crossbow, swordsman, maceman, siege ram, mounted knight. Mapping needs the canon zip. The knight's spear was swapped to a sword with Scenario (Flux Kontext). |
+| unit.militia, unit.archers, unit.knights | ⚠️ CHECK | Mapped by name (militia, archer, mounted knight with sword). Files are in the canon zip; check at 18 px. |
+| unit.crossbowmen, unit.swordsmen, unit.macemen, unit.pikemen | ⚠️ NEW KEYS | The game has 8 troop kinds, not 4. Images exist (crossbow, swordsman, maceman, pikeman); add keys in Phase B. |
+| unit.mercenaries | ❌ MISSING | No image. |
+| unit.militia.knight, unit.knights.knight | 🚫 REMOVE | Faction overrides with no separate art; the base key is used instead. |
+| *(siege ram image)* | — | No troop kind uses it. Kept for later. |
 
 ## Armies and wagons (map sprites)
 
@@ -130,8 +139,8 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 | overhead.army.bearer.0–3 | ✅ HAVE | `art/army/bearer-{crimson,azure,gold,sable}-{toward,away}.png`. Flag flies sideways. |
 | overhead.sprite.wagon | ✅ HAVE | `art/wagon/wagon-toward.png`, `wagon-away.png`. |
 | sprite.merchantWagon, sprite.supplyWagon | ✅ HAVE | Both use the one wagon (your call: the flag tells them apart). No separate flagged wagon. |
-| sprite.army.small / .medium / .large | ❌ MISSING | Check whether these are still used now that armies are bearer + soldiers. |
-| sprite.mercenaryOffer | ❌ MISSING | |
+| sprite.army.small / .medium / .large | UNREAD | Not used; armies are bearer + soldiers. |
+| sprite.mercenaryOffer | UNREAD | |
 
 ## Banners and crests
 
@@ -139,7 +148,7 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 |---|---|---|
 | banner.crimson, banner.steel, banner.gold | ✅ HAVE | `art/banner/`. |
 | banner.verdigris → banner.sable | ✅ HAVE | `art/banner/sable.png`. Phase B: rename the key and fix `BEST_NOBLE_BANNERS`. |
-| crest.{knight, warden, merchant, steward} | ❌ MISSING | Scenario's "Recraft V4.1 Pro SVG" model is built for crests (web app only). |
+| crest.{knight, warden, merchant, steward} | UNREAD | Scenario's "Recraft V4.1 Pro SVG" model is built for crests (web app only). |
 | Best Noble fleur-de-lis | ⚠️ DECISION | Still open. |
 
 ## Resources and items (12 + 6 figma + 1 equipment)
@@ -150,7 +159,8 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 | resource.bows | ⚠️ CHECK | Known bug: key declared, file missing. The art exists now; wire it in Phase B. |
 | resource.{wheat, cows, wood, ore, stone, gold} | ❌ MISSING | |
 | figma.resource.* (6) | ❌ MISSING | HUD versions; confirm style before making. |
-| equipment.knightArmour | ✅ HAVE (confirm key) | `art/icons/item_knight_helm.png`, a great helm matching the knight. Replaces `item_knight_plate_helm`. |
+| resource.armor | ✅ HAVE | `art/icons/item_knight_helm.png`, a great helm matching the knight. This is the "Knight Armor" icon the player sees. |
+| equipment.knightArmour | UNREAD | Never read by the game. |
 
 ## Laborers, livestock, props
 
@@ -159,12 +169,12 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 | overhead.sprite.laborer-{farmer, herder, woodcutter, miner, blacksmith} | ✅ HAVE | From the 44 canon assets. Not yet in `art/`. |
 | overhead.sprite.laborer-idle | ✅ HAVE | `labor_unemployed.png` maps here. |
 | *(new)* laborer-builder | ✅ HAVE, key needed | `labor_builder.png` is a new role (castle building). Add a key in Phase B. |
-| sprite.cow, overhead.sprite.cow | ❌ MISSING | |
+| overhead.sprite.cow | ❌ MISSING | Prompt in `GROK_PROMPTS.md`. (`sprite.cow` is UNREAD.) |
 | overhead.sprite.ore-cart, overhead.prop.{timber, graincart, barrels, spoil, sawhorse} | ❌ MISSING | |
 | overhead.sprite.castle-yard | ❌ MISSING | |
 | overhead.sprite.mountain, overhead.sprite.forest | ⚠️ CHECK | Not in the Sep 5 bible. |
 
-## UI kit (8 keys)
+## UI kit (8 keys) — UNREAD by the game
 
 | Key | Status | Notes |
 |---|---|---|
@@ -201,4 +211,4 @@ central counties stone, outskirts dirt — not decided), audio.
 2. Best Noble fleur-de-lis.
 3. Town: `building_town_center`, `village_cluster`, or both by county size.
 4. Parched/flooded fields: add art or drop the states?
-5. Industry: do idle and working need different art?
+5. The 79 unread keys: delete from the manifest, or keep dormant? (Either way, no art for them this pass.)
