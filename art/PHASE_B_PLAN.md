@@ -142,8 +142,11 @@ Each step depends on the ones above it.
    - Caravan flag: raise the offset (today `y: -0.95`, line ~20660) so the cloth
      flies above the canopy — see `art/flag/_preview-on-wagon.png`. Check on the S10e.
    - Castle flag (line ~20603): re-check against the new keep art.
-   - Border wall: replace the SVG lines in `CountyWalls` with the run/post
-     sprites, using the numbers in `art/README.md`.
+   - Border wall: replace the SVG lines in `CountyWalls` with
+     `art/wall-iso/` sprites — two overlapping sections per edge, mirrored
+     for up-left edges, a post at every vertex (numbers in the Art Bible).
+   - Ground tiles: pick variant `(col % 2, row % 2)` for every flat ground
+     type (`ground-<type>-<i><j>.png`).
 6. **Facing.** Track each wagon's and army's last move direction; choose the
    toward/away file and CSS-mirror it for the other two directions; mirror the
    flag overlay's x offset with it.

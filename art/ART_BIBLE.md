@@ -57,36 +57,57 @@ Phase B therefore (a) bakes only the county in view (+ neighbours lazily) and
 (b) merges the flat layers (ground + fields + roads) into one. First Phase B
 step: check memory and smoothness on the S10e; fallback is 224.
 
-## Oct 11 art pack — what was accepted
+## Oct 11 art packs — what was accepted
 
-| Key | File | Notes |
-|---|---|---|
-| overhead.tile.ground | `art/ground-iso/ground-meadow.png` | 288x179 diamond with soil edge, from Grok texture via `groundgen_iso.py` |
-| overhead.tile.forest | `art/ground-iso/ground-forest.png` | forest floor; trees still drawn on top |
-| overhead.field.fallow | `art/ground-iso/ground-fallow.png` | |
-| overhead.field.barren | `art/ground-iso/ground-barren.png` | furrows |
-| overhead.field.grain.sown | `art/ground-iso/ground-sown.png` | |
-| overhead.field.grain.growing | `art/ground-iso/ground-wheat-growing.png` | Grok's diamond wheat tile, centre lifted to a seamless texture and rebuilt — Grok's own tiles were separate slabs at a slightly-off angle and showed a grid when several sat together |
-| overhead.field.grain.mature | `art/ground-iso/ground-wheat-ripe.png` | same method |
-| overhead.field.cattle | `art/ground-iso/ground-pasture.png` | |
-| overhead.field.parched *(new key)* | `art/ground-iso/ground-parched.png` | |
-| overhead.prop.timber | `art/props/prop-logs.png` | |
-| overhead.prop.graincart | `art/props/prop-cart.png` | |
-| overhead.prop.sawhorse | `art/props/prop-sawhorse.png` | |
-| overhead.prop.spoil | `art/props/prop-rubble.png` | check_cutout flags 6.7% — those are real gaps between stones (checked on magenta) |
-| resource.swords | `art/icons/item_sword.png` | navy #020A1F confirmed; reads as a sword |
+**Ground and field tiles** (`art/ground-iso/`, 288x179 diamonds with soil edge,
+built by `tools/groundgen_iso.py` from the Grok textures in `_src/`).
+Each flat ground type comes as **4 variants** `-00 -01 -10 -11`: one texture
+spans a 2x2 block of tiles, and tile (col, row) uses variant
+`(col % 2, row % 2)`. That cuts visible repetition 4x and gave chunkier detail
+closer to the target look (`_preview-variants.png`).
 
-Grok originals are kept in `art/ground-iso/_src/` so tiles can be rebuilt at any
-bake size. Phone-size preview: `art/ground-iso/_preview-phone.png`.
+| Key | File(s) |
+|---|---|
+| overhead.tile.ground | `ground-meadow-??.png` |
+| overhead.tile.forest | `ground-forest-??.png` (trees still drawn on top) |
+| overhead.field.fallow | `ground-fallow-??.png` |
+| overhead.field.barren | `ground-barren-??.png` |
+| overhead.field.grain.sown | `ground-sown-??.png` |
+| overhead.field.cattle | `ground-pasture-??.png` |
+| overhead.field.parched *(new key)* | `ground-parched-??.png` |
+| overhead.field.grain.growing | `ground-wheat-growing.png` (single tile) |
+| overhead.field.grain.mature | `ground-wheat-ripe.png` (single tile) |
 
-**Rejected — redo on a green background** (dark parts were cut out with the
-background; the colour under the holes is wiped, so they can't be repaired):
-cow, mine cart, mine, barrels, wall run, wall post (the post was also a tall
-column; it should be squat, ~1.2x the wall's height). Prompt: `GROK_PROMPTS.md`
-"Redo on green".
+Wheat: Grok's diamond wheat tiles were separate slabs at a slightly-off angle
+and showed a grid when several sat together; the centre of each was lifted
+into a seamless texture (`_src/tex-wheat-*.png`) and rebuilt. Single tile
+(2x2 would make the stalks too big).
 
-Still missing for the map: mountain ground tile, overhead castles/town/
-industry (canon zip), mercenary unit.
+**Props** (`art/props/`, transparent): logs → `overhead.prop.timber`,
+cart → `overhead.prop.graincart`, sawhorse → `overhead.prop.sawhorse`,
+rubble → `overhead.prop.spoil`, barrels → `overhead.prop.barrels`,
+mine cart → `overhead.sprite.ore-cart`, cow → `overhead.sprite.cow`.
+Barrels, mine cart and cow came from the green pack (cut out with
+`tools/greenkey.py`; originals in `_src/`). Rubble scores 6.7% in
+`check_cutout.py` — real gaps between stones, checked on magenta.
+
+**Building:** `art/buildings/building-mine.png` → `overhead.industry.mine`
+(green pack).
+
+**Wall** (`art/wall-iso/`, green pack, replaces the square-grid `art/wall/`
+kit): `wall-run.png` runs lower-left to upper-right (25.7° vs the tiles'
+26.6° — not visible); the up-left edges use it mirrored. `wall-post.png` at
+every vertex. Placement tested (`_preview.png`): **two sections per tile
+edge** (one full-length section stands as tall as a soldier; two halves give
+the knee-to-waist height), each scaled so its width ≈ edge width / 2 / 0.88
+so neighbours overlap a little (at /0.93 a slit showed at the midpoint);
+post height ≈ 1.25x the wall's face. Known nit: the mirrored run's light comes
+from the wrong side — fine at map size.
+
+**Icon:** `art/icons/item_sword.png` → `resource.swords` (navy #020A1F).
+
+Still missing for the map: mountain ground tile, overhead castles / town /
+other industry buildings (canon zip), mercenary unit.
 
 ## Style rules (locked)
 
@@ -151,7 +172,7 @@ by mask number.
 
 | Piece | Status | Notes |
 |---|---|---|
-| Diagonal run + post | ❌ REDO | The `art/wall/` kit was drawn for the square grid. On diamonds, both edge directions are mirror images, so the new kit is just ONE diagonal run + the post (prompt in `GROK_PROMPTS.md`). Same look: low dry-stone wall, cosmetic, one look all year. |
+| Diagonal run + post | ✅ HAVE (Oct 11) | `art/wall-iso/` — see "Oct 11 art packs". Old row: | The `art/wall/` kit was drawn for the square grid. On diamonds, both edge directions are mirror images, so the new kit is just ONE diagonal run + the post (prompt in `GROK_PROMPTS.md`). Same look: low dry-stone wall, cosmetic, one look all year. |
 
 Phase B: add manifest keys for the two pieces. The wall is drawn today as
 plain SVG lines in `CountyWalls`.
