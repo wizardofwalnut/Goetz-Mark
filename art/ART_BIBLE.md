@@ -29,8 +29,9 @@ castle yard, open forge, ore cart).
 
 Reference: `art/_reference/target-look-hollowmere.jpg`. Match its **style**,
 not the exact picture:
-- **Zoomed in:** about 4 tiles across the phone (today 7). One number in code
-  (`VIEW_COLS`); tune it on the S10e in Phase B.
+- **Zoom:** about 7 tiles across the phone, same as today (revised Oct 11 —
+  see "Zoom and bake resolution"). Fields are groups of tiles that join
+  seamlessly into big blocks.
 - **Chunky diorama tiles:** each tile reads as a raised slab with soil showing
   on its front edge; rich texture (wheat stalks, furrows, cracked earth).
 - **Small figures on big tiles:** soldiers, horses, cows and wagons are small
@@ -44,19 +45,21 @@ not the exact picture:
 - From the reference: the **parched field** (cracked earth) is in; the
   **town is a village cluster** (several houses).
 
-## Bake resolution (decided Oct 7)
+## Zoom and bake resolution (revised Oct 11)
 
-**288 px per tile** (diamond width; height 144). At ~4 tiles across, the S10e shows ~270 real pixels per
-tile; 288 covers that with a little headroom for larger phones. Tested Oct 7:
-below the on-screen size the art goes soft (64 and 96 clearly; 128 slightly);
-at or above it, no visible gain from going higher.
+**About 7 tiles across the phone (today's zoom), bake 160 px per tile**
+(diamond width; height 80). Oct 7 said ~4 across / 288, which assumed each
+field in the reference is one tile. It isn't: overlaying the diamond grid on
+the reference (`art/_reference/zoom-grid-compare.png`) shows fields are
+blocks of several tiles, and at 7 across the castle is ~1.5 tiles and the
+village ~2 — the sizes the game already uses (castle 1.5, town 1.9). So the
+reference look is today's zoom with bigger, joined fields.
 
-Memory: baking all 4 counties' layers at 288 the current way would need far
-too much (a 7x19 county is a ~3700x1900 px diamond canvas per layer).
-Phase B therefore (a) bakes only the county in view (+ neighbours lazily) and
-(b) merges the flat layers (ground + fields + roads) into one. First Phase B
-step: check memory and smoothness on the S10e; fallback is 224.
-
+At 7 across the S10e shows ~154 real px per tile; the Oct 7 test showed 160
+is sharp and anything above adds nothing. Memory is fine (single-county
+bake still recommended). Roads and ground tiles were built at 288; their
+sources are kept, so they are rebuilt at 160 with the same tools
+(`roadgen_iso.py ... 160`, `groundgen_iso.py ... 160 - 2`).
 ## Oct 11 art packs — what was accepted
 
 **Ground and field tiles** (`art/ground-iso/`, 288x179 diamonds with soil edge,

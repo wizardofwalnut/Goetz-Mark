@@ -107,14 +107,14 @@ Each step depends on the ones above it.
    - Camera/scroll: `VIEW_COLS` now counts diamond widths across the screen.
    Do this before step 1 — the bake sizes below are diamond sizes.
 
-1. **Zoom and bake (decided Oct 7: ~4 tiles across, 288 px bake).**
-   - `VIEW_COLS` 7 → 4; tune on the S10e.
-   - One `BAKE_TILE_PX = 288` constant (diamond width) replaces the hard-coded
+1. **Zoom and bake (revised Oct 11: ~7 tiles across — unchanged — and a 160 px bake).**
+   - Keep `VIEW_COLS` at 7; tune on the S10e only if needed.
+   - One `BAKE_TILE_PX = 160` constant (diamond width) replaces the hard-coded
      32 px native tile; scale `BAKE_PAD_PX` with it.
    - Bake only the county in view (+ neighbours lazily), and merge the
      ground/fields/roads layers into one canvas — all 4 counties x 4 layers at
      288 would be far too much memory.
-   - Check memory and smoothness on the S10e before anything else; fallback 224.
+   - Check memory and smoothness on the S10e before anything else; fallback 128.
    Everything below is resized against this.
 2. **Fix the two old manifest bugs.**
    - `overhead.tile.ground`: drop `aliasOf: overhead.road.0`; point at a real
