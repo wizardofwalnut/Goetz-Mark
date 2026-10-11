@@ -218,3 +218,25 @@ Hard requirements:
   the canon zip already has them.
 - Castle yard, mercenary offer, army size sprites — check whether the game
   still uses these (see `PHASE_B_PLAN.md`).
+
+
+---
+
+## Redo on green (same Grok chat, Oct 11)
+
+The cow, mine cart, mine, barrels and wall pieces came back with their dark
+parts cut out along with the background. Ask for a solid green background
+instead; Claude cuts it out (green never appears in these objects).
+
+```
+Request 8. Redo these 6 items. FORMAT CHANGE: do NOT make the background transparent. Put each object on a SOLID, flat, pure bright green background (#00FF00), with no shadow and no gradient on the green. Keep everything else from the locked rules. 6 separate files.
+
+1. The black-and-white dairy cow (same as before)
+2. The mine cart on short rails, full of dark ore (same as before)
+3. The mine entrance in the rocky outcrop with the headframe (same as before)
+4. The three barrels (same as before)
+5. The dry-stone wall section along one diamond tile edge, lower-left to upper-right (same as before)
+6. The stone post, but SQUAT: only slightly taller than the wall (about 1.2x the wall's height), not a tall column
+
+Keep all dark areas (black cow spots, ore, shadows inside the cart and the mine, gaps between stones) fully solid and visible.
+```

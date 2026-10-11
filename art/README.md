@@ -3,6 +3,7 @@
 > **Oct 11: the map moves to a diamond (isometric) grid.** Roads are now
 > `road-iso/` (the square `road/` set is superseded). The wall kit in `wall/`
 > was drawn for the square grid and is being redone (one diagonal run + post).
+> Ground/field tiles: `ground-iso/` (Oct 11). Props: `props/`.
 > Wagons, armies, banners, flags and the helm are unaffected. See
 > `ART_BIBLE.md` and `PHASE_B_PLAN.md`.
 

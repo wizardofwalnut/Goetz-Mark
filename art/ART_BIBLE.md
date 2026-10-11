@@ -57,6 +57,37 @@ Phase B therefore (a) bakes only the county in view (+ neighbours lazily) and
 (b) merges the flat layers (ground + fields + roads) into one. First Phase B
 step: check memory and smoothness on the S10e; fallback is 224.
 
+## Oct 11 art pack — what was accepted
+
+| Key | File | Notes |
+|---|---|---|
+| overhead.tile.ground | `art/ground-iso/ground-meadow.png` | 288x179 diamond with soil edge, from Grok texture via `groundgen_iso.py` |
+| overhead.tile.forest | `art/ground-iso/ground-forest.png` | forest floor; trees still drawn on top |
+| overhead.field.fallow | `art/ground-iso/ground-fallow.png` | |
+| overhead.field.barren | `art/ground-iso/ground-barren.png` | furrows |
+| overhead.field.grain.sown | `art/ground-iso/ground-sown.png` | |
+| overhead.field.grain.growing | `art/ground-iso/ground-wheat-growing.png` | Grok's diamond wheat tile, centre lifted to a seamless texture and rebuilt — Grok's own tiles were separate slabs at a slightly-off angle and showed a grid when several sat together |
+| overhead.field.grain.mature | `art/ground-iso/ground-wheat-ripe.png` | same method |
+| overhead.field.cattle | `art/ground-iso/ground-pasture.png` | |
+| overhead.field.parched *(new key)* | `art/ground-iso/ground-parched.png` | |
+| overhead.prop.timber | `art/props/prop-logs.png` | |
+| overhead.prop.graincart | `art/props/prop-cart.png` | |
+| overhead.prop.sawhorse | `art/props/prop-sawhorse.png` | |
+| overhead.prop.spoil | `art/props/prop-rubble.png` | check_cutout flags 6.7% — those are real gaps between stones (checked on magenta) |
+| resource.swords | `art/icons/item_sword.png` | navy #020A1F confirmed; reads as a sword |
+
+Grok originals are kept in `art/ground-iso/_src/` so tiles can be rebuilt at any
+bake size. Phone-size preview: `art/ground-iso/_preview-phone.png`.
+
+**Rejected — redo on a green background** (dark parts were cut out with the
+background; the colour under the holes is wiped, so they can't be repaired):
+cow, mine cart, mine, barrels, wall run, wall post (the post was also a tall
+column; it should be squat, ~1.2x the wall's height). Prompt: `GROK_PROMPTS.md`
+"Redo on green".
+
+Still missing for the map: mountain ground tile, overhead castles/town/
+industry (canon zip), mercenary unit.
+
 ## Style rules (locked)
 
 - 3D diorama style, warm soft light, the same camera angle for everything.
