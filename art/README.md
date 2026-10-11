@@ -1,5 +1,11 @@
 # Aldermarch canon art (accepted assets awaiting Phase B wiring)
 
+> **Oct 11: the map moves to a diamond (isometric) grid.** Roads are now
+> `road-iso/` (the square `road/` set is superseded). The wall kit in `wall/`
+> was drawn for the square grid and is being redone (one diagonal run + post).
+> Wagons, armies, banners, flags and the helm are unaffected. See
+> `ART_BIBLE.md` and `PHASE_B_PLAN.md`.
+
 | File | Manifest key | Notes |
 |---|---|---|
 | banner/crimson.png | banner.crimson | Seat 1. Transparent PNG. |

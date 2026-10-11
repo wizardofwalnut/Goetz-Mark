@@ -88,14 +88,32 @@ being ready.
 
 Each step depends on the ones above it.
 
+0. **Switch to the diamond grid (decided Oct 11).** Game logic, pathing, saves
+   and the map generator stay in grid (col, row) coordinates — only drawing,
+   tapping and depth order change. Checked Oct 11, the square-grid screen math
+   is concentrated in a few places:
+   - `cellX` / `cellY` / `cellCentre` / `STRIDE_Y` (~19250; `STRIDE_Y` has 15
+     uses) → one `toScreen(col, row)`: x = (col − row)·W/2, y = (col + row)·H/2,
+     with W = diamond width, H = W/2.
+   - Bake: `nativeX` / `nativeY` / `bakeSize` / `blitTile` → same projection;
+     the county canvas becomes the diamond's bounding box.
+   - Depth order: the two sorts by row (`props.sort` ~19603, `sprites.sort`
+     ~20728) → sort by `col + row`, then `col`. This is also the structural
+     z-order fix from BB plan §2.
+   - Tapping: SVG cell rects (highlights, move/target areas) → diamond
+     polygons, and screen → grid uses the inverse projection. Re-test every
+     tap path (Lessons Theme A).
+   - County walls: `wallSegments` / `CountyWalls` follow diamond edges.
+   - Camera/scroll: `VIEW_COLS` now counts diamond widths across the screen.
+   Do this before step 1 — the bake sizes below are diamond sizes.
+
 1. **Zoom and bake (decided Oct 7: ~4 tiles across, 288 px bake).**
    - `VIEW_COLS` 7 → 4; tune on the S10e.
-   - Replace the hard-coded 32 px native tile in `nativeX/nativeY/bakeSize/
-     blitTile` (line ~19460) with one `BAKE_TILE_PX = 288` constant; scale
-     `BAKE_PAD_PX` with it.
+   - One `BAKE_TILE_PX = 288` constant (diamond width) replaces the hard-coded
+     32 px native tile; scale `BAKE_PAD_PX` with it.
    - Bake only the county in view (+ neighbours lazily), and merge the
      ground/fields/roads layers into one canvas — all 4 counties x 4 layers at
-     288 would be ~1 GB.
+     288 would be far too much memory.
    - Check memory and smoothness on the S10e before anything else; fallback 224.
    Everything below is resized against this.
 2. **Fix the two old manifest bugs.**
@@ -110,10 +128,9 @@ Each step depends on the ones above it.
    - Add `unit.crossbowmen`, `unit.swordsmen`, `unit.macemen`, `unit.pikemen`.
    - Add `overhead.sprite.laborer-builder` (needs a job named `builder` in the
      labour code — check how castle building assigns workers first).
-   - Add wall keys: `overhead.wall.run-lr`, `overhead.wall.run-fb`,
-     `overhead.wall.post`.
+   - Add wall keys: `overhead.wall.run`, `overhead.wall.post`.
 4. **Point every accepted key at its new file** (all at once, not by category):
-   - `overhead.road.0..15` → `art/road/road-NN.png` by mask number (today's
+   - `overhead.road.0..15` → `art/road-iso/road-NN.png` by mask number (today's
      paths are shuffled `tile-NN.png` names).
    - `overhead.castle.flag.0..3` → `art/flag/flag-{crimson,azure,gold,sable}.png`.
    - `overhead.army.bearer.0..3`, `overhead.army.soldier`, `overhead.sprite.wagon`

@@ -11,8 +11,7 @@ Bible docx are named by their bible label.
 **Always attach as an extra reference:** `art/_reference/target-look-hollowmere.jpg`
 (the target look) and add to the prompt: "Match the overall style, lighting and
 colour of the third image (it is a style reference, do not copy its layout)."
-The camera stays the square front-facing view of the wagon reference, not the
-reference's 45-degree angle.
+The game uses the reference's diamond (isometric) grid, decided Oct 11.
 
 **When a result comes back:** send it to Claude. It gets checked for real
 transparency (pixel level) and at true in-game size before it's accepted —
@@ -72,26 +71,70 @@ Hard requirements:
 - Square image, at least 1024x1024. Single downloadable file, not a grid.
 ```
 
-## 3. Fallow field tile (one file)
+## 3. Ground and field textures — flat states (one Grok chat, 7 files)
 
-Fallow = an unused field gone back to wild grass, ready to be ploughed.
-(Barren — the furrowed bare dirt — is already done.)
+The map is now a diamond grid, so every ground and field tile is new. Flat
+ground is made the same way as the roads: Grok paints a square, seamless,
+straight-down texture, and `tools/` projects it onto the diamond and adds the
+soil edge. That guarantees every tile is exactly 2:1 and joins its neighbours
+with no seams — something Grok can't do reliably when asked for diamonds.
 
-Attach: the canon furrowed-dirt field tile and the canon `field.grain.growing`
-(green wheat) tile.
+Attach: `art/_reference/target-look-hollowmere.jpg` and
+`art/road/_source-grok-dirt.png` (the accepted dirt texture, for scale and
+lighting).
 
 ```
-Using the two attached field tiles as locked references, generate ONE new
-field tile in exactly the same format: an unused fallow field that has gone
-back to rough wild grass and a few low weeds and wildflowers. No crops, no
-furrows, no fence, no buildings, no people or animals.
+Using the two attached images as references, generate 7 SEPARATE square
+texture images. Deliver 7 individual downloadable files, NOT a contact sheet.
 
-Match the references exactly: same camera angle, same tile shape and framing,
-same scale of detail, same warm soft lighting, same 3D diorama style. It must
-sit next to the green-wheat tile on a map and look like it belongs to the same
-set — clearly grass, clearly not wheat.
+Each one is a seamless, tileable ground texture seen from DIRECTLY ABOVE
+(straight down, no perspective, no horizon, no shadows from tall objects).
+Match the colour, warmth and painted detail of the first reference image.
 
-Single downloadable square image, at least 1024x1024. Not a grid of options.
+1. Short meadow grass (plain open ground)
+2. Fallow field: rough wild grass with a few low weeds and small wildflowers
+3. Barren field: bare ploughed brown soil in straight furrows
+4. Sown field: ploughed furrows with tiny green sprouts in rows
+5. Parched field: dry pale cracked earth, like the cracked tile in reference 1
+6. Pasture: grazed grass, slightly worn, a few bare patches (no animals)
+7. Forest floor: dark soil, moss, fallen leaves and needles (no trees)
+
+Hard requirements for every file:
+- Seamless: the left edge must continue into the right edge and the top into
+  the bottom, so the texture repeats with no visible seam.
+- Straight-down view only. No objects that stick up (no trees, rocks, fences,
+  animals, people, buildings).
+- Even lighting across the whole image (no vignette, no dark corners).
+- Square, at least 1024x1024. No text, no border.
+```
+
+## 3b. Wheat tiles — growing and ripe (one Grok chat, 2 files)
+
+Wheat stands tall, so it can't be a flat texture. These two are rendered
+directly as diamond tiles, matching the reference's wheat.
+
+Attach: `art/_reference/target-look-hollowmere.jpg` and
+`art/road-iso/_preview.png` (shows the exact diamond tile shape and angle).
+
+```
+Using the two attached images as references, generate 2 SEPARATE image files.
+Deliver 2 individual downloadable files, NOT a contact sheet.
+
+Each is ONE isometric diamond-shaped field tile, exactly the shape and camera
+angle of one tile in the second reference image: a diamond twice as wide as
+it is tall, seen from the same isometric angle, with a thin band of brown
+soil showing along its two lower front edges like a raised slab.
+
+1. Growing wheat: dense green wheat, knee high, filling the whole tile
+2. Ripe wheat: dense golden wheat, waist high, filling the whole tile — the
+   same style as the golden wheat fields in the first reference image
+
+Hard requirements:
+- Transparent background (PNG alpha) everywhere outside the diamond and its
+  soil edge. No ground, no shadow plane, no other tiles.
+- The wheat fills the diamond right to its edges so neighbouring tiles join.
+- No fence, no path, no people, no animals.
+- Image at least 1024 px wide. No text.
 ```
 
 ## 4. Mine building (one file, map sprite)
@@ -140,6 +183,32 @@ downloadable file, not a grid.
 ```
 
 ---
+
+## 6. County border wall for the diamond grid (one Grok chat, 2 files)
+
+The accepted wall was drawn for the square grid. On diamonds, both edge
+directions are mirror images, so only one run piece and the post are needed.
+
+Attach: `art/wall/wall-run-leftright.png` (the accepted wall — same stones and
+height), `art/wall/wall-post.png`, and `art/road-iso/_preview.png` (the
+diamond angle).
+
+```
+Using the attached images as locked references, generate 2 SEPARATE image
+files. Deliver 2 individual downloadable files, NOT a contact sheet.
+
+1. One straight section of the SAME low dry-stone wall as reference 1 (same
+   stones, colour, height and wear), seen from the isometric angle of
+   reference 3, running diagonally from lower-left to upper-right — exactly
+   along the edge of one diamond tile, so its length matches one tile edge.
+2. The SAME stone post as reference 2, seen from that same isometric angle.
+
+Hard requirements:
+- Transparent background (PNG alpha). No ground, no grass, no shadow plane.
+- One object per file, nothing else. No text.
+- Both drawn at the same scale.
+- Image at least 1024 px wide.
+```
 
 ## Not in this batch (need you or the canon zip first)
 

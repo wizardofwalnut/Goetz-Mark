@@ -36,20 +36,23 @@ not the exact picture:
 - **Small figures on big tiles:** soldiers, horses, cows and wagons are small
   next to a field, so the land dominates.
 - **Warm, soft light; saturated but natural colour.**
-- **Grid stays square** (front-facing camera). The reference's 45° diamond
-  angle is not adopted: the accepted roads, wall kit and all tap/click code
-  are built for the square grid.
+- **Diamond (isometric) grid** — decided Oct 11, replacing the Oct 7
+  "square grid" call. Tiles are 2:1 diamonds, like the reference. Screen
+  directions: North = up-right, East = down-right, South = down-left,
+  West = up-left. Game logic stays in grid coordinates; only drawing,
+  tapping and depth order change (see `PHASE_B_PLAN.md`).
 - From the reference: the **parched field** (cracked earth) is in; the
   **town is a village cluster** (several houses).
 
 ## Bake resolution (decided Oct 7)
 
-**288 px per tile.** At ~4 tiles across, the S10e shows ~270 real pixels per
+**288 px per tile** (diamond width; height 144). At ~4 tiles across, the S10e shows ~270 real pixels per
 tile; 288 covers that with a little headroom for larger phones. Tested Oct 7:
 below the on-screen size the art goes soft (64 and 96 clearly; 128 slightly);
 at or above it, no visible gain from going higher.
 
-Memory: baking all 4 counties' 4 layers at 288 would need ~1 GB — too much.
+Memory: baking all 4 counties' layers at 288 the current way would need far
+too much (a 7x19 county is a ~3700x1900 px diamond canvas per layer).
 Phase B therefore (a) bakes only the county in view (+ neighbours lazily) and
 (b) merges the flat layers (ground + fields + roads) into one. First Phase B
 step: check memory and smoothness on the S10e; fallback is 224.
@@ -65,7 +68,9 @@ step: check memory and smoothness on the S10e; fallback is 224.
   catalog.
 - Everything this pass touches uses smooth rendering, not pixel-art rendering.
 - **Moving sprites face the way they last moved:** two views each (toward and
-  away from the camera), mirrored for the other two directions.
+  away from the camera), mirrored for the other two directions. On the diamond
+  grid this is exact: toward = South (down-left), mirrored = East; away = West
+  (up-left), mirrored = North.
 - **Seat colours:** crimson `#C0392B`, azure `#2F6FD0`, gold `#E8C33A`,
   sable `#26262E`. Sable replaced verdigris (green was hard to tell from blue
   for colour-blind players, and from the green map).
@@ -84,6 +89,14 @@ step: check memory and smoothness on the S10e; fallback is 224.
 
 ## Base tiles (20 `tile.*` UNREAD + 5 `overhead.tile.*` used)
 
+**Diamond grid (Oct 11): every ground and field tile is remade.** Flat ones
+(grass, forest floor, fallow, barren, sown, parched, pasture) come from a
+seamless Grok texture run through `tools/groundgen_iso.py` (exact 2:1
+diamond, soil edge, no seams — tested with stand-in textures,
+`art/road-iso/_preview-ground.png`). Wheat (growing, ripe) is rendered as
+diamonds directly. Prompts: `GROK_PROMPTS.md` §3 and §3b. Canon square-grid
+tiles are reference only.
+
 | Key | Status | Notes |
 |---|---|---|
 | tile.ground, tile.forest, tile.mountain | ⚠️ CHECK | Still open: same art as `terrain.*` or separate? |
@@ -98,18 +111,18 @@ step: check memory and smoothness on the S10e; fallback is 224.
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.road.0–15 | ✅ HAVE | `art/road/road-00..15.png`. File number = mask (N=1 E=2 S=4 W=8). Made by `tools/roadgen.py` from one Grok dirt texture; works on every season's ground. |
+| overhead.road.0–15 | ✅ HAVE (diamond) | `art/road-iso/road-00..15.png`, 288x144 diamonds. File number = mask (N=1 E=2 S=4 W=8). Made by `tools/roadgen_iso.py`: the same Grok dirt texture, built square then projected — roads are flat, so the projection is exact and tiles still join seamlessly (`_preview.png`). The square set in `art/road/` is superseded. |
 
-Phase B: today's keys point at shuffled file names. Wire `road-NN.png` by
-mask number.
+Phase B: today's keys point at shuffled file names. Wire `road-iso/road-NN.png`
+by mask number.
 
 ## County border wall (no manifest key yet) — done
 
 | Piece | Status | Notes |
 |---|---|---|
-| Left-right run, front-back run, post | ✅ HAVE | `art/wall/`. Low dry-stone wall, cosmetic only, one look all year. |
+| Diagonal run + post | ❌ REDO | The `art/wall/` kit was drawn for the square grid. On diamonds, both edge directions are mirror images, so the new kit is just ONE diagonal run + the post (prompt in `GROK_PROMPTS.md`). Same look: low dry-stone wall, cosmetic, one look all year. |
 
-Phase B: add manifest keys for the three pieces. The wall is drawn today as
+Phase B: add manifest keys for the two pieces. The wall is drawn today as
 plain SVG lines in `CountyWalls`.
 
 ## Castles (5 `castle.*` UNREAD + 5 overhead + 4 flags)
@@ -164,7 +177,7 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.army.soldier | ✅ HAVE | `art/army/soldier-toward.png`, `soldier-away.png`. |
+| overhead.army.soldier | ✅ HAVE (fits diamond) | `art/army/soldier-toward.png`, `soldier-away.png`. |
 | overhead.army.bearer.0–3 | ✅ HAVE | `art/army/bearer-{crimson,azure,gold,sable}-{toward,away}.png`. Flag flies sideways. |
 | overhead.sprite.wagon | ✅ HAVE | `art/wagon/wagon-toward.png`, `wagon-away.png`. |
 | sprite.merchantWagon, sprite.supplyWagon | ✅ HAVE | Both use the one wagon (your call: the flag tells them apart). No separate flagged wagon. |
