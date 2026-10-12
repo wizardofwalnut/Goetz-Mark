@@ -8,6 +8,7 @@ phone-sized view centred on (centre_col, centre_row), with the game HUD on top.
 Placeholders are marked in TILE_FOR: art that sheet 2 will replace.
 """
 import json
+import os
 import sys
 
 import numpy as np
@@ -41,7 +42,7 @@ for i in it['industry']:
     if i['kind'] in IND:
         big[(i['col'], i['row'])] = IND[i['kind']]
     elif i['kind'] == 'mine':
-        sprites_on[(i['col'], i['row'])] = ('art/buildings/building-mine.png', 1.25)
+        sprites_on[(i['col'], i['row'])] = ('art/buildings/building-mine.png', float(os.environ.get('MINE_SCALE', '1.25')))
 
 cache = {}
 # decoration layer: seeded, cosmetic scatter on plain lawn (no gameplay effect)
