@@ -162,3 +162,23 @@ Each step depends on the ones above it.
 - Save Export (`exportSaveToFile`, line ~14523) uses `URL.createObjectURL` —
   the same `blob:` link that broke terrain on the S10e. Switch to a `data:`
   URL and test the download on the phone.
+
+## Added Oct 11 (from the real-layout mock-up, `art/_preview/hollowmere-*`)
+
+- **Tile sheets, not textures:** map art is the ChatGPT tile sheets
+  (`art/tileset-grok/`), grid ratio ~1.55:1 (not 2:1), lawn tiles picked as
+  `lawn-<col%2><row%2>`. Tall tiles (castle, town, buildings) stand on the
+  cell's bottom vertex at 1.2–1.6x tile width. Renderer prototype:
+  `tools/county_mock.py`.
+- **Soft shadows:** one blurred shadow layer cast down-right from tall
+  things, drawn between the flat ground and the tall tiles.
+- **Decoration layer (new, cosmetic only):** Hollowmere has ~100 plain-ground
+  cells of 133, so a real county looks emptier than the concept art. Scatter
+  seeded, non-interactive decorations (bushes, trees, flowers, rocks, fences)
+  on plain ground so the land reads as busy. No gameplay effect.
+- **County shape on the diamond grid:** a 7x19 county becomes a diagonal
+  band. Neighbouring counties fill most of the dark space around it in the
+  world view; only the world's outer edge shows void. Check this on the real
+  4-county world before changing any county dimensions.
+- **Zoom:** ~4 tiles across reads closest to the reference; 160 px bake then
+  becomes ~270 px — re-test bake size once the zoom is chosen.
