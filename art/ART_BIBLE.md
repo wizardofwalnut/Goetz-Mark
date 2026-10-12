@@ -60,6 +60,21 @@ is sharp and anything above adds nothing. Memory is fine (single-county
 bake still recommended). Roads and ground tiles were built at 288; their
 sources are kept, so they are rebuilt at 160 with the same tools
 (`roadgen_iso.py ... 160`, `groundgen_iso.py ... 160 - 2`).
+## Image tool and tile-sheet format (Oct 11)
+
+**ChatGPT (Plus) is the image tool** from Oct 11; Grok lapses in November.
+Map art comes as **tile sheets**: 5x5 separate isometric tiles, each a raised
+slab with soil/stone sides, on a dark background, made in one ChatGPT chat
+with sheet 1 (`art/tileset-grok/_src/sheet-1.png`, despite the folder name
+it came from ChatGPT) attached as the locked reference. Claude cuts the
+sheet, scales tiles to one width and anchors each on its slab's left corner;
+test map: `art/tileset-grok/_preview-map.png`.
+
+Measured on sheet 1: the slabs are ~1.55:1, not 2:1 — the grid uses the
+sheet's ratio. Tiles vary ~10% in width (normalised on cut). Roads are built
+by Claude from the sheet's dirt. Faint seams between busy grass tiles: ask
+for plain-edged grass variants.
+
 ## Oct 11 art packs — what was accepted
 
 **Ground and field tiles** (`art/ground-iso/`, 288x179 diamonds with soil edge,
