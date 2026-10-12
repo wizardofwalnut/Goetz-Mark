@@ -14,6 +14,12 @@ castle yard, open forge, ore cart).
 `crest.*`, `ui.*`, `equipment.*`). Art for those would never appear. See
 `PHASE_B_PLAN.md` — the rows below are marked **UNREAD** where this applies.
 
+**Art Book (picture version of this file):** `art/ART_BOOK.pdf`, one page per
+asset with the new art next to what the game draws today. Rebuild it with
+`python3 tools/art_book.py aldermarch-single-file/aldermarch-game.html art/ART_BOOK.pdf`
+whenever art is accepted; add the file to the catalog at the top of that
+script first.
+
 **Where accepted art lives:** GitHub `wizardofwalnut/goetz-mark`, folder
 `art/`. Placement numbers, facing rules and seat colours are in
 `art/README.md` — this file does not repeat them.
