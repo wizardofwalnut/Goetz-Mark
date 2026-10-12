@@ -31,8 +31,10 @@ for f in it['fields']:
     cell[(f['col'], f['row'])] = FIELD.get(f['status'], 'lawn')
 roads = {(r['col'], r['row']) for r in it['road'] if 0 <= r['col'] < C and 0 <= r['row'] < R}
 big = {}   # cell -> (tile name, scale)
-big[(it['castle']['col'], it['castle']['row'])] = ('standing/castle', 1.5)
-big[(it['town']['col'], it['town']['row'])] = ('standing/house-thatch', 1.6)
+for k in it.get('castles', [it.get('castle')]):
+    big[(k['col'], k['row'])] = ('standing/castle', 1.5)
+for k in it.get('towns', [it.get('town')]):
+    big[(k['col'], k['row'])] = ('standing/house-thatch', 1.6)
 IND = {'lumberMill': ('standing/barn', 1.2), 'blacksmith': ('standing/house-blue', 1.1), 'quarry': ('standing/rocks', 1.1)}
 sprites_on = {}
 for i in it['industry']:
@@ -42,6 +44,23 @@ for i in it['industry']:
         sprites_on[(i['col'], i['row'])] = ('art/buildings/building-mine.png', 1.25)
 
 cache = {}
+# decoration layer: seeded, cosmetic scatter on plain lawn (no gameplay effect)
+import os, random
+DECOR = os.environ.get('DECOR', '0') == '1'
+decor = {}
+if DECOR:
+    rnd = random.Random(1)
+    near_road = {(c + dc, r + dr) for c, r in roads for dc in (-1, 0, 1) for dr in (-1, 0, 1)}
+    # keep the cells behind tall buildings clear, or a bush/rock reads as sitting on the roof
+    behind_big = {(c + dc, r + dr) for c, r in list(big) + list(sprites_on) for dc in (-1, 0) for dr in (-1, 0)}
+    for (c, r), n in list(cell.items()):
+        if n != 'lawn' or (c, r) in roads or (c, r) in big or (c, r) in sprites_on or (c, r) in behind_big:
+            continue
+        x = rnd.random()
+        if x < 0.16:
+            decor[(c, r)] = ('standing/bushes', 0.75 + rnd.random() * 0.25)
+        elif x < 0.22 and (c, r) not in near_road:
+            decor[(c, r)] = ('standing/rocks', 0.6)
 
 
 def tile(n, scale=1.0):
@@ -67,11 +86,9 @@ def tile(n, scale=1.0):
 def road(mask):
     k = ('road', mask)
     if k not in cache:
-        r = Image.open(f'art/road-iso/road-{mask:02d}.png').convert('RGBA')
-        a = r.split()[3]
-        g = ImageOps.colorize(r.convert('L'), (110, 78, 48), (222, 186, 132)).convert('RGBA')
-        g.putalpha(a)
-        cache[k] = g.resize((round(W), round(H)), Image.LANCZOS)
+        # roads built at the sheet's angle from the sheet's dirt colour (tools/roadgen_iso.py)
+        r = Image.open(f'art/road-sheet/road-{mask:02d}.png').convert('RGBA')
+        cache[k] = r.resize((round(W), round(H)), Image.LANCZOS)
     return cache[k]
 
 
@@ -132,7 +149,9 @@ dd = ImageDraw.Draw(sh)
 for c, r in order:
     n = cell[(c, r)]
     k = None
-    if (c, r) in big:
+    if (c, r) in decor:
+        k = 0.5
+    elif (c, r) in big:
         k = big[(c, r)][1] * 0.9
     elif (c, r) in sprites_on:
         k = 1.0
@@ -145,9 +164,61 @@ for c, r in order:
 dark = Image.new('RGBA', img.size, (18, 30, 12, 0))
 dark.putalpha(sh.filter(ImageFilter.GaussianBlur(W * 0.10)))
 img.alpha_composite(dark)
+# county border wall (WALL=1): art/wall-sheet, the 2:1 run sheared to this grid's angle
+WALLS = os.environ.get('WALL', '0') == '1'
+CW, CR = it.get('countyCols', 7), it.get('countyRows', 19)
+if WALLS:
+    _run = Image.open('art/wall-sheet/wall-run.png').convert('RGBA')
+    _a = np.array(_run)[..., 3] > 128
+    _mx = _run.width // 2
+    _wall_h = np.ptp(np.nonzero(_a[:, _mx])[0])            # face + cap height at the middle
+    _base = np.nonzero(_a[:, _mx])[0].max()              # base-line y under the middle
+    soldier_h = 58 * W / 154
+    edge_dx = W / 2
+    s_h = 0.40 * soldier_h / _wall_h                     # knee-to-waist on a soldier
+    n_sec = max(1, round(edge_dx / (_run.width * s_h * 0.88)))
+    s_w = edge_dx / n_sec / 0.88 / _run.width             # snap so whole sections fill the edge
+    _rs = _run.resize((round(_run.width * s_w), round(_run.height * s_w)), Image.LANCZOS)
+    WALL_RUN = (_rs, _rs.transpose(Image.FLIP_LEFT_RIGHT))
+    _post = Image.open('art/wall-sheet/wall-post.png').convert('RGBA')
+    _post = _post.crop(_post.getbbox())
+    ph = 1.25 * _wall_h * s_w
+    WALL_POST = _post.resize((round(_post.width * ph / _post.height), round(ph)), Image.LANCZOS)
+    posts_done = set()
+
+
+def county(c, r):
+    return (c // CW, r // CR) if (c, r) in cell else None
+
+
+def walls(c, r, back):
+    if not WALLS:
+        return
+    gx, gy = corner(c, r)
+    T, Rt, B, L = (gx + W / 2, gy - H / 2), (gx + W, gy), (gx + W / 2, gy + H / 2), (gx, gy)
+    me = county(c, r)
+    sides = [((0, -1), T, Rt, 1), ((-1, 0), L, T, 0)] if back else [((1, 0), B, Rt, 0), ((0, 1), L, B, 1)]
+    for (dc, dr), p0, p1, flip in sides:
+        if county(c + dc, r + dr) == me:
+            continue
+        if (c, r) in roads and (c + dc, r + dr) in roads:
+            continue                                    # a road crosses the border: leave a gap
+        im = WALL_RUN[flip]
+        for i in range(n_sec):
+            f = (i + 0.5) / n_sec
+            px, py = p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f
+            img.alpha_composite(im, (round(px - im.width / 2), round(py - _base * s_w)))
+        for v in (p0, p1):
+            k = (round(v[0]), round(v[1]))
+            if k not in posts_done:
+                posts_done.add(k)
+                img.alpha_composite(WALL_POST, (round(v[0] - WALL_POST.width / 2), round(v[1] - WALL_POST.height * 0.92)))
+
+
 # pass 3: tall things in depth order
 for c, r in order:
     n = cell[(c, r)]
+    walls(c, r, back=True)
     if (c, r) in big:
         put(big[(c, r)][0], c, r, big[(c, r)][1])
     elif (c, r) in sprites_on:
@@ -159,12 +230,15 @@ for c, r in order:
         s = s.resize((w, h), Image.LANCZOS)
         gx, gy = corner(c, r)
         img.alpha_composite(s, (round(gx + W / 2 - w / 2), round(gy + H * 0.45 - h)))
+    elif (c, r) in decor:
+        put(decor[(c, r)][0], c, r, decor[(c, r)][1])
     elif n == 'mountain':
         put('standing/mountain-' + 'abc'[(c + r) % 3], c, r)
     elif n == 'bushes':
         put('standing/bushes', c, r)
     elif n.startswith('wheat'):
         put(n, c, r)
+    walls(c, r, back=False)
 
 
 def sprite(path, c, r, h, dx=0, dy=0):

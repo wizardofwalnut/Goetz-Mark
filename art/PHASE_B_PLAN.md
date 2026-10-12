@@ -130,8 +130,8 @@ Each step depends on the ones above it.
      labour code — check how castle building assigns workers first).
    - Add wall keys: `overhead.wall.run`, `overhead.wall.post`.
 4. **Point every accepted key at its new file** (all at once, not by category):
-   - `overhead.road.0..15` → `art/road-iso/road-NN.png` by mask number (today's
-     paths are shuffled `tile-NN.png` names).
+   - `overhead.road.0..15` → `art/road-sheet/road-NN.png` by mask number (today's
+     paths are shuffled `tile-NN.png` names). `art/road-iso/` is superseded.
    - `overhead.castle.flag.0..3` → `art/flag/flag-{crimson,azure,gold,sable}.png`.
    - `overhead.army.bearer.0..3`, `overhead.army.soldier`, `overhead.sprite.wagon`
      → the `-toward` files (the `-away` files need step 6).
@@ -143,8 +143,13 @@ Each step depends on the ones above it.
      flies above the canopy — see `art/flag/_preview-on-wagon.png`. Check on the S10e.
    - Castle flag (line ~20603): re-check against the new keep art.
    - Border wall: replace the SVG lines in `CountyWalls` with
-     `art/wall-iso/` sprites — two overlapping sections per edge, mirrored
-     for up-left edges, a post at every vertex (numbers in the Art Bible).
+     `art/wall-sheet/` sprites (the run re-angled to 1.55 by
+     `tools/wall_reangle.py`; `art/wall-iso/` is the 2:1 original). Size the
+     run so the wall is ~0.4x a soldier's height (at 4 across that is one
+     section per edge), overlap 0.88, mirror it for the N/S edges, a post at
+     every vertex, and **leave a gap where a road crosses the border**.
+     Draw N/W edges before a cell's tall things, E/S edges after.
+     Reference: `county_mock.py` `walls()`, preview `art/_preview/phone-border-wall.png`.
    - Ground tiles: pick variant `(col % 2, row % 2)` for every flat ground
      type (`ground-<type>-<i><j>.png`).
 6. **Facing.** Track each wagon's and army's last move direction; choose the
@@ -176,10 +181,14 @@ Each step depends on the ones above it.
   cells of 133, so a real county looks emptier than the concept art. Scatter
   seeded, non-interactive decorations (bushes, trees, flowers, rocks, fences)
   on plain ground so the land reads as busy. No gameplay effect.
+  Tested Oct 11 (`art/_preview/hollowmere-decor-compare.png`): 16% bushes,
+  6% rocks (not next to roads), seeded per county. Keep the cells behind a
+  tall building clear, or the bush/rock reads as sitting on its roof.
 - **County shape on the diamond grid:** a 7x19 county becomes a diagonal
   band. Neighbouring counties fill most of the dark space around it in the
-  world view; only the world's outer edge shows void. Check this on the real
-  4-county world before changing any county dimensions.
+  world view; only the world's outer edge shows void. Checked on the real
+  4-county world Oct 11 (`art/_preview/world-walls.png`): the counties join
+  cleanly — keep 7x19.
 - **Zoom:** ~4 tiles across reads closest to the reference; 160 px bake then
   becomes ~270 px — re-test bake size once the zoom is chosen.
 - **Buildings stand on the lawn, fields stay raised (Oct 11):** the sheet

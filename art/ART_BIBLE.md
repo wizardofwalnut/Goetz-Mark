@@ -181,16 +181,16 @@ tiles are reference only.
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.road.0–15 | ✅ HAVE (diamond) | `art/road-iso/road-00..15.png`, 288x144 diamonds. File number = mask (N=1 E=2 S=4 W=8). Made by `tools/roadgen_iso.py`: the same Grok dirt texture, built square then projected — roads are flat, so the projection is exact and tiles still join seamlessly (`_preview.png`). The square set in `art/road/` is superseded. |
+| overhead.road.0–15 | ✅ HAVE (sheet angle, Oct 11) | `art/road-sheet/road-00..15.png`, 240 wide at the sheet's 1.55 ratio, tan dirt colour-matched to the sheet's own road tile. File number = mask (N=1 E=2 S=4 W=8). Made by `tools/roadgen_iso.py <dirt> <out> 240 1.55`: built square then projected — roads are flat, so the projection is exact and tiles join seamlessly. `art/road-iso/` (2:1, Grok colour) and `art/road/` (square) are superseded. |
 
-Phase B: today's keys point at shuffled file names. Wire `road-iso/road-NN.png`
+Phase B: today's keys point at shuffled file names. Wire `road-sheet/road-NN.png`
 by mask number.
 
 ## County border wall (no manifest key yet) — done
 
 | Piece | Status | Notes |
 |---|---|---|
-| Diagonal run + post | ✅ HAVE (Oct 11) | `art/wall-iso/` — see "Oct 11 art packs". Old row: | The `art/wall/` kit was drawn for the square grid. On diamonds, both edge directions are mirror images, so the new kit is just ONE diagonal run + the post (prompt in `GROK_PROMPTS.md`). Same look: low dry-stone wall, cosmetic, one look all year. |
+| Diagonal run + post | ✅ HAVE (Oct 11, re-angled) | **Use `art/wall-sheet/`**: the run sheared to the sheet's 1.55 angle by `tools/wall_reangle.py` (vertical shear — stones stay upright, height unchanged); post unchanged. Sized to ~0.4x a soldier's height = one section per edge at 4 across; gap where a road crosses a border. Previews: `art/_preview/phone-border-wall.png`, `world-walls.png`. `art/wall-iso/` is the 2:1 original — see "Oct 11 art packs". Old row: | The `art/wall/` kit was drawn for the square grid. On diamonds, both edge directions are mirror images, so the new kit is just ONE diagonal run + the post (prompt in `GROK_PROMPTS.md`). Same look: low dry-stone wall, cosmetic, one look all year. |
 
 Phase B: add manifest keys for the two pieces. The wall is drawn today as
 plain SVG lines in `CountyWalls`.
