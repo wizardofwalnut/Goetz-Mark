@@ -1,0 +1,183 @@
+"""Render a county's REAL layout (dumped from the game) with the new diamond tiles.
+
+Usage: python3 tools/county_mock.py <interior.json> <out.png> <tile_width> [centre_col centre_row screen_w screen_h hud.png]
+
+Without the screen args it renders the whole county. With them it renders a
+phone-sized view centred on (centre_col, centre_row), with the game HUD on top.
+
+Placeholders are marked in TILE_FOR: art that sheet 2 will replace.
+"""
+import json
+import sys
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
+
+TS = 'art/tileset-grok/'
+RATIO = 1.55
+SHEET_TALL = ('castle', 'house', 'barn', 'wheat', 'mountain', 'bushes', 'rocks', 'watch', 'pasture')
+
+args = sys.argv
+it = json.load(open(args[1]))
+OUT, W = args[2], float(args[3])
+H = W / RATIO
+C, R = it['cols'], it['rows']
+
+cell = {}
+for g in it['ground']:
+    cell[(g['col'], g['row'])] = {'water': 'water', 'ground': 'lawn', 'forest': 'bushes', 'mountain': 'mountain'}.get(g['kind'], 'lawn')
+FIELD = {'grain': 'wheat-a', 'cattle': 'pasture-cows', 'fallow': 'grass-tufty', 'barren': 'tilled'}
+for f in it['fields']:
+    cell[(f['col'], f['row'])] = FIELD.get(f['status'], 'lawn')
+roads = {(r['col'], r['row']) for r in it['road'] if 0 <= r['col'] < C and 0 <= r['row'] < R}
+big = {}   # cell -> (tile name, scale)
+big[(it['castle']['col'], it['castle']['row'])] = ('castle', 1.5)
+big[(it['town']['col'], it['town']['row'])] = ('house-thatch', 1.6)
+IND = {'lumberMill': ('barn', 1.2), 'blacksmith': ('house-blue', 1.1), 'quarry': ('rocks', 1.1)}
+sprites_on = {}
+for i in it['industry']:
+    if i['kind'] in IND:
+        big[(i['col'], i['row'])] = IND[i['kind']]
+    elif i['kind'] == 'mine':
+        sprites_on[(i['col'], i['row'])] = ('art/buildings/building-mine.png', 1.25)
+
+cache = {}
+
+
+def tile(n, scale=1.0):
+    k = (n, scale)
+    if k in cache:
+        return cache[k]
+    im = Image.open(TS + n + '.png').convert('RGBA')
+    a = np.array(im)[:, :, 3] > 128
+    ys, xs = np.nonzero(a)
+    minx, maxx = xs.min(), xs.max()
+    L = np.nonzero(a[:, minx + 2])[0]
+    cx = int((minx + maxx) / 2)
+    Cc = np.nonzero(a[:, cx])[0]
+    s = W * scale / (maxx - minx)
+    im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
+    cache[k] = (im, minx * s, L.min() * s, cx * s, Cc.max() * s)
+    return cache[k]
+
+
+def road(mask):
+    k = ('road', mask)
+    if k not in cache:
+        r = Image.open(f'art/road-iso/road-{mask:02d}.png').convert('RGBA')
+        a = r.split()[3]
+        g = ImageOps.colorize(r.convert('L'), (110, 78, 48), (222, 186, 132)).convert('RGBA')
+        g.putalpha(a)
+        cache[k] = g.resize((round(W), round(H)), Image.LANCZOS)
+    return cache[k]
+
+
+def mask(c, r):
+    return ((1 if (c, r - 1) in roads else 0) | (2 if (c + 1, r) in roads else 0)
+            | (4 if (c, r + 1) in roads else 0) | (8 if (c - 1, r) in roads else 0))
+
+
+if len(args) > 4:
+    ccol, crow, SW, SH, HUD = float(args[4]), float(args[5]), int(args[6]), int(args[7]), args[8]
+    ox = SW / 2 - (ccol - crow) * W / 2
+    oy = SH * 0.42 - (ccol + crow) * H / 2
+else:
+    HUD = None
+    SW = round((C + R) * W / 2 + 2 * W)
+    SH = round((C + R) * H / 2 + 3 * W)
+    ox = R * W / 2 + W
+    oy = 1.5 * W
+img = Image.new('RGBA', (SW, SH), (20, 24, 33, 255))
+order = sorted(cell, key=lambda t: (t[0] + t[1], t[0]))
+
+
+def corner(c, r):          # grid-left-corner of cell (c, r) on screen
+    return ox + (c - r) * W / 2 - W / 2, oy + (c + r) * H / 2 + H / 2
+
+
+def put(n, c, r, scale=1.0):
+    im, lx, ly, bx, by = tile(n, scale)
+    gx, gy = corner(c, r)
+    if scale == 1.0:
+        img.alpha_composite(im, (round(gx - lx), round(gy - ly)))
+    else:                  # bigger than one tile: stand it on the cell's bottom vertex
+        img.alpha_composite(im, (round(gx + W / 2 - bx), round(gy + H / 2 - by)))
+
+
+def ground_name(c, r):
+    n = cell[(c, r)]
+    if n == 'lawn' or (c, r) in roads or (c, r) in big or (c, r) in sprites_on or n.startswith(SHEET_TALL) and n not in ('pasture-cows',):
+        if n in ('water',):
+            return n
+        return f'lawn-{c % 2}{r % 2}'
+    return n
+
+
+# pass 1: flat ground + roads
+for c, r in order:
+    n = ground_name(c, r)
+    if n.startswith(('lawn', 'water', 'tilled', 'grass', 'pasture')):
+        put(n, c, r)
+    else:
+        put(f'lawn-{c % 2}{r % 2}', c, r)
+    if (c, r) in roads:
+        gx, gy = corner(c, r)
+        img.alpha_composite(road(mask(c, r)), (round(gx), round(gy - H / 2)))
+# pass 2: soft shadows down-right
+sh = Image.new('L', img.size, 0)
+dd = ImageDraw.Draw(sh)
+for c, r in order:
+    n = cell[(c, r)]
+    k = None
+    if (c, r) in big:
+        k = big[(c, r)][1] * 0.9
+    elif (c, r) in sprites_on:
+        k = 1.0
+    elif n.startswith(('wheat', 'mountain', 'bushes')):
+        k = 0.6 if n.startswith('wheat') else 1.0
+    if k:
+        gx, gy = corner(c, r)
+        sx, sy = W * 0.30 * k, H * 0.30 * k
+        dd.polygon([(gx + W / 2 + sx, gy - H / 2 + sy), (gx + W + sx, gy + sy), (gx + W / 2 + sx, gy + H / 2 + sy), (gx + sx, gy + sy)], fill=150)
+dark = Image.new('RGBA', img.size, (18, 30, 12, 0))
+dark.putalpha(sh.filter(ImageFilter.GaussianBlur(W * 0.10)))
+img.alpha_composite(dark)
+# pass 3: tall things in depth order
+for c, r in order:
+    n = cell[(c, r)]
+    if (c, r) in big:
+        put(big[(c, r)][0], c, r, big[(c, r)][1])
+    elif (c, r) in sprites_on:
+        p, sc = sprites_on[(c, r)]
+        s = Image.open(p).convert('RGBA')
+        s = s.crop(s.getbbox())
+        w = round(W * sc)
+        h = round(s.height * w / s.width)
+        s = s.resize((w, h), Image.LANCZOS)
+        gx, gy = corner(c, r)
+        img.alpha_composite(s, (round(gx + W / 2 - w / 2), round(gy + H * 0.45 - h)))
+    elif n == 'mountain':
+        put('mountain-' + 'abc'[(c + r) % 3], c, r)
+    elif n.startswith(('wheat', 'bushes')):
+        put(n, c, r)
+
+
+def sprite(path, c, r, h, dx=0, dy=0):
+    s = Image.open(path).convert('RGBA')
+    s = s.crop(s.getbbox())
+    h = round(h * W / 154)
+    w = round(s.width * h / s.height)
+    s = s.resize((w, h), Image.LANCZOS)
+    x = ox + (c - r) * W / 2
+    y = oy + (c + r) * H / 2 + H / 2
+    img.alpha_composite(s, (round(x - w / 2 + dx * W / 154), round(y - h + dy * W / 154)))
+
+
+sprite('art/wagon/wagon-toward.png', 3, 12, 62, 0, 10)
+sprite('art/army/bearer-crimson-toward.png', 4, 9, 72, -10, 8)
+sprite('art/army/soldier-toward.png', 4, 9, 58, 22, 14)
+sprite('art/army/soldier-toward.png', 4, 9, 58, -38, 18)
+if HUD:
+    img.alpha_composite(Image.open(HUD).convert('RGBA').crop((0, 0, SW, SH)))
+img.convert('RGB').save(OUT)
+print(OUT, img.size)
