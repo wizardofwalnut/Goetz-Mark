@@ -182,3 +182,9 @@ Each step depends on the ones above it.
   4-county world before changing any county dimensions.
 - **Zoom:** ~4 tiles across reads closest to the reference; 160 px bake then
   becomes ~270 px — re-test bake size once the zoom is chosen.
+- **Buildings stand on the lawn, fields stay raised (Oct 11):** the sheet
+  draws every tile on a raised slab. Buildings, mountains, bushes and rocks
+  are cut off their slab with `tools/unslab.py` (side faces removed, grass
+  kept only as a small skirt) and live in `art/tileset-grok/standing/`.
+  Placement still uses the original slab's geometry. Fields keep their slab,
+  like the raised fields in the reference.

@@ -31,9 +31,9 @@ for f in it['fields']:
     cell[(f['col'], f['row'])] = FIELD.get(f['status'], 'lawn')
 roads = {(r['col'], r['row']) for r in it['road'] if 0 <= r['col'] < C and 0 <= r['row'] < R}
 big = {}   # cell -> (tile name, scale)
-big[(it['castle']['col'], it['castle']['row'])] = ('castle', 1.5)
-big[(it['town']['col'], it['town']['row'])] = ('house-thatch', 1.6)
-IND = {'lumberMill': ('barn', 1.2), 'blacksmith': ('house-blue', 1.1), 'quarry': ('rocks', 1.1)}
+big[(it['castle']['col'], it['castle']['row'])] = ('standing/castle', 1.5)
+big[(it['town']['col'], it['town']['row'])] = ('standing/house-thatch', 1.6)
+IND = {'lumberMill': ('standing/barn', 1.2), 'blacksmith': ('standing/house-blue', 1.1), 'quarry': ('standing/rocks', 1.1)}
 sprites_on = {}
 for i in it['industry']:
     if i['kind'] in IND:
@@ -48,8 +48,11 @@ def tile(n, scale=1.0):
     k = (n, scale)
     if k in cache:
         return cache[k]
+    # geometry always comes from the original slab tile, so a building cut off
+    # its slab (tools/unslab.py, in standing/) is placed exactly where it was
+    geo = n.split('/')[-1]
     im = Image.open(TS + n + '.png').convert('RGBA')
-    a = np.array(im)[:, :, 3] > 128
+    a = np.array(Image.open(TS + geo + '.png').convert('RGBA'))[:, :, 3] > 128
     ys, xs = np.nonzero(a)
     minx, maxx = xs.min(), xs.max()
     L = np.nonzero(a[:, minx + 2])[0]
@@ -157,8 +160,10 @@ for c, r in order:
         gx, gy = corner(c, r)
         img.alpha_composite(s, (round(gx + W / 2 - w / 2), round(gy + H * 0.45 - h)))
     elif n == 'mountain':
-        put('mountain-' + 'abc'[(c + r) % 3], c, r)
-    elif n.startswith(('wheat', 'bushes')):
+        put('standing/mountain-' + 'abc'[(c + r) % 3], c, r)
+    elif n == 'bushes':
+        put('standing/bushes', c, r)
+    elif n.startswith('wheat'):
         put(n, c, r)
 
 
