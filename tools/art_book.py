@@ -18,12 +18,14 @@ import re
 import sys
 
 from PIL import Image
+from reportlab import rl_config
 from reportlab.lib.colors import HexColor
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
 
+rl_config.useA85 = 0      # no ASCII85 wrapping: it inflates every image ~25%
 A = 'art/'
 TS = A + 'tileset-grok/'
 ST = TS + 'standing/'
@@ -34,11 +36,49 @@ STATUS = {
     'have': ('READY', '#3f8f4f'),
     'standin': ('STAND-IN', '#b07a1e'),
     'sheet2': ('SHEET 2', '#2f6fd0'),
-    'canon': ('CANON ZIP', '#7a4fb0'),
+    'canon': ('CANON', '#7a4fb0'),
     'missing': ('NOT MADE', '#b0413e'),
     'redo': ('REDO', '#b0413e'),
     'nokey': ('NEEDS KEY', '#5a6b7a'),
+    'remove': ('REMOVE', '#5a6b7a'),
+    'ref': ('REFERENCE', '#5a6b7a'),
+    'old': ('SUPERSEDED', '#8a8a8a'),
 }
+
+CN = A + '_canon/'      # the canon set (Sep 4-5), copied from Downloads Oct 12
+
+# Canon images shown under the new art (or instead of it when there is none).
+# Keyed by page title. The canon set is the earlier Grok diorama pass: same
+# style family, kept as the reference for what each asset should show.
+CANON = {
+    'Wooden palisade': [('canon tier 1', CN + 'castle-1-palisade.jpg')],
+    'Motte and bailey': [('canon tier 2', CN + 'castle-2-motte-bailey.jpg')],
+    'Norman keep': [('canon tier 3', CN + 'castle-3-norman-keep.jpg')],
+    'Stone castle': [('canon tier 4', CN + 'castle-4-stone.jpg')],
+    'Royal castle': [('canon tier 5', CN + 'castle-5-royal.jpg')],
+    'Town': [('village cluster', CN + 'village-cluster.jpg'), ('small village', CN + 'village-small.jpg')],
+    'Mine': [('canon', CN + 'industry-mine.jpg')],
+    'Lumber mill': [('canon', CN + 'industry-lumbermill.jpg')],
+    'Blacksmith': [('canon', CN + 'industry-blacksmith.jpg')],
+    'Quarry': [('canon', CN + 'industry-quarry.jpg')],
+    'Sown field': [('canon', CN + 'field-sown.jpg')],
+    'Parched field': [('canon', CN + 'field-parched.jpg')],
+    'Pasture': [('canon (cows painted in too)', CN + 'field-pasture.jpg')],
+    'Laborer: woodcutter': [('canon labor_lumber', CN + 'labor-lumber.jpg')],
+    'Laborer: miner': [('labor_miner', CN + 'labor-miner.jpg'), ('labor_quarry', CN + 'labor-quarry.jpg')],
+    'Laborer: blacksmith': [('canon', CN + 'labor-blacksmith.jpg')],
+    'Laborer: idle': [('canon labor_unemployed', CN + 'labor-unemployed.jpg')],
+    'Laborer: builder': [('canon labor_builder', CN + 'labor-builder.jpg')],
+    'Militia': [('canon', CN + 'unit-militia.jpg')],
+    'Archers': [('canon', CN + 'unit-archer.jpg')],
+    'Knights': [('plate, with sword', CN + 'unit-knight-plate.jpg'), ('mail, with lance', CN + 'unit-knight-mail.jpg')],
+    'Crossbowmen': [('canon', CN + 'unit-crossbowman.jpg')],
+    'Swordsmen': [('canon', CN + 'unit-swordsman.jpg')],
+    'Macemen': [('canon', CN + 'unit-maceman.jpg')],
+    'Pikemen': [('canon', CN + 'unit-pikeman.png')],
+    'Siege ram': [('canon', CN + 'siege-ram.jpg')],
+}
+GAMEIMG = {}             # manifest key -> bytes, filled in main(); 'GAME:<key>' sources
 
 SEATS = ['crimson', 'azure', 'gold', 'sable']
 
@@ -53,7 +93,7 @@ def add(section, title, keys, new, status, desc):
 # ---------------------------------------------------------------- ground
 S = 'Ground'
 add(S, 'Lawn', ['overhead.tile.ground'],
-    [('variant 00', TS + 'lawn-00.png'), ('variant 11', TS + 'lawn-11.png')], 'have',
+    [('variant ' + v, TS + 'lawn-%s.png' % v) for v in ('00', '01', '10', '11')], 'have',
     'Plain open ground: most of every county. Four variants, chosen by '
     '(col % 2, row % 2) so the pattern does not repeat tile to tile. '
     'Known bug: today the key borrows road tile 0 (the no-road shape) through '
@@ -215,23 +255,29 @@ for job, d in [
     ('blacksmith', 'Works the blacksmith.'), ('idle', 'Unassigned worker in the centre of the labor screen.'),
 ]:
     add(S, 'Laborer: ' + job, ['overhead.sprite.laborer-' + job], [], 'canon',
-        d + ' Labor-screen figure (28 px). The diorama version is one of the 44 '
-        'canon assets; copy it into art/ when the canon zip is attached.')
+        d + ' Labor-screen figure (28 px). ' + ('The canon diorama version is shown; check it '
+        'at 28 px, then accept it.' if job not in ('farmer', 'herder') else 'No canon diorama '
+        'version was among the images found on your computer (Oct 12); the old figure is shown large.'))
 add(S, 'Laborer: builder', [], [], 'nokey',
     'New role for castle building (labor_builder in the canon set). Needs a key in Phase B.')
 
 # ---------------------------------------------------------------- units
 S = 'Troops (roster icons)'
 for k, d in [('militia', 'Militia.'), ('archers', 'Archers.'), ('knights', 'Mounted knight with sword.'),
-             ('mercenaries', 'Mercenaries. No image exists yet.')]:
+             ('mercenaries', 'Mercenaries. The game has an old pixel-art icon; the canon set '
+              'has no diorama version, so one still needs making.')]:
     add(S, k.capitalize(), ['unit.' + k], [], 'canon' if k != 'mercenaries' else 'missing',
-        d + ' Icon in the army roster panel; may keep its baked ground tile. Check at 18 px.')
+        d + ' Icon in the army roster panel (18 px); may keep its baked ground tile.')
 for k in ['crossbowmen', 'swordsmen', 'macemen', 'pikemen']:
     add(S, k.capitalize(), [], [], 'nokey',
         'The game has 8 troop kinds, not 4. The image is in the canon set; add the '
         'key unit.%s in Phase B.' % k)
-add(S, 'Knight overrides', ['unit.militia.knight', 'unit.knights.knight'], [], 'missing',
-    'Faction overrides with no separate art. Being removed: the base key is used instead.')
+add(S, 'Knight overrides', ['unit.militia.knight', 'unit.knights.knight'],
+    [('militia (what shows)', 'GAME:unit.militia'), ('knights (what shows)', 'GAME:unit.knights')], 'remove',
+    'Faction overrides for the Knight faction. Both keys are marked pending with no file, '
+    'so the game already shows the plain militia and knight icons (shown). Delete the two keys in Phase B.')
+add(S, 'Siege ram', [], [], 'nokey',
+    'In the canon set, but no troop kind uses it. Kept for later; no key.')
 
 # ---------------------------------------------------------------- banners & icons
 S = 'Banners'
@@ -246,19 +292,73 @@ add(S, 'Swords', ['resource.swords'], [('', A + 'icons/item_sword.png')], 'have'
     'Weapon stock icon. Redone Oct 11 (the first one read as a dagger). Navy background like the icon catalog.')
 add(S, 'Knight armour', ['resource.armor'], [('', A + 'icons/item_knight_helm.png')], 'have',
     'The "Knight Armor" icon: a great helm matching the knight.')
-add(S, 'Bows', ['resource.bows'], [], 'canon',
-    'Accepted earlier, but the file is not in art/icons/. Known bug: the key is '
-    'declared with no file, so nothing shows today. Find it in the canon zip.')
+add(S, 'Bows', ['resource.bows'], [('nearest: the canon archer\'s bow', CN + 'unit-archer.jpg')], 'missing',
+    'Weapon stock icon. Known bug: the key is declared but its file was never embedded, so '
+    'nothing shows today. The bow icon accepted earlier is not in the repo or in the canon '
+    'images found on your computer (Oct 12). Make it with the other weapon icons; the archer '
+    'is shown only as a reference for the bow.')
 for k in ['crossbows', 'maces', 'pikes']:
-    add(S, k.capitalize(), ['resource.' + k], [], 'canon',
-        'Weapon stock icon, generated directly (Sep 4). Check against the key when the canon zip is here.')
+    add(S, k.capitalize(), ['resource.' + k], [], 'missing',
+        'Weapon stock icon. The game has an old pixel-art one (shown large). The canon '
+        'images have no weapon icons, so the new one is still to make, in the same style '
+        'as the new sword and knight helm (navy background).')
 
 S = 'Resources'
 for k, d in [('wheat', 'Grain'), ('cows', 'Cattle'), ('wood', 'Wood'), ('ore', 'Iron ore'),
              ('stone', 'Stone'), ('gold', 'Gold')]:
-    add(S, d, ['resource.' + k, 'figma.resource.' + k], [], 'missing',
-        d + ' icon for panels and reports (resource.%s) and its HUD version '
-        '(figma.resource.%s). Not started; confirm the HUD style first.' % (k, k))
+    add(S, d, ['resource.' + k, 'figma.resource.' + k],
+        [('panels: resource.' + k, 'GAME:resource.' + k), ('top bar: figma.resource.' + k, 'GAME:figma.resource.' + k)],
+        'missing',
+        d + ' has two icons today, both old style: one for panels and reports '
+        '(resource.%s) and the Figma version in the top bar (figma.resource.%s, '
+        'preferred there). A set matching the new diorama art is not started; confirm '
+        'the top-bar style first.' % (k, k))
+
+# ---------------------------------------------------------------- decoration & spares
+add('Land', 'Decoration: bushes and rocks', [],
+    [('bushes', ST + 'bushes.png'), ('rocks', ST + 'rocks.png'), ('flowers', TS + 'grass-flowers.png')], 'nokey',
+    'Cosmetic scatter on empty lawn so a county looks as busy as the concept art: about '
+    '16% bushes and 6% rocks, seeded per county, never next to a road or just behind a '
+    'tall building. No gameplay effect. Phase B: add keys for the pieces.')
+
+S = 'Spare and reference art'
+add(S, 'Sheet 1 spares', [],
+    [('wooden bridge', TS + 'bridge-wood.png'), ('stone bridge', TS + 'bridge-stone.png'),
+     ('flagstone', TS + 'flagstone.png'), ('shore', TS + 'shore.png'),
+     ('plain grass', TS + 'grass.png'), ('watchtower', ST + 'watchtower.png'),
+     ('wagon tile', TS + 'wagon-tile.png'), ('crossroads (road colour)', TS + 'road-cross.png')], 'nokey',
+    'Tiles from ChatGPT sheet 1 with no use in the game today. The crossroads tile is where '
+    'the road dirt colour came from. The watchtower is kept in case watchtowers are added later '
+    '(it has a painted flag to remove first). Bridges and shore wait on water, which is deferred.')
+add(S, 'Style reference scenes', [],
+    [('target look', A + '_reference/target-look-hollowmere.jpg'), ('', A + '_reference/target-look-2.jpg'),
+     ('', A + '_reference/target-look-3.jpg'), ('', A + '_reference/target-look-4.jpg'),
+     ('canon scene', CN + 'scene-a.jpg'), ('', CN + 'scene-b.jpg'), ('', CN + 'scene-c.jpg'), ('', CN + 'scene-d.jpg')], 'ref',
+    'Concept paintings that set the target look: warm light, chunky diorama tiles, small '
+    'figures on big fields. Style references only. They are single paintings, not built from '
+    'tiles, so no game art is cut from them (Lessons, Oct 11).')
+add(S, 'Canon index sheets', [],
+    [('troops', CN + '_index-units.jpg'), ('castles and laborers', CN + '_index-castles-labor.jpg')], 'ref',
+    'The labelled contact sheets from the Sep 4-5 canon pass. The troop icons in this book are '
+    'cut from the first one (about 280 px each, enough for an 18 px roster icon). Files: art/_canon/.')
+add(S, 'Superseded: square-grid roads', [],
+    [('%02d' % i, A + 'road/road-%02d.png' % i) for i in range(16)], 'old',
+    'The Oct 6 road set for the square grid. Replaced by the diamond roads (Roads section). Kept for history.')
+add(S, 'Superseded: 2:1 diamond roads', [],
+    [('%02d' % i, A + 'road-iso/road-%02d.png' % i) for i in range(16)], 'old',
+    'The first diamond roads, at 2:1 and in Grok\'s dirt colour. Replaced the same day by the '
+    'sheet-angle set (1.55:1). Kept for history.')
+add(S, 'Superseded: border walls', [],
+    [('square: left-right', A + 'wall/wall-run-leftright.png'), ('square: front-back', A + 'wall/wall-run-frontback.png'),
+     ('square: post', A + 'wall/wall-post.png'), ('2:1 run', A + 'wall-iso/wall-run.png')], 'old',
+    'The square-grid wall kit (Oct 6) and the 2:1 diamond run (Oct 11). The current wall is '
+    'the 2:1 run sheared to the sheet angle (Borders section).')
+add(S, 'Fallback: Grok ground tiles', [],
+    [(n, GI + 'ground-%s-00.png' % n) for n in ('meadow', 'forest', 'fallow', 'barren', 'sown', 'parched', 'pasture')]
+    + [('ripe wheat', GI + 'ground-wheat-ripe.png')], 'old',
+    'Ground tiles built from Grok textures at 2:1 (each type also has variants -01 -10 -11). '
+    'Darker and more photo-like than ChatGPT sheet 1. Kept only in case sheet 2 misses a field '
+    'type; re-project to 1.55 before using.')
 
 
 # ================================================================ rendering
@@ -270,13 +370,17 @@ SUB = HexColor('#7a6e5e')
 PANEL = HexColor('#2a2f3a')           # dark panel: art is lit for a dark map
 
 cache = {}
+import tempfile
+JPG_DIR = tempfile.mkdtemp(prefix='artbook-')
 
 
 def prep(path_or_bytes, max_px=440):
     """PIL-load, upscale tiny pixel art with nearest, cap big images."""
-    key = path_or_bytes if isinstance(path_or_bytes, str) else id(path_or_bytes)
+    key = (path_or_bytes if isinstance(path_or_bytes, str) else id(path_or_bytes), max_px)
     if key in cache:
         return cache[key]
+    if isinstance(path_or_bytes, str) and path_or_bytes.startswith('GAME:'):
+        path_or_bytes = GAMEIMG[path_or_bytes[5:]]
     if isinstance(path_or_bytes, str) and path_or_bytes.startswith('LAWN:'):
         # a transparent road overlay shown on a lawn tile, uncropped, so every
         # shape is drawn at the same scale and reads as it will on the map
@@ -302,6 +406,19 @@ def prep(path_or_bytes, max_px=440):
         k = max_px / m
         im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
     buf = io.BytesIO()
+    if True:
+        # every picture sits on the dark panel colour, so flatten transparency onto it and
+        # hand ReportLab a JPEG file: embedded as-is (DCT), a fraction of a PNG's size
+        if im.getchannel('A').getextrema()[0] < 255:
+            bg = Image.new('RGBA', im.size, (0x2a, 0x2f, 0x3a, 255))
+            bg.alpha_composite(im)
+            im = bg
+        os.makedirs(JPG_DIR, exist_ok=True)
+        fn = os.path.join(JPG_DIR, '%d.jpg' % len(cache))
+        im.convert('RGB').save(fn, 'JPEG', quality=86)
+        r = (fn, im.size)
+        cache[key] = r
+        return r
     im.save(buf, 'PNG', optimize=True)
     buf.seek(0)
     r = (ImageReader(buf), im.size)
@@ -310,7 +427,8 @@ def prep(path_or_bytes, max_px=440):
 
 
 def draw_img(c, src, x, y, w, h):
-    ir, (iw, ih) = prep(src)
+    # store each picture at ~2x the size it is drawn (sharp on a phone, small file)
+    ir, (iw, ih) = prep(src, max_px=min(440, int(max(w, h) * 2.2)))
     k = min(w / iw, h / ih)
     dw, dh = iw * k, ih * k
     c.drawImage(ir, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh, mask='auto')
@@ -380,22 +498,32 @@ def asset_page(c, n, entry, cur):
     kt = ', '.join(keys) if len(keys) <= 2 else '%s ... %s (%d keys)' % (keys[0], keys[-1], len(keys))
     c.drawString(M, PH - 82, kt if keys else 'no manifest key yet')
 
-    # new art (big)
+    # big area: new art, the canon version, or (if neither) today's art large
     ny, nh = 250, 400
-    panel(c, M, ny, PW - 2 * M, nh, 'New art')
-    if new:
-        grid(c, new, M, ny, PW - 2 * M, nh)
+    can = CANON.get(title, [])
+    curs = [cur[k] for k in (keys[::-1] if len(keys) > 2 else keys) if cur.get(k)]
+    if new and can:
+        h1 = 200
+        panel(c, M, ny + nh - h1, PW - 2 * M, h1, 'New art' if status == 'have' else 'New art (stand-in)' if status in ('sheet2', 'redo') else 'New art')
+        grid(c, new, M, ny + nh - h1, PW - 2 * M, h1)
+        h2 = nh - h1 - 22
+        panel(c, M, ny, PW - 2 * M, h2, 'Canon set (Sep) - what it should show')
+        grid(c, can, M, ny, PW - 2 * M, h2)
+    elif new or can:
+        title2 = {'ref': 'Reference', 'old': 'Kept for history', 'remove': 'What the game shows'}.get(status, 'New art')
+        if new and all(src.startswith('GAME:') for _, src in new):
+            title2 = "What the game shows today - no new version yet"
+        panel(c, M, ny, PW - 2 * M, nh, title2 if new else 'Canon set (Sep) - no new version yet')
+        grid(c, new or can, M, ny, PW - 2 * M, nh)
+    elif curs:
+        panel(c, M, ny, PW - 2 * M, nh, "Today's art, large - no new version yet")
+        grid(c, [('', curs[0])], M, ny, PW - 2 * M, nh)
     else:
-        empty(c, M, ny, PW - 2 * M, nh, {
-            'canon': 'in the canon zip, not copied into art/ yet',
-            'sheet2': 'comes in ChatGPT sheet 2',
-            'nokey': 'art exists in the canon set; no key yet',
-        }.get(status, 'no new art yet'))
+        empty(c, M, ny, PW - 2 * M, nh, 'no image anywhere yet')
 
     # in the game now (small)
     gy, gh = 100, 120
     panel(c, M, gy, 130, gh, 'In the game now')
-    curs = [cur[k] for k in (keys[::-1] if len(keys) > 2 else keys) if cur.get(k)]   # roads: show the crossroads
     if curs:
         draw_img(c, curs[0], M + 10, gy + 8, 110, gh - 16)
     else:
@@ -404,7 +532,7 @@ def asset_page(c, n, entry, cur):
     p = Paragraph(desc, st)
     w, h = p.wrap(PW - 2 * M - 146, 200)
     p.drawOn(c, M + 146, gy + gh - h)
-    files = [s.replace('LAWN:', '') for _, s in new]
+    files = [s.replace('LAWN:', '') for _, s in new + can if not s.startswith('GAME:')]
     if files:
         st2 = ParagraphStyle('f', fontName='Courier', fontSize=6.8, leading=8.5, textColor=SUB)
         txt = os.path.dirname(files[0]) + '/' if len(files) > 3 else '<br/>'.join(files)
@@ -483,12 +611,13 @@ def main(game, out):
         a = re.search(r'"aliasOf"\s*:\s*"([^"]+)"', m.group(2))
         ent[m.group(1)] = (p.group(1) if p else None, a.group(1) if a else None)
     imgs = {m.group(1): base64.b64decode(m.group(2)) for m in re.finditer(
-        r'"([a-zA-Z0-9_./\-]+\.(?:png|webp|jpg))"\s*:\s*"data:image/\w+;base64,([A-Za-z0-9+/=]+)"', s)}
+        r'"([a-zA-Z0-9_./\-]+)"\s*:\s*"data:image/\w+;base64,([A-Za-z0-9+/=]+)"', s)}
     cur = {}
     for k, (p, a) in ent.items():
         q = p or (ent.get(a, (None,))[0] if a else None)
         if q in imgs:
             cur[k] = imgs[q]
+    GAMEIMG.update(cur)
     spec = importlib.util.spec_from_file_location('xc', os.path.join(os.path.dirname(__file__), 'extra_checks.py'))
     xc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(xc)
@@ -501,8 +630,8 @@ def main(game, out):
     if missing:
         print('WARNING: read keys with no page:', missing)
     for e in CAT:
-        for _, f in e[3]:
-            if not os.path.exists(f.replace('LAWN:', '')):
+        for _, f in e[3] + CANON.get(e[1], []):
+            if not f.startswith('GAME:') and not os.path.exists(f.replace('LAWN:', '')):
                 print('WARNING: missing file', f)
 
     c = canvas.Canvas(out, pagesize=(PW, PH))
@@ -523,7 +652,7 @@ def main(game, out):
     c.drawCentredString(PW / 2, PH / 2 - 96, 'Art Book')
     c.setFont('Helvetica', 9)
     c.setFillColor(HexColor('#a9b0bd'))
-    c.drawCentredString(PW / 2, 60, 'Every asset the game is made from  ·  Oct 11, 2026')
+    c.drawCentredString(PW / 2, 60, 'Every asset the game is made from  ·  Oct 12, 2026')
     c.showPage()
     n = 2
     text_page(c, n, 'How to read this', [
@@ -534,9 +663,14 @@ def main(game, out):
         '<font color="#3f8f4f"><b>READY</b></font> accepted; '
         '<font color="#b07a1e"><b>STAND-IN</b></font> a placeholder on the mock-ups; '
         '<font color="#2f6fd0"><b>SHEET 2</b></font> comes in the next ChatGPT sheet; '
-        '<font color="#7a4fb0"><b>CANON ZIP</b></font> exists in the canon set, not copied in yet; '
+        '<font color="#7a4fb0"><b>CANON</b></font> the Sep canon version exists (shown), not yet checked at game size; '
         '<font color="#b0413e"><b>NOT MADE</b></font> or <font color="#b0413e"><b>REDO</b></font>; '
-        '<font color="#5a6b7a"><b>NEEDS KEY</b></font> art the game will use but has no manifest entry for yet.',
+        '<font color="#5a6b7a"><b>NEEDS KEY</b></font> art the game will use but has no manifest entry for yet; '
+        '<font color="#5a6b7a"><b>REMOVE</b></font>, <font color="#5a6b7a"><b>REFERENCE</b></font>, '
+        '<font color="#8a8a8a"><b>SUPERSEDED</b></font> as named.',
+        'Where there is no new art yet, the big panel shows the <b>canon set</b> (the Sep 4-5 '
+        'Grok diorama pass, now in <font face="Courier">art/_canon/</font>), or failing that '
+        "today's in-game art, enlarged. Every page has a picture.",
         '<b>%d asset pages, %d ready.</b> The game\'s manifest has %d keys; it reads %d. '
         'The %d it never reads are thumbnails in the appendix; art for those would never appear.'
         % (len(CAT), ready, len(ent), len(ent) - len(unread), len(unread)),
