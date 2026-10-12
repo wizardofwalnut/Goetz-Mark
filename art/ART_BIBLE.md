@@ -1,6 +1,8 @@
 # Aldermarch — Art Bible
 
-**Version:** Oct 6, 2026 (replaces the Sep 5 version).
+**Version:** Oct 11, 2026, update 2 (replaces the Oct 6 version). Update 2
+reconciles the Oct 11 changes: grid ratio, zoom, sheet 1, and the art that
+was accepted Oct 11 but still listed as missing in the key tables below.
 **What this is:** every art key in the game's manifest, with its status and
 where the art lives. Checked against the live game file on GitHub
 (`aldermarch-single-file/aldermarch-game.html`): **171 manifest keys** (the
@@ -29,37 +31,45 @@ castle yard, open forge, ore cart).
 
 Reference: `art/_reference/target-look-hollowmere.jpg`. Match its **style**,
 not the exact picture:
-- **Zoom:** about 7 tiles across the phone, same as today (revised Oct 11 —
-  see "Zoom and bake resolution"). Fields are groups of tiles that join
-  seamlessly into big blocks.
+- **Zoom:** not locked yet — see "Zoom and bake resolution". Fields are
+  groups of tiles that join seamlessly into big blocks.
 - **Chunky diorama tiles:** each tile reads as a raised slab with soil showing
   on its front edge; rich texture (wheat stalks, furrows, cracked earth).
 - **Small figures on big tiles:** soldiers, horses, cows and wagons are small
   next to a field, so the land dominates.
 - **Warm, soft light; saturated but natural colour.**
 - **Diamond (isometric) grid** — decided Oct 11, replacing the Oct 7
-  "square grid" call. Tiles are 2:1 diamonds, like the reference. Screen
+  "square grid" call. Tiles are diamonds at the ChatGPT sheet's ratio,
+  **~1.55:1** (width:height, measured on sheet 1), not 2:1. Screen
   directions: North = up-right, East = down-right, South = down-left,
   West = up-left. Game logic stays in grid coordinates; only drawing,
   tapping and depth order change (see `PHASE_B_PLAN.md`).
 - From the reference: the **parched field** (cracked earth) is in; the
   **town is a village cluster** (several houses).
 
-## Zoom and bake resolution (revised Oct 11)
+## Zoom and bake resolution — OPEN (your decision)
 
-**About 7 tiles across the phone (today's zoom), bake 160 px per tile**
-(diamond width; height 80). Oct 7 said ~4 across / 288, which assumed each
-field in the reference is one tile. It isn't: overlaying the diamond grid on
-the reference (`art/_reference/zoom-grid-compare.png`) shows fields are
-blocks of several tiles, and at 7 across the castle is ~1.5 tiles and the
-village ~2 — the sizes the game already uses (castle 1.5, town 1.9). So the
-reference look is today's zoom with bigger, joined fields.
+Two candidates, both mocked up at the S10e's real 1080 px width with the real
+HUD on top:
 
-At 7 across the S10e shows ~154 real px per tile; the Oct 7 test showed 160
-is sharp and anything above adds nothing. Memory is fine (single-county
-bake still recommended). Roads and ground tiles were built at 288; their
-sources are kept, so they are rebuilt at 160 with the same tools
-(`roadgen_iso.py ... 160`, `groundgen_iso.py ... 160 - 2`).
+| | 7 tiles across | 4 tiles across |
+|---|---|---|
+| Tile width on the phone | ~154 px | ~270 px |
+| Bake size per tile | 160 px (tested Oct 7: sharp) | ~270 px (not tested yet) |
+| Look | Today's zoom. More of the county on screen; buildings small | Closest to the reference; bigger buildings; more scrolling |
+| Mock-up | `art/_preview/mock-7-across.png` | `art/_preview/hollowmere-phone-4-across.png` |
+
+**Recommendation: 4 across** (from the Oct 11 evening mock-ups). How it got
+here: Oct 7 said 4 across; on the morning of Oct 11 a grid laid over the
+reference showed its fields are blocks of several tiles, which pointed to 7;
+the mock-ups with the sheet-1 tiles then read closest to the reference at 4.
+
+Once chosen: test the bake size on the S10e (memory and smoothness; bake one
+county at a time either way), then rebuild roads, wall and any texture-built
+ground at that width. Sources are kept, so that is one command per set
+(`roadgen_iso.py <dirt> <out> <width> 1.55`, `wall_reangle.py`,
+`groundgen_iso.py <tex> <out> <width> - 2 1.55`).
+
 ## Image tool and tile-sheet format (Oct 11)
 
 **ChatGPT (Plus) is the image tool** from Oct 11; Grok lapses in November.
@@ -77,7 +87,10 @@ for plain-edged grass variants.
 
 ## Oct 11 art packs — what was accepted
 
-**Ground and field tiles** (`art/ground-iso/`, 288x179 diamonds with soil edge,
+**Ground and field tiles — FALLBACK ONLY since sheet 1.** Darker and more
+photo-like than the sheet, and built at 2:1, not 1.55. Kept in case sheet 2
+misses a field type; if one is used, re-project it at 1.55 first
+(`groundgen_iso.py ... - 2 1.55`). (`art/ground-iso/`, 288x179 diamonds with soil edge,
 built by `tools/groundgen_iso.py` from the Grok textures in `_src/`).
 Each flat ground type comes as **4 variants** `-00 -01 -10 -11`: one texture
 spans a 2x2 block of tiles, and tile (col, row) uses variant
@@ -112,8 +125,9 @@ Barrels, mine cart and cow came from the green pack (cut out with
 **Building:** `art/buildings/building-mine.png` → `overhead.industry.mine`
 (green pack).
 
-**Wall** (`art/wall-iso/`, green pack, replaces the square-grid `art/wall/`
-kit): `wall-run.png` runs lower-left to upper-right (25.7° vs the tiles'
+**Wall** (`art/wall-iso/`, green pack — **superseded by `art/wall-sheet/`**,
+the same run re-angled to 1.55; see the wall table below. Notes kept for
+history): `wall-run.png` runs lower-left to upper-right (25.7° vs the tiles'
 26.6° — not visible); the up-left edges use it mirrored. `wall-post.png` at
 every vertex. Placement tested (`_preview.png`): **two sections per tile
 edge** (one full-length section stands as tall as a soldier; two halves give
@@ -124,8 +138,38 @@ from the wrong side — fine at map size.
 
 **Icon:** `art/icons/item_sword.png` → `resource.swords` (navy #020A1F).
 
-Still missing for the map: mountain ground tile, overhead castles / town /
-other industry buildings (canon zip), mercenary unit.
+## Sheet 1 (ChatGPT, Oct 11) — what each tile is for
+
+Cut into `art/tileset-grok/` (tiles on their slab) and `standing/` (cut off
+the slab with `tools/unslab.py`, for things that should stand on the lawn).
+Source: `_src/sheet-1.png`.
+
+| Tile(s) | Use | Status |
+|---|---|---|
+| `lawn-00/01/10/11` | `overhead.tile.ground` (2x2 variants, `(col%2, row%2)`) | ✅ HAVE |
+| `grass`, `grass-tufty`, `grass-flowers` | Decoration / fallback lawn; tufty is the fallow stand-in | placeholder |
+| `bushes`, `rocks` (standing) | Decoration layer; bushes stand in for forest | ✅ decor, placeholder forest |
+| `mountain-a/b/c` (standing) | `overhead.sprite.mountain`, 3 variants by `(col+row)%3` | ✅ HAVE |
+| `wheat-a/b/c` | `overhead.field.grain.mature` (all three are ripe) | ✅ HAVE |
+| `tilled` | `overhead.field.barren` (ploughed, no sprouts) | ✅ HAVE |
+| `pasture-cows` | ❌ **Not usable as-is**: the game already draws the herd as separate cow sprites (`CattleHerds`), so baked-in cows would double up and misstate herd size. Needs a plain pasture tile. | redo |
+| `castle` (standing) | Stand-in for the castle tiers | placeholder |
+| `house-thatch`, `house-blue`, `barn` (standing) | Stand-ins for town, blacksmith, lumber mill | placeholder |
+| `watchtower` (standing) | No key | spare |
+| `water`, `shore` | Map border only (water is deferred) | ⏸ |
+| `road-cross` | Dirt colour source for `art/road-sheet/` | used |
+| `flagstone`, `bridge-wood`, `bridge-stone`, `wagon-tile` | No key today | spare |
+
+**Found in update 2 — baked-in flags.** The castle, the blue house and the
+watchtower fly blue flags painted into the art. The game draws the owner's
+seat flag on top (`castleFlagArt`), so a baked blue flag is wrong for three of
+the four seats. These are placeholders, so nothing to fix now — but the sheet 2
+prompt (`art/CHATGPT_PROMPTS.md`) now asks for **no flags or banners on any
+building**.
+
+Still missing for the map: forest, the 5 castle tiers, town, lumber mill,
+blacksmith, quarry, plain pasture, growing and sown wheat, fallow, parched
+(all in sheet 2), castle yard, open forge, mercenary unit.
 
 ## Style rules (locked)
 
@@ -159,21 +203,19 @@ other industry buildings (canon zip), mercenary unit.
 
 ## Base tiles (20 `tile.*` UNREAD + 5 `overhead.tile.*` used)
 
-**Diamond grid (Oct 11): every ground and field tile is remade.** Flat ones
-(grass, forest floor, fallow, barren, sown, parched, pasture) come from a
-seamless Grok texture run through `tools/groundgen_iso.py` (exact 2:1
-diamond, soil edge, no seams — tested with stand-in textures,
-`art/road-iso/_preview-ground.png`). Wheat (growing, ripe) is rendered as
-diamonds directly. Prompts: `GROK_PROMPTS.md` §3 and §3b. Canon square-grid
-tiles are reference only.
+**Diamond grid (Oct 11): every ground and field tile is remade**, from the
+ChatGPT tile sheets (see "Sheet 1" above; sheet 2 for the rest). The Grok
+texture tiles in `art/ground-iso/` are fallback only. Canon square-grid tiles
+are reference only.
 
 | Key | Status | Notes |
 |---|---|---|
-| tile.ground, tile.forest, tile.mountain | ⚠️ CHECK | Still open: same art as `terrain.*` or separate? |
+| tile.ground, tile.forest, tile.mountain | UNREAD | Moot: the map draws `overhead.tile.*`. |
 | tile.water (+ seasonal) | ⏸ DEFERRED | Water is a map-border element only. |
 | tile.* seasonal (16) | ⏸ DEFERRED | |
-| overhead.tile.ground | ⚠️ CHECK | Known bug: points at a road tile through `aliasOf`. Fix in Phase B. |
-| overhead.tile.forest, overhead.tile.mountain | ⚠️ CHECK | |
+| overhead.tile.ground | ✅ HAVE | `art/tileset-grok/lawn-??.png`. Known bug: today the key points at a road tile through `aliasOf`; fix in Phase B. |
+| overhead.tile.forest | ❌ MISSING | Forest tile is in sheet 2; bushes stand in. |
+| overhead.tile.mountain | ✅ HAVE | Plain lawn under `overhead.sprite.mountain` (sheet 1 mountains are standing sprites). |
 | overhead.tile.water | ⏸ DEFERRED | |
 | overhead.tile.yard | ❌ MISSING | Check the canon zip first. |
 
@@ -190,7 +232,7 @@ by mask number.
 
 | Piece | Status | Notes |
 |---|---|---|
-| Diagonal run + post | ✅ HAVE (Oct 11, re-angled) | **Use `art/wall-sheet/`**: the run sheared to the sheet's 1.55 angle by `tools/wall_reangle.py` (vertical shear — stones stay upright, height unchanged); post unchanged. Sized to ~0.4x a soldier's height = one section per edge at 4 across; gap where a road crosses a border. Previews: `art/_preview/phone-border-wall.png`, `world-walls.png`. `art/wall-iso/` is the 2:1 original — see "Oct 11 art packs". Old row: | The `art/wall/` kit was drawn for the square grid. On diamonds, both edge directions are mirror images, so the new kit is just ONE diagonal run + the post (prompt in `GROK_PROMPTS.md`). Same look: low dry-stone wall, cosmetic, one look all year. |
+| Diagonal run + post | ✅ HAVE (Oct 11, re-angled) | **Use `art/wall-sheet/`**: the run sheared to the sheet's 1.55 angle by `tools/wall_reangle.py` (vertical shear — stones stay upright, height unchanged); post unchanged. Sized to ~0.4x a soldier's height (one section per edge at 4 across); gap where a road crosses a border. Previews: `art/_preview/phone-border-wall.png`, `world-walls.png`. `art/wall-iso/` (2:1) and `art/wall/` (square) are superseded. Low dry-stone wall, cosmetic, one look all year. |
 
 Phase B: add manifest keys for the two pieces. The wall is drawn today as
 plain SVG lines in `CountyWalls`.
@@ -200,35 +242,36 @@ plain SVG lines in `CountyWalls`.
 | Key | Status | Notes |
 |---|---|---|
 | castle.{woodenPalisade, motteAndBailey, normanKeep, stoneCastle, royalCastle} | ✅ HAVE | The `4pjSa` file was a duplicate of the Norman keep. |
-| overhead.castle.* (5) | ⚠️ CHECK | Need transparent versions. The `canon_no_tile` batch may cover them; list exactly once the canon zip is attached. |
+| overhead.castle.* (5) | ❌ MISSING (sheet 2) | Sheet 2 row 3 asks for all 5 tiers in the sheet style, cut off their slab like sheet 1's castle (one stand-in today). The canon renders are a different style now. |
 | overhead.castle.flag.0–3 | ✅ HAVE | `art/flag/flag-{crimson,azure,gold,sable}.png`, cut from the banner-bearers (Oct 7). Also drawn on player caravans; raise it above the canopy in Phase B. |
 
 ## Town (1 key)
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.town | ⚠️ CHECK | Village cluster (decided Oct 7 from the target look). Use the canon `village_cluster` image. |
+| overhead.town | ❌ MISSING (sheet 2) | Village cluster (decided Oct 7). Sheet 2 row 5; `house-thatch` stands in. |
 
 ## Industry (8 `industry.*` UNREAD + 4 overhead + open forge)
 
 | Key | Status | Notes |
 |---|---|---|
-| industry.lumberMill.idle / .working | ⚠️ CHECK | One image. Which state, and is the other needed? |
-| industry.blacksmith.idle / .working | ⚠️ CHECK | Same question. |
-| industry.quarry.idle / .working | ⚠️ CHECK | The image is a pit landscape, not a building like the others. |
-| industry.mine.idle / .working | ❌ MISSING | |
-| overhead.industry.{blacksmith, mine, quarry, lumberMill} | ⚠️ CHECK | Second-pass transparent renders, list pending the zip. |
-| overhead.sprite.forge-open | ⚠️ CHECK | Not in the Sep 5 bible. |
+| industry.{lumberMill, blacksmith, quarry}.idle / .working | UNREAD | Moot: the map draws `overhead.industry.*`, one image each — no idle/working pair needed. |
+| industry.mine.idle / .working | UNREAD | |
+| overhead.industry.mine | ✅ HAVE | `art/buildings/building-mine.png` (green pack, Oct 11). Check it beside sheet 2's mine; keep whichever matches the sheet. |
+| overhead.industry.{blacksmith, quarry, lumberMill} | ❌ MISSING (sheet 2) | Sheet 2 row 4. Barn and blue house stand in. |
 
 ## Fields (6 `field.*` UNREAD + 6 overhead used)
 
 | Key | Status | Notes |
 |---|---|---|
 | field.grain.growing | ✅ HAVE | Green wheat. |
-| field.grain.mature, field.grain.sown, field.cattle | ⚠️ CHECK | Likely matches, not confirmed. |
+| field.grain.mature, field.grain.sown, field.cattle | UNREAD | Moot: the map draws `overhead.field.*`. |
 | field.barren | ✅ HAVE (furrowed dirt) | The code defines barren as bare dirt that must be reclaimed, and also draws it under half-sown crops and as the quarry pit floor. The furrowed tile fits. |
-| field.fallow / overhead.field.fallow | ❌ MISSING | Wild grass (unused, plantable). Prompt in `GROK_PROMPTS.md`; only the overhead key is drawn. |
-| overhead.field.* (6) | ⚠️ CHECK | Transparent second pass, pending the zip. |
+| field.fallow | UNREAD | Only the overhead key is drawn. |
+| overhead.field.grain.mature | ✅ HAVE | Sheet 1 `wheat-a/b/c`. |
+| overhead.field.barren | ✅ HAVE | Sheet 1 `tilled`. |
+| overhead.field.fallow, .grain.sown, .grain.growing, .parched *(new key)* | ❌ MISSING (sheet 2) | Sheet 2 row 1. Grok fallbacks exist in `art/ground-iso/` (2:1). |
+| overhead.field.cattle | ❌ MISSING (sheet 2) | Plain pasture, no animals — see the `pasture-cows` note above. |
 
 The code also builds keys for parched and flooded fields that don't exist in
 the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
@@ -267,8 +310,9 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 
 | Key | Status | Notes |
 |---|---|---|
-| resource.{swords, bows, crossbows, maces, pikes, armor} | ⚠️ CHECK | Generated directly (decided Sep 4), not cropped. Bow is accepted. The sword reads like a dagger: redo. Check the rest against the keys once the zip is here. |
-| resource.bows | ⚠️ CHECK | Known bug: key declared, file missing. The art exists now; wire it in Phase B. |
+| resource.swords | ✅ HAVE | `art/icons/item_sword.png` (Oct 11 redo; the old one read as a dagger). |
+| resource.{crossbows, maces, pikes} | ⚠️ CHECK | Generated directly (decided Sep 4), not cropped. Check against the keys once the canon zip is here. |
+| resource.bows | ⚠️ CHECK | Bow was accepted earlier but the file is **not in `art/icons/`** (checked update 2). Find it in the canon zip / earlier batch and add it. Known bug: key declared, file missing; wire in Phase B. |
 | resource.{wheat, cows, wood, ore, stone, gold} | ❌ MISSING | |
 | figma.resource.* (6) | ❌ MISSING | HUD versions; confirm style before making. |
 | resource.armor | ✅ HAVE | `art/icons/item_knight_helm.png`, a great helm matching the knight. This is the "Knight Armor" icon the player sees. |
@@ -281,10 +325,13 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 | overhead.sprite.laborer-{farmer, herder, woodcutter, miner, blacksmith} | ✅ HAVE | From the 44 canon assets. Not yet in `art/`. |
 | overhead.sprite.laborer-idle | ✅ HAVE | `labor_unemployed.png` maps here. |
 | *(new)* laborer-builder | ✅ HAVE, key needed | `labor_builder.png` is a new role (castle building). Add a key in Phase B. |
-| overhead.sprite.cow | ❌ MISSING | Prompt in `GROK_PROMPTS.md`. (`sprite.cow` is UNREAD.) |
-| overhead.sprite.ore-cart, overhead.prop.{timber, graincart, barrels, spoil, sawhorse} | ❌ MISSING | |
-| overhead.sprite.castle-yard | ❌ MISSING | |
-| overhead.sprite.mountain, overhead.sprite.forest | ⚠️ CHECK | Not in the Sep 5 bible. |
+| overhead.sprite.cow | ✅ HAVE | `art/props/prop-cow.png`. (`sprite.cow` is UNREAD.) |
+| overhead.sprite.ore-cart | ✅ HAVE | `art/props/prop-minecart.png`. |
+| overhead.prop.{timber, graincart, barrels, spoil, sawhorse} | ✅ HAVE | `art/props/prop-{logs, cart, barrels, rubble, sawhorse}.png`. |
+| overhead.sprite.castle-yard | ❌ MISSING | Wall ring with an empty yard (labor screen). In the sheet 2 prompt. |
+| overhead.sprite.forge-open | ❌ MISSING | Canopy, anvil, hearth, no walls. In the sheet 2 prompt. |
+| overhead.sprite.mountain | ✅ HAVE | Sheet 1 `standing/mountain-a/b/c`. |
+| overhead.sprite.forest | ❌ MISSING (sheet 2) | Bushes stand in. |
 
 ## UI kit (8 keys) — UNREAD by the game
 
@@ -310,11 +357,18 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ---
 
-## Scorecard
+## Scorecard (update 2)
 
-- **Done:** castles (5), roads (16), wall kit, army soldier + 4 bearers, wagon (3 keys), banners (4), castle flags (4), knight helm, barren field, laborers (6 + builder), terrain open/forest/hills.
-- **Waiting on the canon zip:** unit mapping, every `overhead.*` second pass, weapon icon check, props/cow/yard.
-- **Not started:** crests, fallow field, mine, resource icons, mercenary offer.
+- **Done:** roads (16, sheet angle), border wall (sheet angle), lawn, mountains,
+  ripe wheat, barren field, army soldier + 4 bearers, wagon, banners (4),
+  castle flags (4), knight helm, sword, props (5) + cow + ore cart, mine.
+- **Waiting on ChatGPT sheet 2:** 5 castle tiers, town, lumber mill,
+  blacksmith, quarry, forest, castle yard, open forge, fields (fallow, sown,
+  growing, parched, plain pasture).
+- **Waiting on the canon zip:** 8 unit icons (+ mercenary has no image),
+  crossbow/mace/pike icons, the bow file, laborers (6 + builder) into `art/`.
+- **Not started:** resource icons (wheat, cows, wood, ore, stone, gold),
+  crests, mercenary offer.
 - **Being removed:** 5 chokepoint keys.
 
 ## Decisions only you can make
@@ -322,3 +376,5 @@ central counties stone, outskirts dirt — not decided), audio.
 1. Best Noble fleur-de-lis.
 2. Flooded fields: add art or drop the state? (Parched is in — it's in the target look.)
 3. The 79 unread keys: delete from the manifest, or keep dormant? (Either way, no art for them this pass.)
+4. **Zoom: 4 or 7 tiles across** (recommended 4 — see "Zoom and bake
+   resolution"). This one blocks the bake test and Phase B step 1.

@@ -1,12 +1,14 @@
 # Aldermarch canon art (accepted assets awaiting Phase B wiring)
 
-> **Oct 11: the map moves to a diamond (isometric) grid.** Roads are now
-> `road-iso/` (the square `road/` set is superseded). The wall kit in `wall/`
-> was drawn for the square grid; replaced by `wall-iso/` (Oct 11).
-> Ground/field tiles: `ground-iso/` (2x2 variants per type). Props: `props/`.
-> Wall: `wall-iso/` (replaces `wall/`). Mine: `buildings/`.
-> Wagons, armies, banners, flags and the helm are unaffected. See
-> `ART_BIBLE.md` and `PHASE_B_PLAN.md`.
+> **Oct 11 (update 2): the map is a diamond grid at the ChatGPT sheet's
+> ratio, ~1.55:1.** Current sets: roads `road-sheet/`, wall `wall-sheet/`,
+> map tiles `tileset-grok/` (sheet 1; buildings cut off their slab in
+> `standing/`), props `props/`, mine `buildings/`. Superseded, kept for
+> history: `road/` and `wall/` (square grid), `road-iso/` and `wall-iso/`
+> (2:1). `ground-iso/` (Grok, 2:1) is fallback only. The sections below on
+> the square-grid wall and roads are history. Wagons, armies, banners, flags
+> and the helm are unaffected. See `ART_BIBLE.md`, `PHASE_B_PLAN.md` and
+> `CHATGPT_PROMPTS.md`.
 
 | File | Manifest key | Notes |
 |---|---|---|

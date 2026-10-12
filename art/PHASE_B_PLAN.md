@@ -94,7 +94,8 @@ Each step depends on the ones above it.
    is concentrated in a few places:
    - `cellX` / `cellY` / `cellCentre` / `STRIDE_Y` (~19250; `STRIDE_Y` has 15
      uses) → one `toScreen(col, row)`: x = (col − row)·W/2, y = (col + row)·H/2,
-     with W = diamond width, H = W/2.
+     with W = diamond width, H = W/1.55 (the ChatGPT sheet's ratio, measured
+     on sheet 1 — not 2:1).
    - Bake: `nativeX` / `nativeY` / `bakeSize` / `blitTile` → same projection;
      the county canvas becomes the diamond's bounding box.
    - Depth order: the two sorts by row (`props.sort` ~19603, `sprites.sort`
@@ -107,9 +108,11 @@ Each step depends on the ones above it.
    - Camera/scroll: `VIEW_COLS` now counts diamond widths across the screen.
    Do this before step 1 — the bake sizes below are diamond sizes.
 
-1. **Zoom and bake (revised Oct 11: ~7 tiles across — unchanged — and a 160 px bake).**
-   - Keep `VIEW_COLS` at 7; tune on the S10e only if needed.
-   - One `BAKE_TILE_PX = 160` constant (diamond width) replaces the hard-coded
+1. **Zoom and bake — waiting on the zoom decision (4 or 7 across; 4
+   recommended, see the Art Bible).** 7 across = 160 px bake (tested);
+   4 across = ~270 px (test on the S10e first).
+   - Set `VIEW_COLS` to the chosen number.
+   - One `BAKE_TILE_PX` constant (160 or ~270) (diamond width) replaces the hard-coded
      32 px native tile; scale `BAKE_PAD_PX` with it.
    - Bake only the county in view (+ neighbours lazily), and merge the
      ground/fields/roads layers into one canvas — all 4 counties x 4 layers at
