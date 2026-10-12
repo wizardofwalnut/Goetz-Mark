@@ -1,6 +1,6 @@
 """Aldermarch ground/field tiles for the DIAMOND grid, from one flat texture.
 
-Usage: python3 tools/groundgen_iso.py <texture.png> <out.png> [diamond_width] [soil_depth|-] [period]
+Usage: python3 tools/groundgen_iso.py <texture.png> <out.png> [diamond_width] [soil_depth|-] [period] [ratio]
 
 - Crops the texture to a square, makes it seamless (same wrap-blend as the
   roads), and projects it onto a 2:1 diamond (projection shared with
@@ -38,12 +38,14 @@ SOIL_LEFT = (104, 72, 46)    # lit side (light comes from the upper left)
 SOIL_RIGHT = (78, 53, 34)    # shaded side
 
 
-def build(tex_path, out_path, W=288, depth=None, period=1):
+def build(tex_path, out_path, W=288, depth=None, period=1, ratio=2.0):
     """period > 1: the texture spans a period x period block of tiles and is
     cut into period^2 variants, written as <out>-<i><j>.png. The game picks the
     variant for tile (col, row) as (col % period, row % period), so neighbours
-    continue one texture and a pattern repeats only every `period` tiles."""
-    H = W // 2
+    continue one texture and a pattern repeats only every `period` tiles.
+    ratio: diamond width / height (2.0 = classic 2:1; the ChatGPT tile sheets
+    measure ~1.55)."""
+    H = round(W / ratio)
     depth = round(W * 0.12) if depth is None else depth
     tex = Image.open(tex_path).convert('RGB')
     side = min(tex.size)
@@ -89,4 +91,5 @@ if __name__ == '__main__':
     a = sys.argv
     print(build(a[1], a[2], int(a[3]) if len(a) > 3 else 288,
                 int(a[4]) if len(a) > 4 and a[4] != '-' else None,
-                int(a[5]) if len(a) > 5 else 1))
+                int(a[5]) if len(a) > 5 else 1,
+                float(a[6]) if len(a) > 6 else 2.0))
