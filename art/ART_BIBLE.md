@@ -371,8 +371,12 @@ central counties stone, outskirts dirt — not decided), audio.
 - **Waiting on ChatGPT sheet 2:** 5 castle tiers, town, lumber mill,
   blacksmith, quarry, forest, castle yard, open forge, fields (fallow, sown,
   growing, parched, plain pasture).
-- **Waiting on the canon zip:** 8 unit icons (+ mercenary has no image),
-  crossbow/mace/pike icons, the bow file, laborers (6 + builder) into `art/`.
+- **Canon set found (Oct 12)** in Downloads, now in `art/_canon/` (see its
+  README): all 8 troop icons, 5 laborers + builder, castle tiers, industry,
+  village. To do: check each at game size and accept. **Not found anywhere:**
+  farmer and herder laborers, bow / crossbow / mace / pike icons, a diorama
+  mercenary (the game has an old pixel one). Every asset has a page with a
+  picture in `art/ART_BOOK.pdf`.
 - **Not started:** resource icons (wheat, cows, wood, ore, stone, gold),
   crests, mercenary offer.
 - **Being removed:** 5 chokepoint keys.
