@@ -370,6 +370,7 @@ SUB = HexColor('#7a6e5e')
 PANEL = HexColor('#2a2f3a')           # dark panel: art is lit for a dark map
 
 cache = {}
+MAXPX = 440
 import tempfile
 JPG_DIR = tempfile.mkdtemp(prefix='artbook-')
 
@@ -428,7 +429,7 @@ def prep(path_or_bytes, max_px=440):
 
 def draw_img(c, src, x, y, w, h):
     # store each picture at ~2x the size it is drawn (sharp on a phone, small file)
-    ir, (iw, ih) = prep(src, max_px=min(440, int(max(w, h) * 2.2)))
+    ir, (iw, ih) = prep(src, max_px=min(MAXPX, int(max(w, h) * 2.2)))
     k = min(w / iw, h / ih)
     dw, dh = iw * k, ih * k
     c.drawImage(ir, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh, mask='auto')
@@ -601,7 +602,7 @@ def appendix(c, n0, keys, cur):
     return n
 
 
-def main(game, out):
+def main(game, out, todo=False):
     s = open(game, encoding='utf-8').read()
     body = re.search(r'entries:\s*\{(.*?)\n\t\}', s, re.DOTALL).group(1)
     ent = {}
@@ -637,6 +638,12 @@ def main(game, out):
     c = canvas.Canvas(out, pagesize=(PW, PH))
     c.setTitle('Aldermarch Art Book')
     c.setAuthor('Aldermarch')
+    if todo:
+        # handoff for an image AI: only what still needs art, no history or reference pages
+        keep = ('sheet2', 'canon', 'missing', 'redo', 'nokey', 'standin')
+        CAT[:] = [e for e in CAT if e[4] in keep and e[0] != 'Spare and reference art' and e[1] != 'Water']   # water is deferred
+        global MAXPX
+        MAXPX = 300
     counts = {}
     for e in CAT:
         counts[e[0]] = counts.get(e[0], 0) + 1
@@ -649,12 +656,41 @@ def main(game, out):
     c.setFont('Times-Bold', 36)
     c.drawCentredString(PW / 2, PH / 2 - 70, 'Aldermarch')
     c.setFont('Times-Roman', 18)
-    c.drawCentredString(PW / 2, PH / 2 - 96, 'Art Book')
+    c.drawCentredString(PW / 2, PH / 2 - 96, 'Art To-Do' if todo else 'Art Book')
     c.setFont('Helvetica', 9)
     c.setFillColor(HexColor('#a9b0bd'))
     c.drawCentredString(PW / 2, 60, 'Every asset the game is made from  ·  Oct 12, 2026')
     c.showPage()
     n = 2
+    if todo:
+        text_page(c, n, 'Rules for every image', [
+            '<b>This is the to-do list:</b> %d assets that still need art. Each page shows what '
+            'it is, what exists so far, and what the game draws today.' % len(CAT),
+            '<b>Style:</b> the reference scenes and the canon set are THE look: colour, light, '
+            'materials, scale. The ChatGPT tile sheet shows only the tile FORMAT (raised slab, '
+            'angle, size); its grass is too lime and too bright, so do not copy its colours.',
+            '<b>Ground tiles</b> (fields, lawn, pasture, forest floor): a raised slab with soil sides '
+            'on the dark background. Diamond about 1.55 wide to 1 tall.',
+            '<b>Everything that stands up</b> (castles, buildings, mines, trees, people, carts, '
+            'animals): on a SOLID flat #00FF00 green background, no ground slab under it. Not '
+            '"transparent", solid green.',
+            '<b>Weapon, item and resource icons:</b> solid navy #020A1F background.',
+            '<b>Never:</b> flags, banners or pennants on buildings; animals or people on tiles. The '
+            'game draws those itself.',
+            '<b>Size:</b> troop icons must read at 18 pixels, laborers at 28 pixels: simple, bold '
+            'silhouettes.',
+            '<b>Delivery:</b> each asset as its own separate image file, named after its page title. '
+            'Not a collage, not a new PDF. Do not change any page text, tags or names; list '
+            'suggestions separately at the end.',
+        ], section='Rules')
+        n += 1
+        last = None
+        for e in CAT:
+            asset_page(c, n, e, cur)
+            n += 1
+        c.save()
+        print(out, n - 1, 'pages;', len(CAT), 'to do')
+        return
     text_page(c, n, 'How to read this', [
         'One page per asset. The <b>big panel</b> is the new art for the Big Bang '
         'pass; the <b>small panel</b> is what the game draws today, pulled straight '
@@ -696,4 +732,5 @@ def main(game, out):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    # add --todo for the slim handoff (only unfinished assets + the rules page)
+    main(sys.argv[1], sys.argv[2], '--todo' in sys.argv)
