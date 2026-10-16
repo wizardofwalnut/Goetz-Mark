@@ -28,8 +28,15 @@ cell = {}
 for g in it['ground']:
     cell[(g['col'], g['row'])] = {'water': 'water', 'ground': 'lawn', 'forest': 'bushes', 'mountain': 'mountain'}.get(g['kind'], 'lawn')
 FIELD = {'grain': 'wheat-a', 'cattle': 'pasture-cows', 'fallow': 'grass-tufty', 'barren': 'tilled'}
+# FIELDS=s2: the ChatGPT step-2 review tiles (Oct 16). Extra states (sown, growing, parched)
+# only appear if the layout file sets them; real Hollowmere has grain/cattle/fallow/barren.
+if os.environ.get('FIELDS') == 's2':
+    R2 = '../review-s2/'
+    FIELD = {'grain': 'wheat-a', 'cattle': R2 + 'pasture', 'fallow': R2 + 'fallow', 'barren': 'tilled',
+             'sown': R2 + 'sown', 'growing': R2 + 'growing-wheat', 'parched': R2 + 'parched'}
 for f in it['fields']:
     cell[(f['col'], f['row'])] = FIELD.get(f['status'], 'lawn')
+S2 = os.environ.get('FIELDS') == 's2'
 roads = {(r['col'], r['row']) for r in it['road'] if 0 <= r['col'] < C and 0 <= r['row'] < R}
 big = {}   # cell -> (tile name, scale)
 for k in it.get('castles', [it.get('castle')]):
@@ -38,6 +45,11 @@ for k in it.get('towns', [it.get('town')]):
     big[(k['col'], k['row'])] = ('standing/house-thatch', 1.6)
 IND = {'lumberMill': ('standing/barn', 1.2), 'blacksmith': ('standing/house-blue', 1.1), 'quarry': ('standing/rocks', 1.1)}
 sprites_on = {}
+if os.environ.get('FIELDS') == 's2':
+    for g in it['ground']:
+        if g['kind'] == 'forest':
+            cell[(g['col'], g['row'])] = '../review-s2/forest-floor'
+            sprites_on[(g['col'], g['row'])] = ('art/review-s2/forest.png', 1.05)
 for i in it['industry']:
     if i['kind'] in IND:
         big[(i['col'], i['row'])] = IND[i['kind']]
@@ -71,6 +83,8 @@ def tile(n, scale=1.0):
     # geometry always comes from the original slab tile, so a building cut off
     # its slab (tools/unslab.py, in standing/) is placed exactly where it was
     geo = n.split('/')[-1]
+    if not os.path.exists(TS + geo + '.png'):      # e.g. '../review-s2/fallow': its own geometry
+        geo = n
     im = Image.open(TS + n + '.png').convert('RGBA')
     a = np.array(Image.open(TS + geo + '.png').convert('RGBA'))[:, :, 3] > 128
     ys, xs = np.nonzero(a)
@@ -127,6 +141,8 @@ def put(n, c, r, scale=1.0):
 
 def ground_name(c, r):
     n = cell[(c, r)]
+    if 'review-s2' in n:
+        return n if not n.endswith('growing-wheat') else f'lawn-{c % 2}{r % 2}'
     if n == 'lawn' or (c, r) in roads or (c, r) in big or (c, r) in sprites_on or n.startswith(SHEET_TALL) and n not in ('pasture-cows',):
         if n in ('water',):
             return n
@@ -137,7 +153,7 @@ def ground_name(c, r):
 # pass 1: flat ground + roads
 for c, r in order:
     n = ground_name(c, r)
-    if n.startswith(('lawn', 'water', 'tilled', 'grass', 'pasture')):
+    if n.startswith(('lawn', 'water', 'tilled', 'grass', 'pasture')) or 'review-s2' in n:
         put(n, c, r)
     else:
         put(f'lawn-{c % 2}{r % 2}', c, r)
@@ -237,7 +253,7 @@ for c, r in order:
         put('standing/mountain-' + 'abc'[(c + r) % 3], c, r)
     elif n == 'bushes':
         put('standing/bushes', c, r)
-    elif n.startswith('wheat'):
+    elif n.startswith('wheat') or n.endswith('growing-wheat'):
         put(n, c, r)
     walls(c, r, back=False)
 
