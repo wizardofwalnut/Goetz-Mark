@@ -155,6 +155,15 @@ Each step depends on the ones above it.
      Reference: `county_mock.py` `walls()`, preview `art/_preview/phone-border-wall.png`.
    - Ground tiles: pick variant `(col % 2, row % 2)` for every flat ground
      type (`ground-<type>-<i><j>.png`).
+   - **Minimum icon sizes (decided Oct 16).** At true phone pixels (S10e = 3x),
+     icons read well at 45 px (top bar) and 30 px (panels), but fail at 16-18 px
+     (`art/review-s2/_preview/small-size-true-phone-pixels.png`). Raise:
+     - icons in lists and lines, e.g. `.ov-kr-industry img` (16 px, line ~1883)
+       and the 18 px resource icon (~22024): to **24 px**;
+     - roster troop icons (`unitArt`, 18 px, ~22128): to **28 px**, cropped to
+       the figure (the canon grass base shrinks the figure at this size);
+     - leave the 28-30 px icons and the 45 px top bar as they are.
+     Re-check each changed row on the S10e for wrapping and overflow.
 6. **Facing.** Track each wagon's and army's last move direction; choose the
    toward/away file and CSS-mirror it for the other two directions; mirror the
    flag overlay's x offset with it.
