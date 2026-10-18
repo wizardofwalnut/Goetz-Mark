@@ -29,8 +29,8 @@ ZONES = {
 }
 FIG_H = 50
 COW_W = 74
-# cow spots in the pasture (backdrop px), kept clear of the herders in the middle
-COWS = [(640, 150), (900, 140), (610, 270), (930, 265), (700, 215), (860, 205)]
+# two cows tucked in the pasture's right corner (Chris, Oct 18: "like two in the corner")
+COWS = [(900, 165), (950, 245)]
 
 
 def fig(kind):
