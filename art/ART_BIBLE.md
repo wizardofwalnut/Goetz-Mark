@@ -416,6 +416,10 @@ central counties stone, outskirts dirt — not decided), audio.
   exact number on a label**; a **red glow** under a job short of workers
   (grain, cattle); a **blue glow** under the idle crowd. The painting has no
   people, labels or castle.
+- **Outer castle wall around the whole village** (Chris, Oct 18: the walled
+  concepts read most easily — `concept-4-topdown-walled.jpg`,
+  `concept-6-topdown-framed.jpg`). First round asks ChatGPT for three layout
+  variations to compare.
 - Castle tiers: 5 overhead edits of the castle site (the angled castle sprites
   don't match an overhead view). The game cuts the castle area from the right
   one.

@@ -116,7 +116,7 @@ Attach: the four LOTR2 screenshots, concept 6 (`concept-6-topdown-framed.jpg`),
 and the Hollowmere target-look scene (for colours and materials). Then:
 
 ```
-Paint the labor screen for a medieval county-management game. It is a fresh painting in the warm, detailed, painted style and colours of the attached Hollowmere scene, laid out like the attached Lords of the Realm II labor screens: one county village seen from almost directly overhead (a high, steep view — rooftops and the tops of walls visible, only a little of building sides). Portrait format for a phone, 2:3 (taller than wide). Fill the whole frame with land, edge to edge — no border, no frame, no floating platform.
+Paint the labor screen for a medieval county-management game. It is a fresh painting in the warm, detailed, painted style and colours of the attached Hollowmere scene, laid out like the attached Lords of the Realm II labor screens: one county village seen from almost directly overhead (a high, steep view — rooftops and the tops of walls visible, only a little of building sides). Portrait format for a phone, 2:3 (taller than wide). Fill the whole frame, edge to edge — no floating platform. The whole village sits inside a low grey stone curtain wall with round corner towers that runs just inside the picture's edges, like the attached walled concept; a little grass shows outside the wall.
 
 Eight clearly separate work areas, each with its own ground and edged by dirt paths, low stone walls, fences or hedges, so no two areas blur together:
 - Top row, left to right: (1) iron mine — a low grey rock outcrop with a timber tunnel mouth, ore carts and spoil; (2) grain field — golden wheat in rows; (3) cattle pasture — green grass inside a wooden fence.
@@ -125,10 +125,10 @@ Eight clearly separate work areas, each with its own ground and edged by dirt pa
 
 Every area must keep a clear, empty patch of ground big enough for a crowd of about 12 small figures; the village square needs the biggest one.
 No people, no animals, no flags, no text, no labels, no numbers, no UI.
-Deliver as labor-mine.png.
+Make THREE variations that keep the same eight areas and the outer wall but try different arrangements and path layouts, so we can compare which reads best. Deliver as labor-mine-a.png, labor-mine-b.png, labor-mine-c.png.
 ```
 
-Then, in the same chat:
+Once one variation is picked, rename it labor-mine.png and continue in the same chat:
 
 ```
 Make labor-quarry.png: the SAME image, identical in every other way, except replace the iron mine (area 1) with a stone quarry — a stepped grey stone pit with cut blocks and a small wooden crane, same size and position.
