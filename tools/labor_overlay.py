@@ -27,7 +27,7 @@ ZONES = {
     'Idle':    ((20, 1080, 490, 1460), (240, 1290), 130, 0, 'mixed'),
     'Castle':  ((545, 1080, 1005, 1460), (775, 1270), 0, 0, 'farmer'),
 }
-FIG_H = 50
+FIG_H = 72
 COW_W = 74
 # two cows tucked in the pasture's right corner (Chris, Oct 18: "like two in the corner")
 COWS = [(900, 165), (950, 245)]
@@ -59,19 +59,19 @@ def main(src, out):
         cols = min(k, 4) or 1
         rows = math.ceil(k / cols) if k else 0
         if short or name == 'Idle':
-            glow(base, (cx, cy - 10), 40 + cols * 26, 30 + rows * 18,
+            glow(base, (cx, cy - 20), 50 + cols * 34, 40 + rows * 24,
                  (230, 50, 40) if short else (60, 120, 255))
         spots = []
         for i in range(k):
             r, c = divmod(i, cols)
-            x = cx + (c - (cols - 1) / 2) * 42 + random.randint(-6, 6) + (r % 2) * 14
-            y = cy + (r - (rows - 1) / 2) * 30 + random.randint(-4, 4)
+            x = cx + (c - (cols - 1) / 2) * 58 + random.randint(-6, 6) + (r % 2) * 18
+            y = cy + (r - (rows - 1) / 2) * 40 + random.randint(-4, 4)
             spots.append((x, y, i))
         for x, y, i in sorted(spots, key=lambda t: t[1]):
             kk = kind if kind != 'mixed' else ('farmer', 'herder')[i % 2]
             im = figs[kk]
             sh = Image.new('RGBA', base.size, (0, 0, 0, 0))
-            ImageDraw.Draw(sh).ellipse((x - 14, y - 4, x + 14, y + 5), fill=(0, 0, 0, 90))
+            ImageDraw.Draw(sh).ellipse((x - 19, y - 5, x + 19, y + 6), fill=(0, 0, 0, 90))  # foot shadow
             base.alpha_composite(sh)
             base.alpha_composite(im, (round(x - im.width / 2), round(y - im.height)))
         if name == 'Pasture':
