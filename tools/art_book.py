@@ -45,6 +45,8 @@ STATUS = {
     'old': ('SUPERSEDED', '#8a8a8a'),
 }
 
+R2 = A + 'review-s2/'    # ChatGPT sheet-2 batch, accepted Oct 15-17 (update 3)
+RW = R2 + '_raw/'       # icons stay on their navy square, as delivered
 CN = A + '_canon/'      # the canon set (Sep 4-5), copied from Downloads Oct 12
 
 # Canon images shown under the new art (or instead of it when there is none).
@@ -99,9 +101,9 @@ add(S, 'Lawn', ['overhead.tile.ground'],
     'Known bug: today the key borrows road tile 0 (the no-road shape) through '
     'aliasOf instead of having its own ground image. Fixed when this is wired in Phase B.')
 add(S, 'Forest ground', ['overhead.tile.forest'],
-    [('stand-in: bushes', ST + 'bushes.png')], 'sheet2',
-    'Ground under forest cells; trees are drawn on top as the forest sprite. '
-    'The dense-forest tile comes in sheet 2 row 5. Bushes stand in on the mock-ups.')
+    [('forest floor', R2 + 'forest-floor.png')], 'have',
+    'Ground under forest cells: leaf litter and moss on a raised slab. The trees are '
+    'drawn on top as the forest sprite (Land section). ChatGPT sheet-2 batch, accepted Oct 15.')
 add(S, 'Mountain ground', ['overhead.tile.mountain'],
     [('lawn under the mountain', TS + 'lawn-00.png')], 'have',
     'Ground under mountain cells. Plain lawn: the mountain itself is a '
@@ -122,29 +124,27 @@ add(S, 'Ripe wheat', ['overhead.field.grain.mature'],
     'A grain field ready for harvest. Three variants from sheet 1. Fields keep '
     'their raised slab, like the fields in the reference picture.')
 add(S, 'Green wheat', ['overhead.field.grain.growing'],
-    [('Grok fallback (2:1)', GI + 'ground-wheat-growing.png')], 'sheet2',
-    'A grain field part-way through the year. Sheet 2 row 1 makes it in the '
-    'sheet style; the Grok tile is a fallback at the old angle.')
+    [('sheet 2', R2 + 'growing-wheat.png')], 'have',
+    'A grain field part-way through the year: green, unripe wheat. Sheet-2 batch, accepted Oct 15.')
 add(S, 'Sown field', ['overhead.field.grain.sown'],
-    [('Grok fallback (2:1)', GI + 'ground-sown-00.png')], 'sheet2',
+    [('sheet 2', R2 + 'sown.png')], 'have',
     'Ploughed furrows with sprouts: what a field looks like after winter sowing. '
-    'Sheet 2 row 1.')
+    'Sheet-2 batch, accepted Oct 15.')
 add(S, 'Fallow field', ['overhead.field.fallow'],
-    [('Grok fallback (2:1)', GI + 'ground-fallow-00.png'), ('stand-in', TS + 'grass-tufty.png')], 'sheet2',
-    'Wild grass and weeds: a field that is unused but can be planted. Sheet 2 row 1.')
+    [('sheet 2', R2 + 'fallow.png')], 'have',
+    'Wild grass and weeds: a field that is unused but can be planted. Sheet-2 batch, accepted Oct 15.')
 add(S, 'Barren field', ['overhead.field.barren'],
     [('sheet 1 "tilled"', TS + 'tilled.png')], 'have',
     'Bare dirt that must be reclaimed before it can be planted. The code also '
     'draws it under half-sown crops and as the quarry pit floor.')
 add(S, 'Pasture', ['overhead.field.cattle'],
-    [('sheet 1: has cows painted in', TS + 'pasture-cows.png')], 'redo',
-    'Grazing land for the county herd. The game draws each cow as its own '
-    'sprite, so the tile must be plain grass. The fix prompt removes the '
-    'cows; sheet 2 row 2 also asks for a plain pasture.')
-add(S, 'Parched field', [], [('Grok fallback (2:1)', GI + 'ground-parched-00.png')], 'nokey',
-    'Pale cracked earth after a drought. The code already builds this key '
-    '(overhead.field.parched) but the manifest has no entry for it: add the key '
-    'in Phase B. Sheet 2 row 1.')
+    [('sheet 2: plain', R2 + 'pasture.png'), ('sheet 1, cows painted in (not used)', TS + 'pasture-cows.png')], 'have',
+    'Grazing land for the county herd. Plain grass with no animals: the game draws '
+    'each cow as its own sprite on top. Sheet-2 batch, accepted Oct 15.')
+add(S, 'Parched field', [], [('sheet 2', R2 + 'parched.png')], 'nokey',
+    'Pale cracked earth after a drought. Art accepted Oct 15 (sheet-2 batch). The code '
+    'already builds this key (overhead.field.parched) but the manifest has no entry '
+    'for it: add the key in Phase B.')
 
 # ---------------------------------------------------------------- land
 S = 'Land'
@@ -153,9 +153,9 @@ add(S, 'Mountains', ['overhead.sprite.mountain'],
     'Standing mountain on a mountain cell, cut off its slab so it rises out of '
     'the lawn. Three variants, chosen by (col + row) % 3.')
 add(S, 'Forest', ['overhead.sprite.forest'],
-    [('stand-in: bushes', ST + 'bushes.png')], 'sheet2',
-    'Trees standing on a forest cell. Dense forest and light woodland come in '
-    'sheet 2 row 5.')
+    [('sheet 2', R2 + 'forest.png')], 'have',
+    'A stand of trees on a forest cell, cut off green so it stands on the forest floor. '
+    'Reads like the reference picture\'s trees. Sheet-2 batch, accepted Oct 15.')
 
 # ---------------------------------------------------------------- roads
 add('Roads', 'Dirt roads (16 shapes)', ['overhead.road.%d' % i for i in range(16)],
@@ -201,9 +201,9 @@ add(S, 'Town', ['overhead.town'],
 S = 'Industry'
 add(S, 'Mine', ['overhead.industry.mine'],
     [('green pack, Oct 11', A + 'buildings/building-mine.png')], 'have',
-    'Mine entrance in a rocky mound with a winding frame. Too big at 1.25 tiles '
-    'wide; 0.85 recommended (size pending). Compare with sheet 2\'s mine and '
-    'keep whichever matches the sheet.')
+    'Mine entrance in a rocky mound with a winding frame. Drawn 0.85 tiles wide '
+    '(decided Oct 13; it was 1.25 and looked too big). Keep it unless the sheet-2 '
+    'buildings make it look out of style.')
 add(S, 'Lumber mill', ['overhead.industry.lumberMill'],
     [('stand-in: barn', ST + 'barn.png')], 'sheet2',
     'Where woodcutters turn timber into wood. Sheet 2 row 4.')
@@ -213,11 +213,11 @@ add(S, 'Blacksmith', ['overhead.industry.blacksmith'],
 add(S, 'Quarry', ['overhead.industry.quarry'],
     [('stand-in: rocks', ST + 'rocks.png')], 'sheet2',
     'Stone pit. Its floor uses the barren-field tile. Sheet 2 row 4.')
-add(S, 'Open-air forge', ['overhead.sprite.forge-open'], [], 'sheet2',
-    'Canopy, anvil and hearth with no walls, on the labor screen. Sheet 2 row 2.')
-add(S, 'Castle yard', ['overhead.sprite.castle-yard'], [], 'sheet2',
+add(S, 'Open-air forge', ['overhead.sprite.forge-open'], [('sheet 2', R2 + 'open-forge.png')], 'have',
+    'Canopy, anvil and hearth with no walls, on the labor screen. Sheet-2 batch, accepted Oct 15.')
+add(S, 'Castle yard', ['overhead.sprite.castle-yard'], [('sheet 2', R2 + 'castle-yard.png')], 'have',
     'A ring of wall around an empty yard where the workforce stands on the '
-    'labor screen. Sheet 2 row 2.')
+    'labor screen. Sheet-2 batch, accepted Oct 15.')
 
 # ---------------------------------------------------------------- props & animals
 S = 'Props and animals'
@@ -254,6 +254,15 @@ for job, d in [
     ('woodcutter', 'Works the lumber mill.'), ('miner', 'Works the mine and quarry.'),
     ('blacksmith', 'Works the blacksmith.'), ('idle', 'Unassigned worker in the centre of the labor screen.'),
 ]:
+    if job in ('farmer', 'herder'):
+        add(S, 'Laborer: ' + job, ['overhead.sprite.laborer-' + job],
+            [('sheet 2', R2 + 'laborer-%s.png' % job)], 'have',
+            d + ' Labor-screen figure (28 px). ' + (
+                'Redone Oct 17 with a straw hat, linen shirt and a big scythe, so he cannot be '
+                'mistaken for the herder (the first try was the same hooded man). Checked at true '
+                'phone size.' if job == 'farmer' else
+                'Hood, apron and shepherd\'s crook. Sheet-2 batch, accepted Oct 15.'))
+        continue
     add(S, 'Laborer: ' + job, ['overhead.sprite.laborer-' + job], [], 'canon',
         d + ' Labor-screen figure (28 px). ' + ('The canon diorama version is shown; check it '
         'at 28 px, then accept it.' if job not in ('farmer', 'herder') else 'No canon diorama '
@@ -264,10 +273,13 @@ add(S, 'Laborer: builder', [], [], 'nokey',
 # ---------------------------------------------------------------- units
 S = 'Troops (roster icons)'
 for k, d in [('militia', 'Militia.'), ('archers', 'Archers.'), ('knights', 'Mounted knight with sword.'),
-             ('mercenaries', 'Mercenaries. The game has an old pixel-art icon; the canon set '
-              'has no diorama version, so one still needs making.')]:
-    add(S, k.capitalize(), ['unit.' + k], [], 'canon' if k != 'mercenaries' else 'missing',
-        d + ' Icon in the army roster panel (18 px); may keep its baked ground tile.')
+             ('mercenaries', 'Mercenaries. New diorama figure from the sheet-2 batch, accepted Oct 15. '
+              'It has no grass base, unlike the canon troops; that is fine because Phase B crops '
+              'every roster troop to the figure.')]:
+    add(S, k.capitalize(), ['unit.' + k], [('sheet 2', R2 + 'mercenary.png')] if k == 'mercenaries' else [],
+        'canon' if k != 'mercenaries' else 'have',
+        d + ' Icon in the army roster panel: 18 px today, raised to 28 px and cropped to the '
+        'figure in Phase B (decided Oct 15).')
 for k in ['crossbowmen', 'swordsmen', 'macemen', 'pikemen']:
     add(S, k.capitalize(), [], [], 'nokey',
         'The game has 8 troop kinds, not 4. The image is in the canon set; add the '
@@ -292,27 +304,23 @@ add(S, 'Swords', ['resource.swords'], [('', A + 'icons/item_sword.png')], 'have'
     'Weapon stock icon. Redone Oct 11 (the first one read as a dagger). Navy background like the icon catalog.')
 add(S, 'Knight armour', ['resource.armor'], [('', A + 'icons/item_knight_helm.png')], 'have',
     'The "Knight Armor" icon: a great helm matching the knight.')
-add(S, 'Bows', ['resource.bows'], [('nearest: the canon archer\'s bow', CN + 'unit-archer.jpg')], 'missing',
-    'Weapon stock icon. Known bug: the key is declared but its file was never embedded, so '
-    'nothing shows today. The bow icon accepted earlier is not in the repo or in the canon '
-    'images found on your computer (Oct 12). Make it with the other weapon icons; the archer '
-    'is shown only as a reference for the bow.')
-for k in ['crossbows', 'maces', 'pikes']:
-    add(S, k.capitalize(), ['resource.' + k], [], 'missing',
-        'Weapon stock icon. The game has an old pixel-art one (shown large). The canon '
-        'images have no weapon icons, so the new one is still to make, in the same style '
-        'as the new sword and knight helm (navy background).')
+add(S, 'Bows', ['resource.bows'], [('sheet 2', RW + 'bow.png')], 'have',
+    'Weapon stock icon, sheet-2 batch, accepted Oct 15 (navy background). Known bug: the key is '
+    'declared but its file was never embedded, so nothing shows today; wired in Phase B.')
+for k, f in [('crossbows', 'crossbow'), ('maces', 'mace'), ('pikes', 'pike')]:
+    add(S, k.capitalize(), ['resource.' + k], [('sheet 2', RW + f + '.png')], 'have',
+        'Weapon stock icon, sheet-2 batch, accepted Oct 15, navy background like the sword and helm.' +
+        (' Goes thin below ~20 px; fine once lists use 24 px icons (Phase B).' if k == 'pikes' else ''))
 
 S = 'Resources'
-for k, d in [('wheat', 'Grain'), ('cows', 'Cattle'), ('wood', 'Wood'), ('ore', 'Iron ore'),
-             ('stone', 'Stone'), ('gold', 'Gold')]:
+for k, f, d in [('wheat', 'grain', 'Grain'), ('cows', 'cattle', 'Cattle'), ('wood', 'wood', 'Wood'),
+                ('ore', 'iron-ore', 'Iron ore'), ('stone', 'stone', 'Stone'), ('gold', 'gold', 'Gold')]:
     add(S, d, ['resource.' + k, 'figma.resource.' + k],
-        [('panels: resource.' + k, 'GAME:resource.' + k), ('top bar: figma.resource.' + k, 'GAME:figma.resource.' + k)],
-        'missing',
-        d + ' has two icons today, both old style: one for panels and reports '
-        '(resource.%s) and the Figma version in the top bar (figma.resource.%s, '
-        'preferred there). A set matching the new diorama art is not started; confirm '
-        'the top-bar style first.' % (k, k))
+        [('new (both keys)', RW + f + '.png'), ('today, top bar', 'GAME:figma.resource.' + k)],
+        'have',
+        d + ': one new icon for both keys, the panel icon (resource.%s) and the top bar '
+        '(figma.resource.%s). Sheet-2 batch, accepted Oct 15: clear at the 45 px top bar. '
+        'Lists drop to 24 px minimum in Phase B, where iron ore and stone also stay apart.' % (k, k))
 
 # ---------------------------------------------------------------- decoration & spares
 add('Land', 'Decoration: bushes and rocks', [],
@@ -341,6 +349,10 @@ add(S, 'Canon index sheets', [],
     [('troops', CN + '_index-units.jpg'), ('castles and laborers', CN + '_index-castles-labor.jpg')], 'ref',
     'The labelled contact sheets from the Sep 4-5 canon pass. The troop icons in this book are '
     'cut from the first one (about 280 px each, enough for an 18 px roster icon). Files: art/_canon/.')
+add(S, 'Superseded: first farmer', [],
+    [('Oct 15 try', R2 + 'laborer-farmer-v1.png'), ('herder, for comparison', R2 + 'laborer-herder.png')], 'old',
+    'The first sheet-2 farmer: the same hooded man as the herder, with only a small sickle '
+    'that vanished at 28 px. Replaced Oct 17.')
 add(S, 'Superseded: square-grid roads', [],
     [('%02d' % i, A + 'road/road-%02d.png' % i) for i in range(16)], 'old',
     'The Oct 6 road set for the square grid. Replaced by the diamond roads (Roads section). Kept for history.')
@@ -659,7 +671,7 @@ def main(game, out, todo=False):
     c.drawCentredString(PW / 2, PH / 2 - 96, 'Art To-Do' if todo else 'Art Book')
     c.setFont('Helvetica', 9)
     c.setFillColor(HexColor('#a9b0bd'))
-    c.drawCentredString(PW / 2, 60, 'Every asset the game is made from  ·  Oct 12, 2026')
+    c.drawCentredString(PW / 2, 60, 'Every asset the game is made from  ·  Oct 17, 2026 (update 3)')
     c.showPage()
     n = 2
     if todo:
@@ -677,8 +689,8 @@ def main(game, out, todo=False):
             '<b>Weapon, item and resource icons:</b> solid navy #020A1F background.',
             '<b>Never:</b> flags, banners or pennants on buildings; animals or people on tiles. The '
             'game draws those itself.',
-            '<b>Size:</b> troop icons must read at 18 pixels, laborers at 28 pixels: simple, bold '
-            'silhouettes.',
+            '<b>Size:</b> troop icons and laborers must read at 28 pixels, list icons at 24: '
+            'simple, bold silhouettes.',
             '<b>Delivery:</b> each asset as its own separate image file, named after its page title. '
             'Not a collage, not a new PDF. Do not change any page text, tags or names; list '
             'suggestions separately at the end.',

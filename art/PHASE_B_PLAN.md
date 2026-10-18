@@ -141,10 +141,21 @@ Each step depends on the ones above it.
    - `banner.*` → `art/banner/`.
    - `resource.armor` → `art/icons/item_knight_helm.png`.
    - `overhead.field.barren` → the furrowed dirt tile (canon zip).
+   - **Sheet-2 batch (Art Bible update 3, Oct 17)** → `art/review-s2/`: the five
+     fields (`fallow`, `sown`, `growing-wheat`, `parched`, `pasture`),
+     `forest-floor` → `overhead.tile.forest`, `forest` → `overhead.sprite.forest`,
+     `castle-yard`, `open-forge`, `laborer-farmer`, `laborer-herder`,
+     `mercenary` → `unit.mercenaries`; icons from `_raw/` (bow, crossbow, mace,
+     pike; grain, cattle, wood, iron-ore, stone, gold → both `resource.*` and
+     `figma.resource.*`). Full key table in the Art Bible.
 5. **Placement changes.**
    - Caravan flag: raise the offset (today `y: -0.95`, line ~20660) so the cloth
      flies above the canopy — see `art/flag/_preview-on-wagon.png`. Check on the S10e.
    - Castle flag (line ~20603): re-check against the new keep art.
+   - Mine: draw 0.85 tiles wide (decided Oct 13; 1.25 looked too big).
+   - Laborers: fit each figure by its body, not its bounding box — the new
+     farmer's scythe rises above his hat, so a height fit makes him ~10%
+     smaller than the herder.
    - Border wall: replace the SVG lines in `CountyWalls` with
      `art/wall-sheet/` sprites (the run re-angled to 1.55 by
      `tools/wall_reangle.py`; `art/wall-iso/` is the 2:1 original). Size the

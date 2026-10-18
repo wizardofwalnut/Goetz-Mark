@@ -1,8 +1,10 @@
 # Aldermarch — Art Bible
 
-**Version:** Oct 11, 2026, update 2 (replaces the Oct 6 version). Update 2
-reconciles the Oct 11 changes: grid ratio, zoom, sheet 1, and the art that
-was accepted Oct 11 but still listed as missing in the key tables below.
+**Version:** Oct 17, 2026, update 3 (replaces update 2 of Oct 11). Update 3
+adds the ChatGPT sheet-2 batch accepted Oct 15–17 (fields, forest, castle
+yard, open forge, farmer, herder, mercenary, all 10 weapon and resource icons),
+the mine size and the Phase B icon-size change. Still to come: castles, town,
+lumber mill, blacksmith, quarry.
 **What this is:** every art key in the game's manifest, with its status and
 where the art lives. Checked against the live game file on GitHub
 (`aldermarch-single-file/aldermarch-game.html`): **171 manifest keys** (the
@@ -154,7 +156,7 @@ Source: `_src/sheet-1.png`.
 |---|---|---|
 | `lawn-00/01/10/11` | `overhead.tile.ground` (2x2 variants, `(col%2, row%2)`) | ✅ HAVE |
 | `grass`, `grass-tufty`, `grass-flowers` | Decoration / fallback lawn; tufty is the fallow stand-in | placeholder |
-| `bushes`, `rocks` (standing) | Decoration layer; bushes stand in for forest | ✅ decor, placeholder forest |
+| `bushes`, `rocks` (standing) | Decoration layer (forest now has its own sprite, sheet-2 batch) | ✅ decor |
 | `mountain-a/b/c` (standing) | `overhead.sprite.mountain`, 3 variants by `(col+row)%3` | ✅ HAVE |
 | `wheat-a/b/c` | `overhead.field.grain.mature` (all three are ripe) | ✅ HAVE |
 | `tilled` | `overhead.field.barren` (ploughed, no sprouts) | ✅ HAVE |
@@ -173,9 +175,40 @@ the four seats. These are placeholders, so nothing to fix now — but the sheet 
 prompt (`art/CHATGPT_PROMPTS.md`) now asks for **no flags or banners on any
 building**.
 
-Still missing for the map: forest, the 5 castle tiers, town, lumber mill,
-blacksmith, quarry, plain pasture, growing and sown wheat, fallow, parched
-(all in sheet 2), castle yard, open forge, mercenary unit.
+Still missing for the map: the 5 castle tiers, town, lumber mill, blacksmith,
+quarry. Everything else that was listed here came in the sheet-2 batch below.
+
+## Sheet-2 batch (ChatGPT, Oct 15–17) — what was accepted
+
+Made in ChatGPT from the uploaded Art Book with the reference scenes and canon
+set as the style anchor (sheet 1 only for tile format — its grass is too lime).
+Files: `art/review-s2/` (cut-outs and slabs) and `art/review-s2/_raw/` (as
+delivered; the icons are used straight from here, on their navy square).
+Standing objects were cut off solid green with `tools/greenkey.py`; every
+cut-out scored under 2% in `check_cutout.py` and was checked on magenta.
+Previews: `art/review-s2/_preview/`.
+
+| File | Key | Notes |
+|---|---|---|
+| `fallow`, `sown`, `growing-wheat`, `parched`, `pasture` | `overhead.field.{fallow, grain.sown, grain.growing, parched, cattle}` | Raised slabs at the sheet angle. Earthier than sheet 1 and closer to the reference on the county mock-up. Pasture is plain (no cows). |
+| `forest-floor` | `overhead.tile.forest` | Ground under trees. |
+| `forest` | `overhead.sprite.forest` | Tree stand, cut off green. |
+| `castle-yard`, `open-forge` | `overhead.sprite.castle-yard`, `.forge-open` | Labor screen. |
+| `laborer-herder` | `overhead.sprite.laborer-herder` | Hood, apron, crook. |
+| `laborer-farmer` | `overhead.sprite.laborer-farmer` | **Redone Oct 17**: straw hat, linen shirt, big scythe. The first try (`laborer-farmer-v1.png`, kept) was the same hooded man as the herder. The new one cuts clean (0.8%) and is clearly not the herder at 28 px on the phone. The scythe rises above his hat, so if Phase B fits laborers by height, his body comes out ~10% smaller than the herder's — fit by body, or accept it. |
+| `mercenary` | `unit.mercenaries` | No grass base, unlike the canon troops; fine, because Phase B crops every roster troop to the figure. |
+| `_raw/{grain, cattle, wood, iron-ore, stone, gold}` | `resource.{wheat, cows, wood, ore, stone, gold}` **and** `figma.resource.*` | One icon for both keys. Clear at the 45 px top bar (your check, Oct 15). |
+| `_raw/{bow, crossbow, mace, pike}` | `resource.{bows, crossbows, maces, pikes}` | Navy background like the sword and helm. Pike and bow go thin below ~20 px; fine once lists use 24 px (Phase B). |
+
+**Phase B change that came out of the small-size test (decided Oct 16):** icons
+in lists go to at least 24 px, roster troops from 18 px to 28 px cropped to the
+figure. On the S10e (≈3 screen pixels per CSS pixel) 16–18 px was too small
+for any art, old or new. In `art/PHASE_B_PLAN.md`.
+
+**Open from this batch:** the lawn. With the new fields in, sheet 1's lime lawn
+is the odd one out on the mock-up. Plan: colour-match it toward the reference in
+code (free, reversible), show you before/after; redraw only if that isn't
+enough. Not done yet.
 
 ## Style rules (locked)
 
@@ -220,10 +253,10 @@ are reference only.
 | tile.water (+ seasonal) | ⏸ DEFERRED | Water is a map-border element only. |
 | tile.* seasonal (16) | ⏸ DEFERRED | |
 | overhead.tile.ground | ✅ HAVE | `art/tileset-grok/lawn-??.png`. Known bug: today the key points at a road tile through `aliasOf`; fix in Phase B. |
-| overhead.tile.forest | ❌ MISSING | Forest tile is in sheet 2; bushes stand in. |
+| overhead.tile.forest | ✅ HAVE | `art/review-s2/forest-floor.png` (sheet-2 batch). |
 | overhead.tile.mountain | ✅ HAVE | Plain lawn under `overhead.sprite.mountain` (sheet 1 mountains are standing sprites). |
 | overhead.tile.water | ⏸ DEFERRED | |
-| overhead.tile.yard | ❌ MISSING | Check the canon zip first. |
+| overhead.tile.yard | ❌ MISSING | Not in the canon set. Check whether the castle-yard sprite (now accepted) already covers it before making one. |
 
 ## Roads (16 keys) — done
 
@@ -248,14 +281,14 @@ plain SVG lines in `CountyWalls`.
 | Key | Status | Notes |
 |---|---|---|
 | castle.{woodenPalisade, motteAndBailey, normanKeep, stoneCastle, royalCastle} | ✅ HAVE | The `4pjSa` file was a duplicate of the Norman keep. |
-| overhead.castle.* (5) | ❌ MISSING (sheet 2) | Sheet 2 row 3 asks for all 5 tiers in the sheet style, cut off their slab like sheet 1's castle (one stand-in today). The canon renders are a different style now. |
+| overhead.castle.* (5) | ❌ MISSING (sheet 2) | Not in the Oct 15 batch. Ask for all 5 tiers on solid green (no slab, no flags); canon tiers in `art/_canon/` show what each should be. Sheet 1's castle stands in. |
 | overhead.castle.flag.0–3 | ✅ HAVE | `art/flag/flag-{crimson,azure,gold,sable}.png`, cut from the banner-bearers (Oct 7). Also drawn on player caravans; raise it above the canopy in Phase B. |
 
 ## Town (1 key)
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.town | ❌ MISSING (sheet 2) | Village cluster (decided Oct 7). Sheet 2 row 5; `house-thatch` stands in. |
+| overhead.town | ❌ MISSING (sheet 2) | Village cluster (decided Oct 7). Not in the Oct 15 batch; `house-thatch` stands in, canon `village-cluster` is the reference. |
 
 ## Industry (8 `industry.*` UNREAD + 4 overhead + open forge)
 
@@ -263,8 +296,8 @@ plain SVG lines in `CountyWalls`.
 |---|---|---|
 | industry.{lumberMill, blacksmith, quarry}.idle / .working | UNREAD | Moot: the map draws `overhead.industry.*`, one image each — no idle/working pair needed. |
 | industry.mine.idle / .working | UNREAD | |
-| overhead.industry.mine | ✅ HAVE | `art/buildings/building-mine.png` (green pack, Oct 11). Check it beside sheet 2's mine; keep whichever matches the sheet. |
-| overhead.industry.{blacksmith, quarry, lumberMill} | ❌ MISSING (sheet 2) | Sheet 2 row 4. Barn and blue house stand in. |
+| overhead.industry.mine | ✅ HAVE | `art/buildings/building-mine.png` (green pack, Oct 11). **Drawn 0.85 tiles wide** (decided Oct 13; 1.25 looked too big). Re-check beside the sheet-2 buildings when they come. |
+| overhead.industry.{blacksmith, quarry, lumberMill} | ❌ MISSING (sheet 2) | Not in the Oct 15 batch. Barn and blue house stand in; canon versions in `art/_canon/` are the content reference. |
 
 ## Fields (6 `field.*` UNREAD + 6 overhead used)
 
@@ -276,8 +309,9 @@ plain SVG lines in `CountyWalls`.
 | field.fallow | UNREAD | Only the overhead key is drawn. |
 | overhead.field.grain.mature | ✅ HAVE | Sheet 1 `wheat-a/b/c`. |
 | overhead.field.barren | ✅ HAVE | Sheet 1 `tilled`. |
-| overhead.field.fallow, .grain.sown, .grain.growing, .parched *(new key)* | ❌ MISSING (sheet 2) | Sheet 2 row 1. Grok fallbacks exist in `art/ground-iso/` (2:1). |
-| overhead.field.cattle | ❌ MISSING (sheet 2) | Plain pasture, no animals — see the `pasture-cows` note above. |
+| overhead.field.fallow, .grain.sown, .grain.growing | ✅ HAVE | `art/review-s2/{fallow, sown, growing-wheat}.png` (sheet-2 batch). |
+| overhead.field.parched *(new key)* | ✅ HAVE, key needed | `art/review-s2/parched.png`. Add the manifest key in Phase B. |
+| overhead.field.cattle | ✅ HAVE | `art/review-s2/pasture.png`, plain grass; cows drawn on top. |
 
 The code also builds keys for parched and flooded fields that don't exist in
 the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
@@ -286,9 +320,9 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 
 | Key | Status | Notes |
 |---|---|---|
-| unit.militia, unit.archers, unit.knights | ⚠️ CHECK | Mapped by name (militia, archer, mounted knight with sword). Files are in the canon zip; check at 18 px. |
+| unit.militia, unit.archers, unit.knights | ⚠️ CHECK | Canon files in `art/_canon/unit-*.jpg`. Check at 28 px cropped to the figure (the new roster size, Phase B). |
 | unit.crossbowmen, unit.swordsmen, unit.macemen, unit.pikemen | ⚠️ NEW KEYS | The game has 8 troop kinds, not 4. Images exist (crossbow, swordsman, maceman, pikeman); add keys in Phase B. |
-| unit.mercenaries | ❌ MISSING | No image. |
+| unit.mercenaries | ✅ HAVE | `art/review-s2/mercenary.png` (sheet-2 batch). |
 | unit.militia.knight, unit.knights.knight | 🚫 REMOVE | Faction overrides with no separate art; the base key is used instead. |
 | *(siege ram image)* | — | No troop kind uses it. Kept for later. |
 
@@ -317,10 +351,10 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 | Key | Status | Notes |
 |---|---|---|
 | resource.swords | ✅ HAVE | `art/icons/item_sword.png` (Oct 11 redo; the old one read as a dagger). |
-| resource.{crossbows, maces, pikes} | ⚠️ CHECK | Generated directly (decided Sep 4), not cropped. Check against the keys once the canon zip is here. |
-| resource.bows | ⚠️ CHECK | Bow was accepted earlier but the file is **not in `art/icons/`** (checked update 2). Find it in the canon zip / earlier batch and add it. Known bug: key declared, file missing; wire in Phase B. |
-| resource.{wheat, cows, wood, ore, stone, gold} | ❌ MISSING | |
-| figma.resource.* (6) | ❌ MISSING | HUD versions; confirm style before making. |
+| resource.{crossbows, maces, pikes} | ✅ HAVE | `art/review-s2/_raw/{crossbow, mace, pike}.png` (sheet-2 batch, navy). |
+| resource.bows | ✅ HAVE | `art/review-s2/_raw/bow.png` (sheet-2 batch). The earlier "accepted" bow was never found. Known bug: key declared, file missing in the game; wire in Phase B. |
+| resource.{wheat, cows, wood, ore, stone, gold} | ✅ HAVE | `art/review-s2/_raw/{grain, cattle, wood, iron-ore, stone, gold}.png` (sheet-2 batch). |
+| figma.resource.* (6) | ✅ HAVE | Same six icons as above: one set for panels and the top bar. |
 | resource.armor | ✅ HAVE | `art/icons/item_knight_helm.png`, a great helm matching the knight. This is the "Knight Armor" icon the player sees. |
 | equipment.knightArmour | UNREAD | Never read by the game. |
 
@@ -328,16 +362,17 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.sprite.laborer-{farmer, herder, woodcutter, miner, blacksmith} | ✅ HAVE | From the 44 canon assets. Not yet in `art/`. |
+| overhead.sprite.laborer-{farmer, herder} | ✅ HAVE | `art/review-s2/laborer-{farmer, herder}.png` (sheet-2 batch; farmer redone Oct 17). |
+| overhead.sprite.laborer-{woodcutter, miner, blacksmith} | ⚠️ CHECK | Canon files in `art/_canon/labor-*.jpg`. Check at 28 px beside the new farmer and herder, then accept. |
 | overhead.sprite.laborer-idle | ✅ HAVE | `labor_unemployed.png` maps here. |
 | *(new)* laborer-builder | ✅ HAVE, key needed | `labor_builder.png` is a new role (castle building). Add a key in Phase B. |
 | overhead.sprite.cow | ✅ HAVE | `art/props/prop-cow.png`. (`sprite.cow` is UNREAD.) |
 | overhead.sprite.ore-cart | ✅ HAVE | `art/props/prop-minecart.png`. |
 | overhead.prop.{timber, graincart, barrels, spoil, sawhorse} | ✅ HAVE | `art/props/prop-{logs, cart, barrels, rubble, sawhorse}.png`. |
-| overhead.sprite.castle-yard | ❌ MISSING | Wall ring with an empty yard (labor screen). In the sheet 2 prompt. |
-| overhead.sprite.forge-open | ❌ MISSING | Canopy, anvil, hearth, no walls. In the sheet 2 prompt. |
+| overhead.sprite.castle-yard | ✅ HAVE | `art/review-s2/castle-yard.png` (sheet-2 batch). |
+| overhead.sprite.forge-open | ✅ HAVE | `art/review-s2/open-forge.png` (sheet-2 batch). |
 | overhead.sprite.mountain | ✅ HAVE | Sheet 1 `standing/mountain-a/b/c`. |
-| overhead.sprite.forest | ❌ MISSING (sheet 2) | Bushes stand in. |
+| overhead.sprite.forest | ✅ HAVE | `art/review-s2/forest.png` (sheet-2 batch). |
 
 ## UI kit (8 keys) — UNREAD by the game
 
@@ -363,22 +398,25 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ---
 
-## Scorecard (update 2)
+## Scorecard (update 3)
 
-- **Done:** roads (16, sheet angle), border wall (sheet angle), lawn, mountains,
-  ripe wheat, barren field, army soldier + 4 bearers, wagon, banners (4),
-  castle flags (4), knight helm, sword, props (5) + cow + ore cart, mine.
-- **Waiting on ChatGPT sheet 2:** 5 castle tiers, town, lumber mill,
-  blacksmith, quarry, forest, castle yard, open forge, fields (fallow, sown,
-  growing, parched, plain pasture).
-- **Canon set found (Oct 12)** in Downloads, now in `art/_canon/` (see its
-  README): all 8 troop icons, 5 laborers + builder, castle tiers, industry,
-  village. To do: check each at game size and accept. **Not found anywhere:**
-  farmer and herder laborers, bow / crossbow / mace / pike icons, a diorama
-  mercenary (the game has an old pixel one). Every asset has a page with a
-  picture in `art/ART_BOOK.pdf`.
-- **Not started:** resource icons (wheat, cows, wood, ore, stone, gold),
-  crests, mercenary offer.
+The Art Book (`art/ART_BOOK.pdf`, 112 pages) has a page per asset: **87
+assets, 51 ready**. `art/ART_TODO.pdf` (28 pages) is the slim handoff for
+ChatGPT: the 26 still to do, plus the rules page.
+
+- **Done:** roads (16), border wall, lawn, mountains, all six field states
+  (ripe, green, sown, fallow, parched, pasture) + barren, forest floor + forest,
+  castle yard, open forge, mine (0.85 tiles), soldier + 4 bearers, wagon,
+  banners (4), castle flags (4), props (5) + cow + ore cart, farmer, herder,
+  mercenary, all weapon icons (sword, bow, crossbow, mace, pike, knight helm),
+  all six resource icons.
+- **Still to make (ChatGPT):** 5 castle tiers, town, lumber mill, blacksmith,
+  quarry. Then the castle-yard ground tile if the sprite doesn't cover it.
+- **Canon, to check at 28 px and accept:** 7 troop icons (militia, archers,
+  knights, crossbow, sword, mace, pike), woodcutter, miner, blacksmith, idle and
+  builder laborers (`art/_canon/`).
+- **Open:** lawn colour-match toward the reference (see the sheet-2 section).
+- **Not started:** crests, mercenary offer (both UNREAD keys today).
 - **Being removed:** 5 chokepoint keys.
 
 ## Decisions only you can make
