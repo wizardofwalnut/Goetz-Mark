@@ -118,14 +118,16 @@ and the Hollowmere target-look scene (for colours and materials). Then:
 ```
 Paint the labor screen for a medieval county-management game. It is a fresh painting in the warm, detailed, painted style and colours of the attached Hollowmere scene, laid out like the attached Lords of the Realm II labor screens: one county village seen from almost directly overhead (a high, steep view — rooftops and the tops of walls visible, only a little of building sides). Portrait format for a phone, 2:3 (taller than wide). Fill the whole frame, edge to edge — no floating platform. The whole village sits inside a low grey stone curtain wall with round corner towers that runs just inside the picture's edges, like the attached walled concept; a little grass shows outside the wall.
 
-Eight clearly separate work areas, each with its own ground and edged by dirt paths, low stone walls, fences or hedges, so no two areas blur together:
+Lay it out as a tidy GRID like the attached walled concept: rectangular compartments in rows and columns, divided by straight dirt paths and low walls meeting at right angles — not a winding, organic village with curving lanes.
+
+Eight clearly separate work areas, each its own compartment with its own ground, so no two areas blur together:
 - Top row, left to right: (1) iron mine — a low grey rock outcrop with a timber tunnel mouth, ore carts and spoil; (2) grain field — golden wheat in rows; (3) cattle pasture — green grass inside a wooden fence.
 - Middle: (4) open-air forge on the left — anvil, glowing hearth, under a small roof; (5) the village in the centre — four or five thatched and timber houses around an open earth square; (6) castle site on the right — an EMPTY, flat, cleared square of packed earth with stakes and a few building stones at its edges, about a third of the picture's width and height. No castle on it.
 - Bottom: (7) lumber mill on the left — a sawmill shed at the edge of trees with log piles; (8) repair yard in the middle — bare earth with stacked timber and a sawhorse.
 
 Every area must keep a clear, empty patch of ground big enough for a crowd of about 12 small figures; the village square needs the biggest one.
 No people, no animals, no flags, no text, no labels, no numbers, no UI.
-Make THREE variations that keep the same eight areas and the outer wall but try different arrangements and path layouts, so we can compare which reads best. Deliver as labor-mine-a.png, labor-mine-b.png, labor-mine-c.png.
+Make THREE variations that keep the grid, the same eight areas and the outer wall but vary the compartment sizes and where the paths run, so we can compare which reads best. Deliver as labor-mine-a.png, labor-mine-b.png, labor-mine-c.png.
 ```
 
 Once one variation is picked, rename it labor-mine.png and continue in the same chat:

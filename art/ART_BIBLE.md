@@ -418,8 +418,10 @@ central counties stone, outskirts dirt — not decided), audio.
   people, labels or castle.
 - **Outer castle wall around the whole village** (Chris, Oct 18: the walled
   concepts read most easily — `concept-4-topdown-walled.jpg`,
-  `concept-6-topdown-framed.jpg`). First round asks ChatGPT for three layout
-  variations to compare.
+  `concept-6-topdown-framed.jpg`). **Grid layout**: rectangular compartments
+  with straight paths, not a winding village (Chris preferred ChatGPT's grid
+  concepts over its organic layout and over Grok's, Oct 18). First round asks
+  ChatGPT for three grid variations to compare.
 - Castle tiers: 5 overhead edits of the castle site (the angled castle sprites
   don't match an overhead view). The game cuts the castle area from the right
   one.
