@@ -11,7 +11,7 @@ B "cards": one small diorama per job in a 2-column grid of cards, label and
 """
 import sys
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 sys.path.insert(0, 'tools')
 from labor_mock import (A, FONT, PLOTS, PW, SANS, COUNTS, TS, W, H,  # noqa: E402
@@ -62,8 +62,15 @@ def dress(S, name, cx, cy, wscale=1.0):
         S.alpha_composite(im, (round(x - im.width / 2), round(y - im.height)))
 
 
-def fill(out):
+# Distinct grounds so no plot shares the lawn's colour (Oct 18: "areas easily
+# distinctive, not blurring together").
+DISTINCT = {'Mine': A + 'review-s2/parched.png', 'TOWN': TS + 'flagstone.png',
+            'Castle': A + 'review-s2/sown.png', 'Forge': TS + 'tilled.png'}
+
+
+def fill(out, distinct=False):
     FW, FH = PW - 40, 1080
+    LIFT = round(0.22 * H) if distinct else 0
     big = Image.new('RGBA', (FW + 4 * W, FH + 6 * H), (0, 0, 0, 0))
     ox, oy = big.width / 2, 2 * H + FH / 2 - 13 * H / 2 + 20
     # job layout on screen: 3 columns (u = c - r) x 3 rows (v = c + r)
@@ -83,14 +90,35 @@ def fill(out):
         x, y = ox + (c - r) * W / 2, oy + (c + r) * H / 2
         if not (-W < x < big.width + W and -2 * H < y < big.height + H):
             continue
-        t = load(plot_cells.get((c, r), LAWN[(c % 2) * 2 + r % 2]), W + 2)
+        src = LAWN[(c % 2) * 2 + r % 2] if distinct else plot_cells.get((c, r), LAWN[(c % 2) * 2 + r % 2])
+        t = load(src, W + 2)
         big.alpha_composite(t, (round(x - t.width / 2), round(y)))
+    d = ImageDraw.Draw(big)
     for name in sorted(centres, key=lambda n: centres[n][1]):
-        dress(big, name, *centres[name])
+        if distinct:
+            (u, v) = next(k for k, n in spots.items() if n == name)
+            c0, r0 = (u + v) // 2, (v - u) // 2
+            g = DISTINCT.get(name, PLOTS[name][2])
+            cx, cy = centres[name]
+            # soft shadow under the raised plot
+            sh = Image.new('RGBA', big.size, (0, 0, 0, 0))
+            ImageDraw.Draw(sh).polygon([(cx, cy - 0.5 * H + 8), (cx + W + 8, cy + 0.5 * H + 8), (cx, cy + 1.5 * H + 14), (cx - W - 8, cy + 0.5 * H + 8)], fill=(0, 0, 0, 120))
+            big.alpha_composite(sh.filter(ImageFilter.GaussianBlur(8)))
+            for dc, dr in [(0, 0), (1, 0), (0, 1), (1, 1)]:
+                c, r = c0 + dc, r0 + dr
+                x, y = ox + (c - r) * W / 2, oy + (c + r) * H / 2 - LIFT
+                t = load(g, W + 2)
+                big.alpha_composite(t, (round(x - t.width / 2), round(y)))
+            top = [(cx, cy - 0.5 * H - LIFT), (cx + W, cy + 0.5 * H - LIFT), (cx, cy + 1.5 * H - LIFT), (cx - W, cy + 0.5 * H - LIFT)]
+            if name in COUNTS:
+                ImageDraw.Draw(big).line(top + [top[0]], fill=(240, 206, 130, 230), width=5, joint='curve')
+            dress(big, name, cx, cy - LIFT)
+        else:
+            dress(big, name, *centres[name])
     d = ImageDraw.Draw(big)
     for name, (x, y) in centres.items():
         if name in COUNTS:
-            label(d, x, y + H * 0.9, name, COUNTS[name])
+            label(d, x, y + H * 0.9 - LIFT, name, COUNTS[name])
     crop = big.crop((round(ox - FW / 2), 2 * H, round(ox + FW / 2), 2 * H + FH))
     page = Image.new('RGBA', (PW, 290 + FH + 160), (22, 20, 17, 255))
     pd = ImageDraw.Draw(page)
@@ -134,3 +162,5 @@ def cards(out):
 if __name__ == '__main__':
     fill(sys.argv[1])
     cards(sys.argv[2])
+    if len(sys.argv) > 3:
+        fill(sys.argv[3], distinct=True)
