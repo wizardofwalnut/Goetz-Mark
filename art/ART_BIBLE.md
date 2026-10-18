@@ -3,8 +3,11 @@
 **Version:** Oct 17, 2026, update 3 (replaces update 2 of Oct 11). Update 3
 adds the ChatGPT sheet-2 batch accepted Oct 15–17 (fields, forest, castle
 yard, open forge, farmer, herder, mercenary, all 10 weapon and resource icons),
-the mine size and the Phase B icon-size change. Still to come: castles, town,
-lumber mill, blacksmith, quarry.
+the mine size and the Phase B icon-size change. **Revised Oct 18:** you
+reviewed everything not marked ready and approved all the canon art as is
+(castles, town, industry, laborers, troops, siege ram); only the castle yard
+ground was rejected. Left: green-screen copies of the 9 canon buildings and
+one new yard tile.
 **What this is:** every art key in the game's manifest, with its status and
 where the art lives. Checked against the live game file on GitHub
 (`aldermarch-single-file/aldermarch-game.html`): **171 manifest keys** (the
@@ -175,8 +178,9 @@ the four seats. These are placeholders, so nothing to fix now — but the sheet 
 prompt (`art/CHATGPT_PROMPTS.md`) now asks for **no flags or banners on any
 building**.
 
-Still missing for the map: green-screen copies of the 5 canon castle tiers, town, lumber mill, blacksmith,
-quarry. Everything else that was listed here came in the sheet-2 batch below.
+Still missing for the map: green-screen copies of the 9 approved canon
+buildings (5 castle tiers, town, lumber mill, blacksmith, quarry) and the castle
+yard ground. Everything else that was listed here came in the sheet-2 batch below.
 
 ## Sheet-2 batch (ChatGPT, Oct 15–17) — what was accepted
 
@@ -256,7 +260,7 @@ are reference only.
 | overhead.tile.forest | ✅ HAVE | `art/review-s2/forest-floor.png` (sheet-2 batch). |
 | overhead.tile.mountain | ✅ HAVE | Plain lawn under `overhead.sprite.mountain` (sheet 1 mountains are standing sprites). |
 | overhead.tile.water | ⏸ DEFERRED | |
-| overhead.tile.yard | ❌ MISSING | Not in the canon set. Check whether the castle-yard sprite (now accepted) already covers it before making one. |
+| overhead.tile.yard | ❌ REDO | Work-yard ground under the open-air forge on the labor screen (`overheadGroundArt("yard")`, laid 3x3). The castle-yard sprite does not cover it. Today's pixel tile was rejected Oct 18. Prompt in `CHATGPT_PROMPTS.md`. |
 
 ## Roads (16 keys) — done
 
@@ -281,14 +285,14 @@ plain SVG lines in `CountyWalls`.
 | Key | Status | Notes |
 |---|---|---|
 | castle.{woodenPalisade, motteAndBailey, normanKeep, stoneCastle, royalCastle} | ✅ HAVE | The `4pjSa` file was a duplicate of the Norman keep. |
-| overhead.castle.* (5) | 🎨 DESIGNED, needs green-screen copy | **The 5 tiers are done as designs**: the canon set (Sep 5, `art/_canon/castle-1..5-*.jpg`), same style family as the references. They can't be used as-is: each sits on its own grass slab on dark navy, and auto-cutting (`slabcut` + `unslab`, Oct 18) ate the grey stone and the motte's mound (5.8–11% holes; `art/_preview/canon-castles-autocut.png`). Fix: ChatGPT redraws each canon castle as the same castle on solid #00FF00, no slab, no flags — a copy, not a new design. |
+| overhead.castle.* (5) | 🎨 APPROVED (Oct 18), needs green-screen copy | **The 5 tiers are done as designs**: the canon set (Sep 5, `art/_canon/castle-1..5-*.jpg`), same style family as the references. They can't be used as-is: each sits on its own grass slab on dark navy, and auto-cutting (`slabcut` + `unslab`, Oct 18) ate the grey stone and the motte's mound (5.8–11% holes; `art/_preview/canon-castles-autocut.png`). Fix: ChatGPT redraws each canon castle as the same castle on solid #00FF00, no slab, no flags — a copy, not a new design. |
 | overhead.castle.flag.0–3 | ✅ HAVE | `art/flag/flag-{crimson,azure,gold,sable}.png`, cut from the banner-bearers (Oct 7). Also drawn on player caravans; raise it above the canopy in Phase B. |
 
 ## Town (1 key)
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.town | ❌ MISSING (sheet 2) | Village cluster (decided Oct 7). Not in the Oct 15 batch; `house-thatch` stands in, canon `village-cluster` is the reference. |
+| overhead.town | 🎨 APPROVED (Oct 18), needs green-screen copy | Canon `village-cluster` is the town. Same fix as the castles. `house-thatch` stands in. |
 
 ## Industry (8 `industry.*` UNREAD + 4 overhead + open forge)
 
@@ -297,7 +301,7 @@ plain SVG lines in `CountyWalls`.
 | industry.{lumberMill, blacksmith, quarry}.idle / .working | UNREAD | Moot: the map draws `overhead.industry.*`, one image each — no idle/working pair needed. |
 | industry.mine.idle / .working | UNREAD | |
 | overhead.industry.mine | ✅ HAVE | `art/buildings/building-mine.png` (green pack, Oct 11). **Drawn 0.85 tiles wide** (decided Oct 13; 1.25 looked too big). Re-check beside the sheet-2 buildings when they come. |
-| overhead.industry.{blacksmith, quarry, lumberMill} | ❌ MISSING (sheet 2) | Not in the Oct 15 batch. Barn and blue house stand in; canon versions in `art/_canon/` are the content reference. |
+| overhead.industry.{blacksmith, quarry, lumberMill} | 🎨 APPROVED (Oct 18), needs green-screen copy | Canon `industry-{blacksmith, quarry, lumbermill}.jpg`. Same fix as the castles. |
 
 ## Fields (6 `field.*` UNREAD + 6 overhead used)
 
@@ -320,8 +324,8 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 
 | Key | Status | Notes |
 |---|---|---|
-| unit.militia, unit.archers, unit.knights | ⚠️ CHECK | Canon files in `art/_canon/unit-*.jpg`. Check at 28 px cropped to the figure (the new roster size, Phase B). |
-| unit.crossbowmen, unit.swordsmen, unit.macemen, unit.pikemen | ⚠️ NEW KEYS | The game has 8 troop kinds, not 4. Images exist (crossbow, swordsman, maceman, pikeman); add keys in Phase B. |
+| unit.militia, unit.archers, unit.knights | ✅ HAVE | Canon `art/_canon/unit-*.jpg`, approved Oct 18. Phase B crops to the figure at 28 px. Knights: the plate-with-sword version. |
+| unit.crossbowmen, unit.swordsmen, unit.macemen, unit.pikemen | ✅ HAVE, keys needed | Canon art approved Oct 18. Add the keys in Phase B (8 troop kinds, not 4). |
 | unit.mercenaries | ✅ HAVE | `art/review-s2/mercenary.png` (sheet-2 batch). |
 | unit.militia.knight, unit.knights.knight | 🚫 REMOVE | Faction overrides with no separate art; the base key is used instead. |
 | *(siege ram image)* | — | No troop kind uses it. Kept for later. |
@@ -363,7 +367,7 @@ the manifest (Lessons, sweep item 4). Decide: add art, or drop those states.
 | Key | Status | Notes |
 |---|---|---|
 | overhead.sprite.laborer-{farmer, herder} | ✅ HAVE | `art/review-s2/laborer-{farmer, herder}.png` (sheet-2 batch; farmer redone Oct 17). |
-| overhead.sprite.laborer-{woodcutter, miner, blacksmith} | ⚠️ CHECK | Canon files in `art/_canon/labor-*.jpg`. Check at 28 px beside the new farmer and herder, then accept. |
+| overhead.sprite.laborer-{woodcutter, miner, blacksmith} | ✅ HAVE | Canon `art/_canon/labor-*.jpg`, approved Oct 18. Phase B crops to the figure. |
 | overhead.sprite.laborer-idle | ✅ HAVE | `labor_unemployed.png` maps here. |
 | *(new)* laborer-builder | ✅ HAVE, key needed | `labor_builder.png` is a new role (castle building). Add a key in Phase B. |
 | overhead.sprite.cow | ✅ HAVE | `art/props/prop-cow.png`. (`sprite.cow` is UNREAD.) |
@@ -398,25 +402,21 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ---
 
-## Scorecard (update 3)
+## Scorecard (update 3, revised Oct 18)
 
-The Art Book (`art/ART_BOOK.pdf`, 112 pages) has a page per asset: **87
-assets, 51 ready**. `art/ART_TODO.pdf` (28 pages) is the slim handoff for
-ChatGPT: the 26 still to do, plus the rules page.
+The Art Book (`art/ART_BOOK.pdf`) has a page per asset: **87 assets, 58
+ready**. `art/ART_TODO.pdf` (12 pages) is the ChatGPT handoff: the 10 left.
 
-- **Done:** roads (16), border wall, lawn, mountains, all six field states
-  (ripe, green, sown, fallow, parched, pasture) + barren, forest floor + forest,
-  castle yard, open forge, mine (0.85 tiles), soldier + 4 bearers, wagon,
-  banners (4), castle flags (4), props (5) + cow + ore cart, farmer, herder,
-  mercenary, all weapon icons (sword, bow, crossbow, mace, pike, knight helm),
-  all six resource icons.
-- **Still to make (ChatGPT):** green-screen copies of the 5 canon castle tiers
-  (designs done Sep 5), then town, lumber mill, blacksmith, quarry. Then the castle-yard ground tile if the sprite doesn't cover it.
-- **Canon, to check at 28 px and accept:** 7 troop icons (militia, archers,
-  knights, crossbow, sword, mace, pike), woodcutter, miner, blacksmith, idle and
-  builder laborers (`art/_canon/`).
-- **Open:** lawn colour-match toward the reference (see the sheet-2 section).
-- **Not started:** crests, mercenary offer (both UNREAD keys today).
+- **Done:** everything else, including all canon laborers and troops
+  (approved Oct 18).
+- **Approved designs, need green-screen copies (ChatGPT):** 5 castle tiers,
+  town, lumber mill, blacksmith, quarry. One prompt for all nine in
+  `CHATGPT_PROMPTS.md`.
+- **New art (ChatGPT):** castle yard ground (the forge's work yard).
+- **Open:** lawn colour-match toward the reference.
+- **Code only (Phase B):** keys for parched, border wall, decoration, builder,
+  crossbow/sword/mace/pike troops.
+- **Not started:** crests, mercenary offer (both unread keys today).
 - **Being removed:** 5 chokepoint keys.
 
 ## Decisions only you can make

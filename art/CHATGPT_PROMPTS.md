@@ -44,17 +44,34 @@ What each tile is for (Claude's side, not part of the prompt):
 | 5 | `overhead.tile.forest` / `overhead.sprite.forest`, light woodland = decoration, hills = spare, `overhead.town` (village), town centre = spare |
 
 
-## Castle tiers — green-screen copies of the canon castles (Oct 18)
+## Green-screen copies of the 9 approved canon buildings (Oct 18)
 
-Attach the five canon castles (`art/_canon/castle-1..5-*.jpg`), then:
+Attach the canon images from `art/_canon/`: castle-1..5, village-cluster,
+industry-lumbermill, industry-blacksmith, industry-quarry. Then:
 
 ```
-These five castles are already approved designs. Redraw each one as the SAME castle — same shape, towers, walls, materials, colours and camera angle — with only these changes:
+These nine buildings are already approved designs. Redraw each one as the SAME building — same shape, parts, materials, colours and camera angle — with only these changes:
 
-1. Remove the square grass tile/slab it sits on, and its soil edges. The castle stands directly on a SOLID flat #00FF00 green background. Keep only a thin strip of ground right at the foot of the walls.
-2. Tier 2 (motte and bailey): keep the earth mound — it is part of the castle — but no square slab under it.
-3. No flags, banners or pennants anywhere.
-4. Do not redesign, add or remove buildings. This is a copy on a new background, not a new castle.
+1. Remove the square grass tile/slab it sits on, and its soil edges. The building stands directly on a SOLID flat #00FF00 green background. Keep only a thin strip of ground right at its foot.
+2. Motte and bailey: keep the earth mound — it is part of the castle. Quarry: keep the pit and its rock rim — that IS the quarry.
+3. No flags, banners or pennants anywhere. No people or animals.
+4. Do not redesign, add or remove anything. This is a copy on a new background, not a new design.
 
-Deliver five separate files: castle-1-palisade.png, castle-2-motte-bailey.png, castle-3-norman-keep.png, castle-4-stone.png, castle-5-royal.png. Do not clean up the green background.
+Deliver nine separate files: castle-1-palisade.png, castle-2-motte-bailey.png, castle-3-norman-keep.png, castle-4-stone.png, castle-5-royal.png, town.png, lumber-mill.png, blacksmith.png, quarry.png. Do not clean up the green background.
+```
+
+## Castle yard ground — new tile (Oct 18)
+
+Attach sheet 1 (for the slab format) and the approved fallow and sown tiles
+(for the colours). Then:
+
+```
+Make one ground tile: the packed-earth work yard of a village forge.
+
+- Trampled, hard-packed brown earth with a few flat stones, scattered ash and cinders, and thin worn patches of grass at the edges.
+- Flat — nothing standing on it: no anvil, tools, barrels, people or buildings. The game places those on top.
+- Same raised slab as the attached tiles: diamond about 1.55 wide to 1 tall, soil sides, on the same dark background. Same light and colours as the attached fallow and sown tiles, not the bright lime grass.
+- It is laid in a 3x3 block, so no single feature in the middle and no strong pattern that would repeat visibly.
+
+Deliver as castle-yard-ground.png.
 ```
