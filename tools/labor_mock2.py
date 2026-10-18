@@ -68,22 +68,34 @@ DISTINCT = {'Mine': A + 'review-s2/parched.png', 'TOWN': TS + 'flagstone.png',
             'Castle': A + 'review-s2/sown.png', 'Forge': TS + 'tilled.png'}
 
 
-def fill(out, distinct=False):
+# Canon industry on its own slab (cut for mock-ups only; the real art is the
+# green-screen copy). Drawn as the whole plot.
+WHOLE = {'Lumber': 'art/_preview/standins/lumbermill-slab.png',
+         'Quarry': 'art/_preview/standins/quarry-slab.png'}
+LAYOUT_MINE = {(-4, 6): 'Grain', (0, 6): 'Pasture', (4, 6): 'Mine',
+               (-4, 12): 'Repair', (0, 12): 'TOWN', (4, 12): 'Lumber',
+               (-4, 18): 'Castle', (0, 18): 'Forge', (4, 18): 'forest1'}
+LAYOUT_QUARRY = dict(LAYOUT_MINE)
+LAYOUT_QUARRY[(4, 6)] = 'Quarry'
+COUNTS.update({'Lumber': 0, 'Quarry': 0})
+
+
+def fill(out, distinct=False, spots=None):
     FW, FH = PW - 40, 1080
     LIFT = round(0.22 * H) if distinct else 0
     big = Image.new('RGBA', (FW + 4 * W, FH + 6 * H), (0, 0, 0, 0))
     ox, oy = big.width / 2, 2 * H + FH / 2 - 13 * H / 2 + 20
     # job layout on screen: 3 columns (u = c - r) x 3 rows (v = c + r)
-    spots = {(-4, 6): 'Grain', (0, 6): 'Pasture', (4, 6): 'Mine',
-             (-4, 12): 'Repair', (0, 12): 'TOWN', (4, 12): 'Forge',
-             (-4, 18): 'Castle', (0, 18): 'forest1', (4, 18): 'forest2'}
+    spots = spots or {(-4, 6): 'Grain', (0, 6): 'Pasture', (4, 6): 'Mine',
+                      (-4, 12): 'Repair', (0, 12): 'TOWN', (4, 12): 'Forge',
+                      (-4, 18): 'Castle', (0, 18): 'forest1', (4, 18): 'forest2'}
     plot_cells = {}
     centres = {}
     for (u, v), name in spots.items():
         c0, r0 = (u + v) // 2, (v - u) // 2
         for dc in range(2):
             for dr in range(2):
-                plot_cells[(c0 + dc, r0 + dr)] = PLOTS[name][2]
+                plot_cells[(c0 + dc, r0 + dr)] = PLOTS[name][2] if name in PLOTS else LAWN[0]
         centres[name] = (ox + u * W / 2, oy + (v + 1) * H / 2)
     cells = sorted({(c, r) for c in range(-6, 30) for r in range(-10, 26)}, key=lambda k: (k[0] + k[1], k[0]))
     for c, r in cells:
@@ -98,8 +110,15 @@ def fill(out, distinct=False):
         if distinct:
             (u, v) = next(k for k, n in spots.items() if n == name)
             c0, r0 = (u + v) // 2, (v - u) // 2
-            g = DISTINCT.get(name, PLOTS[name][2])
             cx, cy = centres[name]
+            if name in WHOLE:
+                sh = Image.new('RGBA', big.size, (0, 0, 0, 0))
+                ImageDraw.Draw(sh).polygon([(cx, cy - 0.5 * H + 8), (cx + W + 8, cy + 0.5 * H + 8), (cx, cy + 1.5 * H + 14), (cx - W - 8, cy + 0.5 * H + 8)], fill=(0, 0, 0, 120))
+                big.alpha_composite(sh.filter(ImageFilter.GaussianBlur(8)))
+                im = load(WHOLE[name], 2 * W + 6)
+                big.alpha_composite(im, (round(cx - im.width / 2), round(cy + 1.5 * H - LIFT + 0.10 * im.height - im.height)))
+                continue
+            g = DISTINCT.get(name, PLOTS[name][2])
             # soft shadow under the raised plot
             sh = Image.new('RGBA', big.size, (0, 0, 0, 0))
             ImageDraw.Draw(sh).polygon([(cx, cy - 0.5 * H + 8), (cx + W + 8, cy + 0.5 * H + 8), (cx, cy + 1.5 * H + 14), (cx - W - 8, cy + 0.5 * H + 8)], fill=(0, 0, 0, 120))
@@ -164,3 +183,6 @@ if __name__ == '__main__':
     cards(sys.argv[2])
     if len(sys.argv) > 3:
         fill(sys.argv[3], distinct=True)
+    if len(sys.argv) > 5:
+        fill(sys.argv[4], distinct=True, spots=LAYOUT_MINE)
+        fill(sys.argv[5], distinct=True, spots=LAYOUT_QUARRY)
