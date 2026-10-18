@@ -183,10 +183,11 @@ for k, name, d in [
     ('royalCastle', 'Royal castle', 'Tier 5: the largest castle.'),
 ]:
     add(S, name, ['overhead.castle.' + k],
-        [('stand-in (has flags)', ST + 'castle.png')], 'sheet2',
-        d + ' The castle on the county map, cut off its slab so it stands on the '
-        'lawn. The owner\'s seat flag is drawn on top by the game, so the art must '
-        'have no flags. All five tiers come in sheet 2 row 3.')
+        [], 'canon',
+        d + ' Design done: the canon tier (Sep 5) is the accepted castle. It can\'t go in '
+        'as-is: it sits on its own grass slab on a dark background, and cutting it out '
+        'automatically eats the grey stone (tested Oct 18). Needs ONE redraw of this exact '
+        'castle on solid green, no slab, no flags. The game draws the owner\'s flag on top.')
 for i, c in enumerate(SEATS):
     add(S, 'Castle flag: ' + c, ['overhead.castle.flag.%d' % i],
         [(c, A + 'flag/flag-%s.png' % c)], 'have',

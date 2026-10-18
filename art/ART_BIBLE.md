@@ -175,7 +175,7 @@ the four seats. These are placeholders, so nothing to fix now — but the sheet 
 prompt (`art/CHATGPT_PROMPTS.md`) now asks for **no flags or banners on any
 building**.
 
-Still missing for the map: the 5 castle tiers, town, lumber mill, blacksmith,
+Still missing for the map: green-screen copies of the 5 canon castle tiers, town, lumber mill, blacksmith,
 quarry. Everything else that was listed here came in the sheet-2 batch below.
 
 ## Sheet-2 batch (ChatGPT, Oct 15–17) — what was accepted
@@ -281,7 +281,7 @@ plain SVG lines in `CountyWalls`.
 | Key | Status | Notes |
 |---|---|---|
 | castle.{woodenPalisade, motteAndBailey, normanKeep, stoneCastle, royalCastle} | ✅ HAVE | The `4pjSa` file was a duplicate of the Norman keep. |
-| overhead.castle.* (5) | ❌ MISSING (sheet 2) | Not in the Oct 15 batch. Ask for all 5 tiers on solid green (no slab, no flags); canon tiers in `art/_canon/` show what each should be. Sheet 1's castle stands in. |
+| overhead.castle.* (5) | 🎨 DESIGNED, needs green-screen copy | **The 5 tiers are done as designs**: the canon set (Sep 5, `art/_canon/castle-1..5-*.jpg`), same style family as the references. They can't be used as-is: each sits on its own grass slab on dark navy, and auto-cutting (`slabcut` + `unslab`, Oct 18) ate the grey stone and the motte's mound (5.8–11% holes; `art/_preview/canon-castles-autocut.png`). Fix: ChatGPT redraws each canon castle as the same castle on solid #00FF00, no slab, no flags — a copy, not a new design. |
 | overhead.castle.flag.0–3 | ✅ HAVE | `art/flag/flag-{crimson,azure,gold,sable}.png`, cut from the banner-bearers (Oct 7). Also drawn on player caravans; raise it above the canopy in Phase B. |
 
 ## Town (1 key)
@@ -410,8 +410,8 @@ ChatGPT: the 26 still to do, plus the rules page.
   banners (4), castle flags (4), props (5) + cow + ore cart, farmer, herder,
   mercenary, all weapon icons (sword, bow, crossbow, mace, pike, knight helm),
   all six resource icons.
-- **Still to make (ChatGPT):** 5 castle tiers, town, lumber mill, blacksmith,
-  quarry. Then the castle-yard ground tile if the sprite doesn't cover it.
+- **Still to make (ChatGPT):** green-screen copies of the 5 canon castle tiers
+  (designs done Sep 5), then town, lumber mill, blacksmith, quarry. Then the castle-yard ground tile if the sprite doesn't cover it.
 - **Canon, to check at 28 px and accept:** 7 troop icons (militia, archers,
   knights, crossbow, sword, mace, pike), woodcutter, miner, blacksmith, idle and
   builder laborers (`art/_canon/`).

@@ -42,3 +42,19 @@ What each tile is for (Claude's side, not part of the prompt):
 | 3 | `overhead.castle.*` (5 tiers, cut off their slab) |
 | 4 | `overhead.industry.{lumberMill, blacksmith, quarry, mine}`, log pile = decoration |
 | 5 | `overhead.tile.forest` / `overhead.sprite.forest`, light woodland = decoration, hills = spare, `overhead.town` (village), town centre = spare |
+
+
+## Castle tiers — green-screen copies of the canon castles (Oct 18)
+
+Attach the five canon castles (`art/_canon/castle-1..5-*.jpg`), then:
+
+```
+These five castles are already approved designs. Redraw each one as the SAME castle — same shape, towers, walls, materials, colours and camera angle — with only these changes:
+
+1. Remove the square grass tile/slab it sits on, and its soil edges. The castle stands directly on a SOLID flat #00FF00 green background. Keep only a thin strip of ground right at the foot of the walls.
+2. Tier 2 (motte and bailey): keep the earth mound — it is part of the castle — but no square slab under it.
+3. No flags, banners or pennants anywhere.
+4. Do not redesign, add or remove buildings. This is a copy on a new background, not a new castle.
+
+Deliver five separate files: castle-1-palisade.png, castle-2-motte-bailey.png, castle-3-norman-keep.png, castle-4-stone.png, castle-5-royal.png. Do not clean up the green background.
+```
