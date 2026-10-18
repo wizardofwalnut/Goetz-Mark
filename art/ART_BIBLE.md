@@ -404,19 +404,26 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ## Labor screen (decided Oct 18)
 
-- **One painted village per county type**, after the LOTR2 advanced labor panel
-  (one area per job) and Chris's concepts (`art/_reference/labor-concepts/`).
-  Replaces the tile-built plot grid. Mock-ups that led here:
+- **One painted village per county type, seen from overhead like the LOTR2
+  labor panel** (Chris chose overhead over the map's angled view, Oct 18).
+  References: `art/_reference/labor-concepts/` (LOTR2 screenshots + concepts).
+  Replaces the tile-built plot grid; earlier mock-ups in
   `art/_preview/labor-screen-*.png`.
+- Layout from LOTR2: mine/quarry, grain, cattle across the top; forge and
+  lumber on the left; village square (idle) in the middle; castle on the right;
+  repair at the bottom.
 - The game draws on top: worker crowds that grow with the count **plus the
-  exact number**; a **red glow** under a job short of workers (grain, cattle),
-  a **blue glow** under the idle crowd; the castle tier sprite on the castle
-  site. The painting has no people and no castle.
-- Variants: base (mine) + quarry for the tutorial; empty-lot / no-lumber /
-  no-forge edits later for maps that need them (5 images cover all 12
-  combinations). Prompts in `CHATGPT_PROMPTS.md`.
-- Areas must be clearly separate (own ground, paths, fences) — Chris, Oct 18:
-  "easily distinctive and not blur together".
+  exact number on a label**; a **red glow** under a job short of workers
+  (grain, cattle); a **blue glow** under the idle crowd. The painting has no
+  people, labels or castle.
+- Castle tiers: 5 overhead edits of the castle site (the angled castle sprites
+  don't match an overhead view). The game cuts the castle area from the right
+  one.
+- Images: mine county + quarry county (enough for the tutorial) + 5 castle
+  edits. Empty-lot / no-lumber / no-forge edits later for maps that need them.
+  Prompts in `CHATGPT_PROMPTS.md`.
+- Areas must be clearly separate (own ground, paths, walls, fences) — Chris,
+  Oct 18: "easily distinctive and not blur together".
 
 ## Scorecard (update 3, revised Oct 18)
 

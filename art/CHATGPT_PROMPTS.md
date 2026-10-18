@@ -96,45 +96,44 @@ Deliver as mine.png. Do not clean up the green background.
 ```
 
 
-## Labor screen — painted backdrop (Oct 18)
+## Labor screen — painted backdrop (Oct 18, revised: overhead camera)
 
-Decided Oct 18: the labor screen is ONE painted village scene per county type,
-in the spirit of the LOTR2 advanced labor panel (one area per job) and Chris's
-concept 2 (`art/_reference/labor-concepts/`). The game draws on top: worker
-crowds (grow with the count) + the exact number, a red glow under a job that is
-short of workers, a blue glow under the idle crowd, and the castle tier sprite.
-So the painting must have NO people and NO castle.
+Decided Oct 18: the labor screen is ONE painted village per county type, seen
+from overhead like the LOTR2 labor panel (screenshots in
+`art/_reference/labor-concepts/lotr2-labor-*.jpg`) — not the map's angled
+diamond view. Layout follows LOTR2: mine/quarry, grain and cattle across the
+top; forge and lumber on the left; idle peasants in the village square in the
+middle; castle on the right. The game draws on top: worker crowds + the exact
+number on a label, a red glow under a job short of workers, a blue glow under
+the idle crowd. So the painting has NO people, NO labels and NO castle.
 
-Variants: paint the base once (mine county), then ask for edits of the SAME
-image: (b) quarry instead of mine; later, for maps that need them, (c) the
-mine/quarry lot empty, (d) no lumber mill, (e) no forge. The game cuts each lot
-from the right variant, so 12 county combinations need only these 5 images.
-The tutorial's four counties need only (a) and (b): all have a lumber mill and
-forge; Hollowmere and Marlbrook have a mine, Greyfen and Ravensgate a quarry.
+Images needed: (a) mine county, (b) quarry county — enough for the tutorial
+(Hollowmere, Marlbrook: mine; Greyfen, Ravensgate: quarry; all have lumber and
+forge). (c) 5 castle-site edits, one per castle tier. Later, for maps that
+need them: the mine/quarry lot empty, no lumber mill, no forge.
 
-Attach: concept 2, the Hollowmere target-look scene, and the canon village
-cluster, lumber mill, blacksmith and mine. Then:
+Attach: the four LOTR2 screenshots, concept 6 (`concept-6-topdown-framed.jpg`),
+and the Hollowmere target-look scene (for colours and materials). Then:
 
 ```
-Paint the labor screen for a medieval county-management game: one village seen from above at the same 3/4 isometric camera angle and in the same warm painted diorama style as the attached reference scene. Portrait format for a phone, 2:3 (taller than wide). Fill the whole frame with land — no empty background or floating platform.
+Paint the labor screen for a medieval county-management game. It is a fresh painting in the warm, detailed, painted style and colours of the attached Hollowmere scene, laid out like the attached Lords of the Realm II labor screens: one county village seen from almost directly overhead (a high, steep view — rooftops and the tops of walls visible, only a little of building sides). Portrait format for a phone, 2:3 (taller than wide). Fill the whole frame with land, edge to edge — no border, no frame, no floating platform.
 
-Divide it into eight clearly separate work areas, each with its own ground and edged by dirt paths, low fences or hedges so no two areas blur together:
-1. Grain field (wheat, lower left).
-2. Cattle pasture with a wooden fence (upper left).
-3. Iron mine: a LOW grey rocky outcrop with a timber tunnel mouth, rails and ore carts — no tall tower (upper right).
-4. Lumber mill at the edge of a stand of trees, with log piles (right).
-5. Open-air forge with an anvil and glowing hearth (centre right).
-6. Repair yard: bare earth with stacked timber and a sawhorse (lower right).
-7. Castle building site: an EMPTY, flat, cleared square of packed earth with a few stakes and building stones at its edges — no castle on it (lower centre).
-8. Village: a cluster of 5-6 timber-framed houses around a small open square (centre).
+Eight clearly separate work areas, each with its own ground and edged by dirt paths, low stone walls, fences or hedges, so no two areas blur together:
+- Top row, left to right: (1) iron mine — a low grey rock outcrop with a timber tunnel mouth, ore carts and spoil; (2) grain field — golden wheat in rows; (3) cattle pasture — green grass inside a wooden fence.
+- Middle: (4) open-air forge on the left — anvil, glowing hearth, under a small roof; (5) the village in the centre — four or five thatched and timber houses around an open earth square; (6) castle site on the right — an EMPTY, flat, cleared square of packed earth with stakes and a few building stones at its edges, about a third of the picture's width and height. No castle on it.
+- Bottom: (7) lumber mill on the left — a sawmill shed at the edge of trees with log piles; (8) repair yard in the middle — bare earth with stacked timber and a sawhorse.
 
-Each area must keep a clear, empty patch of ground big enough for a crowd of about 12 small figures to stand on.
-No people, no animals, no flags, no text or labels, no UI.
+Every area must keep a clear, empty patch of ground big enough for a crowd of about 12 small figures; the village square needs the biggest one.
+No people, no animals, no flags, no text, no labels, no numbers, no UI.
 Deliver as labor-mine.png.
 ```
 
 Then, in the same chat:
 
 ```
-Make labor-quarry.png: the SAME image, identical in every other way, except replace the iron mine (area 3) with a stone quarry — a stepped grey stone pit with cut blocks and a small wooden crane, the same size and position as the mine.
+Make labor-quarry.png: the SAME image, identical in every other way, except replace the iron mine (area 1) with a stone quarry — a stepped grey stone pit with cut blocks and a small wooden crane, same size and position.
+```
+
+```
+Make five more copies of labor-mine.png, identical except for the castle site (area 6), which now has a castle on it, seen from the same overhead view and filling the site: castle-1 a timber palisade with a hut inside; castle-2 a wooden tower on an earth mound inside a palisade (motte and bailey); castle-3 a square stone keep; castle-4 a stone castle with curtain walls and round towers; castle-5 a large royal castle with double walls and a gatehouse. Match the attached canon castles' designs. No flags. Deliver labor-castle-1.png to labor-castle-5.png.
 ```
