@@ -34,6 +34,7 @@ GI = A + 'ground-iso/'
 # status -> (label, colour)
 STATUS = {
     'have': ('READY', '#3f8f4f'),
+    'approved': ('APPROVED', '#2f8f8f'),
     'standin': ('STAND-IN', '#b07a1e'),
     'sheet2': ('SHEET 2', '#2f6fd0'),
     'canon': ('CANON', '#7a4fb0'),
@@ -113,9 +114,10 @@ add(S, 'Water', ['overhead.tile.water'],
     'Water is a map-border element only, not a playable terrain (standing '
     'decision, LOTR2 precedent). Deferred: sheet 1 has a water tile if it is '
     'ever wanted.')
-add(S, 'Castle yard ground', ['overhead.tile.yard'], [], 'missing',
-    'Ground tile for the castle yard on the labor screen. Not made yet; '
-    'check whether the castle-yard sprite (sheet 2 row 2) covers it.')
+add(S, 'Castle yard ground', ['overhead.tile.yard'], [], 'redo',
+    'Work-yard ground under the open-air forge on the labor screen, laid 3x3 '
+    '(the castle-yard sprite does not cover it). Today it is an old pixel tile, '
+    'rejected Oct 18. Needs a packed-earth yard slab; prompt in CHATGPT_PROMPTS.md.')
 
 # ---------------------------------------------------------------- fields
 S = 'Fields'
@@ -183,8 +185,8 @@ for k, name, d in [
     ('royalCastle', 'Royal castle', 'Tier 5: the largest castle.'),
 ]:
     add(S, name, ['overhead.castle.' + k],
-        [], 'canon',
-        d + ' Design done: the canon tier (Sep 5) is the accepted castle. It can\'t go in '
+        [], 'approved',
+        d + ' Design approved Oct 18: the canon tier (Sep 5) is the castle. It can\'t go in '
         'as-is: it sits on its own grass slab on a dark background, and cutting it out '
         'automatically eats the grey stone (tested Oct 18). Needs ONE redraw of this exact '
         'castle on solid green, no slab, no flags. The game draws the owner\'s flag on top.')
@@ -194,9 +196,9 @@ for i, c in enumerate(SEATS):
         'The owner\'s flag, drawn over their castle and on their caravans. Cut '
         'from the banner-bearer art. Phase B: raise it above the wagon canopy.')
 add(S, 'Town', ['overhead.town'],
-    [('stand-in', ST + 'house-thatch.png')], 'sheet2',
+    [('stand-in', ST + 'house-thatch.png')], 'approved',
     'The county\'s town: a village cluster of several houses (decided Oct 7). '
-    'Sheet 2 row 5.')
+    'Canon design approved Oct 18; needs a green-screen copy (no slab, no flags).')
 
 # ---------------------------------------------------------------- industry
 S = 'Industry'
@@ -206,14 +208,14 @@ add(S, 'Mine', ['overhead.industry.mine'],
     '(decided Oct 13; it was 1.25 and looked too big). Keep it unless the sheet-2 '
     'buildings make it look out of style.')
 add(S, 'Lumber mill', ['overhead.industry.lumberMill'],
-    [('stand-in: barn', ST + 'barn.png')], 'sheet2',
-    'Where woodcutters turn timber into wood. Sheet 2 row 4.')
+    [('stand-in: barn', ST + 'barn.png')], 'approved',
+    'Where woodcutters turn timber into wood. Canon design approved Oct 18; needs a green-screen copy.')
 add(S, 'Blacksmith', ['overhead.industry.blacksmith'],
-    [('stand-in: house', ST + 'house-blue.png')], 'sheet2',
-    'Forge that turns ore into weapons. Sheet 2 row 4.')
+    [('stand-in: house', ST + 'house-blue.png')], 'approved',
+    'Forge that turns ore into weapons. Canon design approved Oct 18; needs a green-screen copy.')
 add(S, 'Quarry', ['overhead.industry.quarry'],
-    [('stand-in: rocks', ST + 'rocks.png')], 'sheet2',
-    'Stone pit. Its floor uses the barren-field tile. Sheet 2 row 4.')
+    [('stand-in: rocks', ST + 'rocks.png')], 'approved',
+    'Stone pit. Its floor uses the barren-field tile. Canon design approved Oct 18; needs a green-screen copy.')
 add(S, 'Open-air forge', ['overhead.sprite.forge-open'], [('sheet 2', R2 + 'open-forge.png')], 'have',
     'Canopy, anvil and hearth with no walls, on the labor screen. Sheet-2 batch, accepted Oct 15.')
 add(S, 'Castle yard', ['overhead.sprite.castle-yard'], [('sheet 2', R2 + 'castle-yard.png')], 'have',
@@ -264,12 +266,12 @@ for job, d in [
                 'phone size.' if job == 'farmer' else
                 'Hood, apron and shepherd\'s crook. Sheet-2 batch, accepted Oct 15.'))
         continue
-    add(S, 'Laborer: ' + job, ['overhead.sprite.laborer-' + job], [], 'canon',
-        d + ' Labor-screen figure (28 px). ' + ('The canon diorama version is shown; check it '
-        'at 28 px, then accept it.' if job not in ('farmer', 'herder') else 'No canon diorama '
-        'version was among the images found on your computer (Oct 12); the old figure is shown large.'))
+    add(S, 'Laborer: ' + job, ['overhead.sprite.laborer-' + job], [], 'have',
+        d + ' Labor-screen figure (28 px). Canon version approved Oct 18; Phase B crops it '
+        'to the figure (off its grass tile).')
 add(S, 'Laborer: builder', [], [], 'nokey',
-    'New role for castle building (labor_builder in the canon set). Needs a key in Phase B.')
+    'New role for castle building (labor_builder in the canon set). Art approved Oct 18; '
+    'needs a key in Phase B.')
 
 # ---------------------------------------------------------------- units
 S = 'Troops (roster icons)'
@@ -278,19 +280,19 @@ for k, d in [('militia', 'Militia.'), ('archers', 'Archers.'), ('knights', 'Moun
               'It has no grass base, unlike the canon troops; that is fine because Phase B crops '
               'every roster troop to the figure.')]:
     add(S, k.capitalize(), ['unit.' + k], [('sheet 2', R2 + 'mercenary.png')] if k == 'mercenaries' else [],
-        'canon' if k != 'mercenaries' else 'have',
+        'have',
         d + ' Icon in the army roster panel: 18 px today, raised to 28 px and cropped to the '
         'figure in Phase B (decided Oct 15).')
 for k in ['crossbowmen', 'swordsmen', 'macemen', 'pikemen']:
     add(S, k.capitalize(), [], [], 'nokey',
-        'The game has 8 troop kinds, not 4. The image is in the canon set; add the '
+        'The game has 8 troop kinds, not 4. Canon art approved Oct 18; add the '
         'key unit.%s in Phase B.' % k)
 add(S, 'Knight overrides', ['unit.militia.knight', 'unit.knights.knight'],
     [('militia (what shows)', 'GAME:unit.militia'), ('knights (what shows)', 'GAME:unit.knights')], 'remove',
     'Faction overrides for the Knight faction. Both keys are marked pending with no file, '
     'so the game already shows the plain militia and knight icons (shown). Delete the two keys in Phase B.')
 add(S, 'Siege ram', [], [], 'nokey',
-    'In the canon set, but no troop kind uses it. Kept for later; no key.')
+    'In the canon set (approved Oct 18), but no troop kind uses it. Kept for later; no key.')
 
 # ---------------------------------------------------------------- banners & icons
 S = 'Banners'
@@ -653,7 +655,7 @@ def main(game, out, todo=False):
     c.setAuthor('Aldermarch')
     if todo:
         # handoff for an image AI: only what still needs art, no history or reference pages
-        keep = ('sheet2', 'canon', 'missing', 'redo', 'nokey', 'standin')
+        keep = ('sheet2', 'canon', 'missing', 'redo', 'standin', 'approved')
         CAT[:] = [e for e in CAT if e[4] in keep and e[0] != 'Spare and reference art' and e[1] != 'Water']   # water is deferred
         global MAXPX
         MAXPX = 300
@@ -710,6 +712,7 @@ def main(game, out, todo=False):
         'from the art embedded in the game file.',
         'The tag in the top corner says where each one stands: '
         '<font color="#3f8f4f"><b>READY</b></font> accepted; '
+        '<font color="#2f8f8f"><b>APPROVED</b></font> design approved, needs a green-screen copy; '
         '<font color="#b07a1e"><b>STAND-IN</b></font> a placeholder on the mock-ups; '
         '<font color="#2f6fd0"><b>SHEET 2</b></font> comes in the next ChatGPT sheet; '
         '<font color="#7a4fb0"><b>CANON</b></font> the Sep canon version exists (shown), not yet checked at game size; '
