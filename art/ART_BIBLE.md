@@ -402,6 +402,22 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ---
 
+## Labor screen (decided Oct 18)
+
+- **One painted village per county type**, after the LOTR2 advanced labor panel
+  (one area per job) and Chris's concepts (`art/_reference/labor-concepts/`).
+  Replaces the tile-built plot grid. Mock-ups that led here:
+  `art/_preview/labor-screen-*.png`.
+- The game draws on top: worker crowds that grow with the count **plus the
+  exact number**; a **red glow** under a job short of workers (grain, cattle),
+  a **blue glow** under the idle crowd; the castle tier sprite on the castle
+  site. The painting has no people and no castle.
+- Variants: base (mine) + quarry for the tutorial; empty-lot / no-lumber /
+  no-forge edits later for maps that need them (5 images cover all 12
+  combinations). Prompts in `CHATGPT_PROMPTS.md`.
+- Areas must be clearly separate (own ground, paths, fences) — Chris, Oct 18:
+  "easily distinctive and not blur together".
+
 ## Scorecard (update 3, revised Oct 18)
 
 The Art Book (`art/ART_BOOK.pdf`) has a page per asset: **87 assets, 58

@@ -94,3 +94,47 @@ Redraw the mine. Today's mine (attached, tall wooden winding tower on a mound) i
 
 Deliver as mine.png. Do not clean up the green background.
 ```
+
+
+## Labor screen — painted backdrop (Oct 18)
+
+Decided Oct 18: the labor screen is ONE painted village scene per county type,
+in the spirit of the LOTR2 advanced labor panel (one area per job) and Chris's
+concept 2 (`art/_reference/labor-concepts/`). The game draws on top: worker
+crowds (grow with the count) + the exact number, a red glow under a job that is
+short of workers, a blue glow under the idle crowd, and the castle tier sprite.
+So the painting must have NO people and NO castle.
+
+Variants: paint the base once (mine county), then ask for edits of the SAME
+image: (b) quarry instead of mine; later, for maps that need them, (c) the
+mine/quarry lot empty, (d) no lumber mill, (e) no forge. The game cuts each lot
+from the right variant, so 12 county combinations need only these 5 images.
+The tutorial's four counties need only (a) and (b): all have a lumber mill and
+forge; Hollowmere and Marlbrook have a mine, Greyfen and Ravensgate a quarry.
+
+Attach: concept 2, the Hollowmere target-look scene, and the canon village
+cluster, lumber mill, blacksmith and mine. Then:
+
+```
+Paint the labor screen for a medieval county-management game: one village seen from above at the same 3/4 isometric camera angle and in the same warm painted diorama style as the attached reference scene. Portrait format for a phone, 2:3 (taller than wide). Fill the whole frame with land — no empty background or floating platform.
+
+Divide it into eight clearly separate work areas, each with its own ground and edged by dirt paths, low fences or hedges so no two areas blur together:
+1. Grain field (wheat, lower left).
+2. Cattle pasture with a wooden fence (upper left).
+3. Iron mine: a LOW grey rocky outcrop with a timber tunnel mouth, rails and ore carts — no tall tower (upper right).
+4. Lumber mill at the edge of a stand of trees, with log piles (right).
+5. Open-air forge with an anvil and glowing hearth (centre right).
+6. Repair yard: bare earth with stacked timber and a sawhorse (lower right).
+7. Castle building site: an EMPTY, flat, cleared square of packed earth with a few stakes and building stones at its edges — no castle on it (lower centre).
+8. Village: a cluster of 5-6 timber-framed houses around a small open square (centre).
+
+Each area must keep a clear, empty patch of ground big enough for a crowd of about 12 small figures to stand on.
+No people, no animals, no flags, no text or labels, no UI.
+Deliver as labor-mine.png.
+```
+
+Then, in the same chat:
+
+```
+Make labor-quarry.png: the SAME image, identical in every other way, except replace the iron mine (area 3) with a stone quarry — a stepped grey stone pit with cut blocks and a small wooden crane, the same size and position as the mine.
+```
