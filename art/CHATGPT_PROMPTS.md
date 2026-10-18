@@ -139,3 +139,17 @@ Make labor-quarry.png: the SAME image, identical in every other way, except repl
 ```
 Make five more copies of labor-mine.png, identical except for the castle site (area 6), which now has a castle on it, seen from the same overhead view and filling the site: castle-1 a timber palisade with a hut inside; castle-2 a wooden tower on an earth mound inside a palisade (motte and bailey); castle-3 a square stone keep; castle-4 a stone castle with curtain walls and round towers; castle-5 a large royal castle with double walls and a gatehouse. Match the attached canon castles' designs. No flags. Deliver labor-castle-1.png to labor-castle-5.png.
 ```
+
+
+## Labor screen — follow-ups on the accepted grid backdrop (Oct 18)
+
+Attach `art/labor/labor-grid-chatgpt-1.png` (and, for the castles, the five
+canon castles). The accepted backdrop replaces the earlier walled prompt above.
+
+```
+Make labor-quarry.png: the SAME image, identical in every other way, except the mine compartment (second row, left): replace the rock outcrop, tunnel, rails and ore carts with a stone quarry — a stepped grey stone pit with cut blocks and a small wooden crane. Keep the same fence, the same size, and an open patch of grey ground at the front for workers to stand on. No people, no text.
+```
+
+```
+Make five copies of the attached image, identical in every way except the castle site (bottom row, right). In each, a castle stands on that site, seen from the same high overhead view, filling the fenced square but leaving a strip of open ground at the front for workers to stand on. Match the attached canon castles' designs: castle-1 a timber palisade with a hut inside; castle-2 a wooden tower on an earth mound inside a palisade; castle-3 a square stone keep; castle-4 a stone castle with curtain walls and round towers; castle-5 a large royal castle with double walls and a gatehouse. Keep the fence. No flags, no people, no text. Deliver labor-castle-1.png to labor-castle-5.png.
+```

@@ -404,32 +404,32 @@ central counties stone, outskirts dirt — not decided), audio.
 
 ## Labor screen (decided Oct 18)
 
-- **One painted village per county type, seen from overhead like the LOTR2
-  labor panel** (Chris chose overhead over the map's angled view, Oct 18).
-  References: `art/_reference/labor-concepts/` (LOTR2 screenshots + concepts).
-  Replaces the tile-built plot grid; earlier mock-ups in
-  `art/_preview/labor-screen-*.png`.
-- Layout from LOTR2: mine/quarry, grain, cattle across the top; forge and
-  lumber on the left; village square (idle) in the middle; castle on the right;
-  repair at the bottom.
-- The game draws on top: worker crowds that grow with the count **plus the
-  exact number on a label**; a **red glow** under a job short of workers
-  (grain, cattle); a **blue glow** under the idle crowd. The painting has no
-  people, labels or castle.
-- **Outer castle wall around the whole village** (Chris, Oct 18: the walled
-  concepts read most easily — `concept-4-topdown-walled.jpg`,
-  `concept-6-topdown-framed.jpg`). **Grid layout**: rectangular compartments
-  with straight paths, not a winding village (Chris preferred ChatGPT's grid
-  concepts over its organic layout and over Grok's, Oct 18). First round asks
-  ChatGPT for three grid variations to compare.
-- Castle tiers: 5 overhead edits of the castle site (the angled castle sprites
-  don't match an overhead view). The game cuts the castle area from the right
-  one.
-- Images: mine county + quarry county (enough for the tutorial) + 5 castle
-  edits. Empty-lot / no-lumber / no-forge edits later for maps that need them.
-  Prompts in `CHATGPT_PROMPTS.md`.
-- Areas must be clearly separate (own ground, paths, walls, fences) — Chris,
-  Oct 18: "easily distinctive and not blur together".
+**Accepted backdrop:** `art/labor/labor-grid-chatgpt-1.png` (ChatGPT, 1024x1536):
+a 2x4 grid of fenced compartments seen from overhead — Grain | Pasture,
+Mine | Lumber, Forge | Repair, Village (idle) | Castle site. Chris picked
+ChatGPT's grid over Grok's and over the organic-village layouts. The fences do
+the separating, so no outer castle wall. Mock-up with overlays:
+`art/_preview/labor-grid-overlay.png` (`tools/labor_overlay.py`, zones = the
+fenced boxes, which are also the tap areas).
+
+**Overlays the game draws (locked Oct 18):**
+- Worker crowd per job: 1 figure per 10 workers, max 12, on the open ground of
+  the compartment. **Figures 72 px tall on the 1024 px backdrop** (~24 CSS px
+  on the S10e) — enlarged from 50 at Chris's request.
+- Plate at the top of each compartment: job name + exact number. Red plate and
+  **red glow** when short of workers (grain, cattle); blue plate and **blue
+  glow** under the idle crowd in the village square; dark when empty.
+- Pasture: **two cows in the right-hand corner**, decorative (not tied to herd
+  size — Chris: six was too many).
+- Stand-ins: miner, woodcutter and idle figures borrow the farmer/herder
+  sprites until the canon figures are cut.
+
+**Still to make (ChatGPT, prompts in `CHATGPT_PROMPTS.md`):** the quarry
+version (mine compartment swapped) and the castle site with each of the 5
+tiers. Later, for maps that need them: empty-lot / no-lumber / no-forge edits.
+
+Open: the Grain plate shows only the shortfall (−23); proposed
+"Grain 90 (−23)" so the workers already there are visible too.
 
 ## Scorecard (update 3, revised Oct 18)
 
