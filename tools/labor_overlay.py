@@ -28,6 +28,9 @@ ZONES = {
     'Castle':  ((545, 1080, 1005, 1460), (775, 1270), 0, 0, 'farmer'),
 }
 FIG_H = 50
+COW_W = 74
+# cow spots in the pasture (backdrop px), kept clear of the herders in the middle
+COWS = [(640, 150), (900, 140), (610, 270), (930, 265), (700, 215), (860, 205)]
 
 
 def fig(kind):
@@ -71,6 +74,18 @@ def main(src, out):
             ImageDraw.Draw(sh).ellipse((x - 14, y - 4, x + 14, y + 5), fill=(0, 0, 0, 90))
             base.alpha_composite(sh)
             base.alpha_composite(im, (round(x - im.width / 2), round(y - im.height)))
+        if name == 'Pasture':
+            # the herd: the game draws one cow sprite per few head (as on the map)
+            cow = Image.open('art/props/prop-cow.png').convert('RGBA')
+            cow = cow.crop(cow.getbbox())
+            for i, (x, y) in enumerate(COWS):
+                c = cow.resize((COW_W, round(COW_W * cow.height / cow.width)), Image.LANCZOS)
+                if i % 2:
+                    c = c.transpose(Image.FLIP_LEFT_RIGHT)
+                sh = Image.new('RGBA', base.size, (0, 0, 0, 0))
+                ImageDraw.Draw(sh).ellipse((x - COW_W / 2 + 6, y - 6, x + COW_W / 2 - 6, y + 6), fill=(0, 0, 0, 80))
+                base.alpha_composite(sh)
+                base.alpha_composite(c, (round(x - c.width / 2), round(y - c.height)))
         # plate: name + exact number, at the top of the compartment
         label = f'{name}  {short:+d}' if short else f'{name}  {n}'
         tw = d.textlength(label, font=f_plate)
