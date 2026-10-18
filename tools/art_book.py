@@ -203,10 +203,10 @@ add(S, 'Town', ['overhead.town'],
 # ---------------------------------------------------------------- industry
 S = 'Industry'
 add(S, 'Mine', ['overhead.industry.mine'],
-    [('green pack, Oct 11', A + 'buildings/building-mine.png')], 'have',
-    'Mine entrance in a rocky mound with a winding frame. Drawn 0.85 tiles wide '
-    '(decided Oct 13; it was 1.25 and looked too big). Keep it unless the sheet-2 '
-    'buildings make it look out of style.')
+    [('green pack, Oct 11 (rejected Oct 18: too big)', A + 'buildings/building-mine.png')], 'redo',
+    'Mine entrance in a rocky outcrop. The Oct 11 version (tall winding tower) was rejected '
+    'Oct 18 as too big. Redo it low and wide from the canon design (shown below): a timber '
+    'tunnel mouth in grey rock, rails and ore carts, no headframe. Prompt in CHATGPT_PROMPTS.md.')
 add(S, 'Lumber mill', ['overhead.industry.lumberMill'],
     [('stand-in: barn', ST + 'barn.png')], 'approved',
     'Where woodcutters turn timber into wood. Canon design approved Oct 18; needs a green-screen copy.')

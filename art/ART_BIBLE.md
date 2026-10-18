@@ -300,7 +300,7 @@ plain SVG lines in `CountyWalls`.
 |---|---|---|
 | industry.{lumberMill, blacksmith, quarry}.idle / .working | UNREAD | Moot: the map draws `overhead.industry.*`, one image each — no idle/working pair needed. |
 | industry.mine.idle / .working | UNREAD | |
-| overhead.industry.mine | ✅ HAVE | `art/buildings/building-mine.png` (green pack, Oct 11). **Drawn 0.85 tiles wide** (decided Oct 13; 1.25 looked too big). Re-check beside the sheet-2 buildings when they come. |
+| overhead.industry.mine | ❌ REDO (Oct 18) | Today's `art/buildings/building-mine.png` (tall winding tower on a mound) looked too big on the labor-screen mock-up. Redo as a low, wide rocky outcrop with a timber tunnel entrance, based on the canon `industry-mine.jpg`; no headframe. Prompt in `CHATGPT_PROMPTS.md`. |
 | overhead.industry.{blacksmith, quarry, lumberMill} | 🎨 APPROVED (Oct 18), needs green-screen copy | Canon `industry-{blacksmith, quarry, lumbermill}.jpg`. Same fix as the castles. |
 
 ## Fields (6 `field.*` UNREAD + 6 overhead used)

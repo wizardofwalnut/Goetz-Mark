@@ -75,3 +75,22 @@ Make one ground tile: the packed-earth work yard of a village forge.
 
 Deliver as castle-yard-ground.png.
 ```
+
+
+## Mine — redo, lower and smaller (Oct 18)
+
+Attach: the canon mine (`art/_canon/industry-mine.jpg`), today's mine
+(`art/buildings/building-mine.png`) and one reference scene
+(`art/_reference/target-look-hollowmere.jpg`). Then:
+
+```
+Redraw the mine. Today's mine (attached, tall wooden winding tower on a mound) is too big and too tall next to the fields and buildings. Use the attached canon mine as the design instead — a LOW, wide rocky outcrop with a timber-framed tunnel entrance cut into it, a short rail track coming out, one or two ore carts and a small pile of dark ore.
+
+- Low and wide: about as tall as a cottage, no taller. No winding tower, no headframe, no crane.
+- Grey, mossy rock like the rocky outcrops in the attached reference scene, with a few small bushes — not brown dirt.
+- It must fit inside a 2x2 block of the same diamond tiles as the fields (diamond about 1.55 wide to 1 tall), seen from the same camera angle.
+- SOLID flat #00FF00 green background. No square slab or tile under it — keep only a thin strip of ground at its foot.
+- No people, no animals, no flags.
+
+Deliver as mine.png. Do not clean up the green background.
+```
