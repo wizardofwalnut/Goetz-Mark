@@ -116,7 +116,7 @@ closer to the target look (`_preview-variants.png`).
 
 | Key | File(s) |
 |---|---|
-| overhead.tile.ground | `ground-meadow-??.png` |
+| overhead.tile.ground | ✅ HAVE (Oct 18: matched) | **Use `art/tileset-grok/lawnm-??.png`** — the sheet-1 lawn colour-matched to `target-look-5` by `tools/lawn_match.py` (brightness 74%→52%, lime→olive green; Chris: "the middle is better"). The original `lawn-??` stays as source. A finer grass texture is requested from ChatGPT (prompt in `CHATGPT_PROMPTS.md`); if accepted, rebuild with `groundgen_iso.py` at 270 px and colour-match the same way. Known bug: today the key points at a road tile through `aliasOf`; fix in Phase B. |
 | overhead.tile.forest | `ground-forest-??.png` (trees still drawn on top) |
 | overhead.field.fallow | `ground-fallow-??.png` |
 | overhead.field.barren | `ground-barren-??.png` |
@@ -441,6 +441,19 @@ that need them: empty-lot / no-lumber / no-forge edits.
 **Plate wording when short (decided Oct 18, option B):** "Grain 90 (−23)" —
 workers there plus the shortfall in brackets; same for Pasture. Options
 compared in `art/_preview/labor-grain-plate-options.png`.
+
+## Look: why the map read as "cartoony" (Oct 18)
+
+Measured against `art/_reference/target-look-5-oct18.jpg`:
+1. **Lawn too bright and lime** — fixed by the colour match (`lawnm-??`).
+2. **No long cast shadows** — the reference's cows, wagons, castle and houses
+   all throw soft shadows one way across the grass. Phase B: draw a soft,
+   offset shadow under every standing sprite (added to the Phase B plan).
+3. **Grass too smooth up close** — finer grass texture requested from ChatGPT.
+
+**Roads:** Chris is considering going back to stone roads. Undecided; a stone
+road texture prompt is ready in `CHATGPT_PROMPTS.md` and the 16 shapes rebuild
+from it in one command.
 
 ## Scorecard (update 3, revised Oct 18 evening)
 

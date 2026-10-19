@@ -151,6 +151,11 @@ Each step depends on the ones above it.
    - Caravan flag: raise the offset (today `y: -0.95`, line ~20660) so the cloth
      flies above the canopy — see `art/flag/_preview-on-wagon.png`. Check on the S10e.
    - Castle flag (line ~20603): re-check against the new keep art.
+   - **Cast shadows (Oct 18):** every standing sprite (buildings, castles,
+     trees, cows, wagons, soldiers) gets a soft, blurred shadow offset the same
+     way, like target-look-5 — the main thing still separating the map from the
+     reference after the lawn colour fix.
+   - Lawn: `overhead.tile.ground` → `art/tileset-grok/lawnm-??.png` (colour-matched).
    - Mine: draw 0.85 tiles wide (decided Oct 13; 1.25 looked too big).
    - Laborers: fit each figure by its body, not its bounding box — the new
      farmer's scythe rises above his hat, so a height fit makes him ~10%

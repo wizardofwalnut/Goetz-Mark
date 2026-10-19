@@ -153,3 +153,44 @@ Make labor-quarry.png: the SAME image, identical in every other way, except the 
 ```
 Make five copies of the attached image, identical in every way except the castle site (bottom row, right). In each, a castle stands on that site, seen from the same high overhead view, filling the fenced square but leaving a strip of open ground at the front for workers to stand on. Match the attached canon castles' designs: castle-1 a timber palisade with a hut inside; castle-2 a wooden tower on an earth mound inside a palisade; castle-3 a square stone keep; castle-4 a stone castle with curtain walls and round towers; castle-5 a large royal castle with double walls and a gatehouse. Keep the fence. No flags, no people, no text. Deliver labor-castle-1.png to labor-castle-5.png.
 ```
+
+
+## Grass texture — finer lawn (Oct 18)
+
+Why a flat texture, not a tile: ChatGPT can't hold an exact diamond across
+separate tiles, so a field of them shows seams (Lessons, Oct 11). From one
+seamless top-down texture, `tools/groundgen_iso.py` builds the diamond lawn
+tiles at the sheet angle and they join invisibly. Colour target: the matched
+lawn Chris preferred (`art/tileset-grok/lawnm-00.png`, Oct 18).
+
+Attach: `art/_reference/target-look-5-oct18.jpg` and `art/tileset-grok/lawnm-00.png`.
+
+```
+Make a grass TEXTURE for a game, seen from straight above (top-down, no perspective, no horizon).
+
+- Short, healthy meadow grass: fine individual blades, a few tiny clover leaves and the odd darker tuft — the same grass as in the attached reference scene, up close.
+- Colour: match the attached lawn tile — a deep, earthy, slightly olive green, not bright lime or yellow-green. Even lighting, no shadows from objects, no light spots.
+- Even all over: no paths, flowers, rocks, patches of dirt or anything that would stand out when the texture repeats.
+- It must tile seamlessly: the left edge continues into the right edge and the top into the bottom.
+- Square, 1024 x 1024. No border, no text.
+
+Deliver as grass-texture.png.
+```
+
+## Stone road texture (Oct 18, only if Chris switches roads to stone)
+
+Same route as the dirt roads: one seamless top-down texture, then
+`tools/roadgen_iso.py <texture> <out_dir> 270 1.55` builds all 16 road shapes.
+Earlier idea, not decided: stone in central counties, dirt on the outskirts.
+
+```
+Make a cobblestone road TEXTURE for a game, seen from straight above (top-down, no perspective).
+
+- Worn, rounded grey-brown medieval cobbles with dark gaps and a little dirt and moss between them; stones about 1/12 of the image wide.
+- Even lighting, no shadows from objects. Warm and muted, to sit next to the attached grass and dirt road.
+- Even all over — no edges, kerbs, puddles or anything that stands out when it repeats.
+- It must tile seamlessly: left edge continues into the right, top into the bottom.
+- Square, 1024 x 1024. No border, no text.
+
+Deliver as stone-road-texture.png.
+```
