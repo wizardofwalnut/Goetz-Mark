@@ -1,6 +1,6 @@
 """Pull the lawn tiles toward a reference scene's grass (Oct 18).
 
-Usage: python3 tools/lawn_match.py <reference.jpg> x0 y0 x1 y1 <out_prefix>
+Usage: python3 tools/lawn_match.py <reference.jpg> x0 y0 x1 y1 <out_prefix> [src_prefix=lawn]
 
 Measured on target-look-5: our lawn was brighter (74% vs 59%), more lime
 (hue 64 vs 74) and about half as textured as the reference grass, which is what
@@ -18,11 +18,12 @@ from skimage import color
 ref = np.array(Image.open(sys.argv[1]).convert('RGB'))
 x0, y0, x1, y1 = map(int, sys.argv[2:6])
 out = sys.argv[6]
+src = sys.argv[7] if len(sys.argv) > 7 else 'lawn'
 r = color.rgb2lab(ref[y0:y1, x0:x1] / 255.0).reshape(-1, 3)
 rm, rs = r.mean(0), r.std(0)
 rng = np.random.default_rng(7)
 for v in ('00', '01', '10', '11'):
-    im = np.array(Image.open(f'art/tileset-grok/lawn-{v}.png').convert('RGBA'))
+    im = np.array(Image.open(f'art/tileset-grok/{src}-{v}.png').convert('RGBA'))
     a = im[..., 3]
     lab = color.rgb2lab(im[..., :3] / 255.0)
     # top face only: the soil sides are much darker, so take the grass by hue
