@@ -15135,7 +15135,7 @@ var mountainVariantArt = (col, row) => resolveAsset([`overhead.sprite.mountain.$
 /** Width of each industry building in tiles (mine 0.85 decided Oct 13). */
 var decorRockArt = () => resolveAsset(["overhead.sprite.decor.rock"]);
 var INDUSTRY_LABEL = { mine: "Iron mine", quarry: "Stone quarry", lumberMill: "Lumber mill", blacksmith: "Blacksmith" };
-var INDUSTRY_SIZE = { mine: .98, quarry: 1.3, lumberMill: 1.3, blacksmith: 1.2 };
+var INDUSTRY_SIZE = { mine: .98, quarry: .95, lumberMill: 1.3, blacksmith: 1.2 };
 /**
 * The tree-cluster sprite.
 *
@@ -19313,6 +19313,7 @@ function worldLayout(map, match) {
 		plots.push({
 			county,
 			interior,
+			road: visibleRoad(interior, match.counties[county.id]?.castleTier),
 			origin: {
 				col: county.plot.col * countyCols,
 				row: county.plot.row * countyRows
@@ -19326,6 +19327,32 @@ function worldLayout(map, match) {
 		countyCols,
 		countyRows
 	};
+}
+/**
+* The road as drawn. While a county has no castle, the spur that runs to the
+* empty castle site led nowhere on the map (Chris, Oct 18: "that road is not
+* connected"), so it's trimmed back to the main road; it reappears, joined up,
+* when a castle goes up. Drawing only — movement and the merchant still use
+* `interior.road`.
+*/
+function visibleRoad(interior, castleTier) {
+	if (castleTier && castleTier !== "none" || !interior.castle) return interior.road;
+	const key = (c) => `${c.col},${c.row}`;
+	const inside = (c) => c.col >= 0 && c.row >= 0 && c.col < interior.cols && c.row < interior.rows;
+	const keep = new Map(interior.road.map((c) => [key(c), c]));
+	const town = interior.town && key(interior.town);
+	const near = (c) => [[0, -1], [1, 0], [0, 1], [-1, 0]].map(([dc, dr]) => `${c.col + dc},${c.row + dr}`).filter((k) => keep.has(k));
+	// walk back from the castle site while the road is a dead-end spur; stop at
+	// a junction (2+ neighbours left), the town, or a border crossing
+	let end = key(interior.castle);
+	while (end && keep.has(end) && end !== town) {
+		const c = keep.get(end);
+		const nb = near(c);
+		if (!inside(c) || nb.length > 1) break;
+		keep.delete(end);
+		end = nb[0] ?? null;
+	}
+	return [...keep.values()];
 }
 /** A county-local cell in world coordinates. */
 var toWorld = (origin, cell) => ({
@@ -19353,7 +19380,7 @@ var worldSize = (layout) => {
 * other's road, so both would draw stubs facing each other across the border.
 */
 function worldRoad(layout) {
-	return roadMasks(layout.plots.flatMap(({ interior, origin }) => interior.road.map((c) => toWorld(origin, c))), {
+	return roadMasks(layout.plots.flatMap(({ road, origin }) => road.map((c) => toWorld(origin, c))), {
 		cols: layout.cols,
 		rows: layout.rows
 	});
@@ -19584,7 +19611,7 @@ async function bakeCounty(plot, masks, season) {
 	* one canvas is also a quarter of the memory at this resolution.
 	*/
 	const fieldAt = new Map(interior.fields.map((f) => [`${f.col},${f.row}`, f]));
-	const roadAt = new Map(interior.road.map((c) => [`${c.col},${c.row}`, c]));
+	const roadAt = new Map((plot.road ?? interior.road).map((c) => [`${c.col},${c.row}`, c]));
 	/**
 	* Decoration (Phase B, plan "Added Oct 11"): seeded, cosmetic rocks on
 	* plain lawn so a county isn't a sea of empty grass. Rocks only — small
@@ -20402,6 +20429,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 	* apart, so this settles only once that animation has actually
 	* finished landed on the same county already, a no-op.
 	*/
+	const pannedTo = (0, import_react.useRef)(null);
 	(0, import_react.useEffect)(() => {
 		const el = stage.current;
 		const svg = surface.current;
@@ -20418,7 +20446,11 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 			const centerCol = Math.floor(viewport.x + viewport.width / 2);
 			const centerRow = Math.floor(viewport.y + viewport.height / 2);
 			const id = countyIdAtWorld(layout, centerCol, centerRow);
-			if (id && id !== focus) onFocus(id);
+			if (id && id !== focus) {
+				// the person panned here: focus follows, the camera must not
+				pannedTo.current = id;
+				onFocus(id);
+			}
 		};
 		const scheduleSettle = () => {
 			if (timer) clearTimeout(timer);
@@ -20431,10 +20463,23 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 		};
 	}, [layout, width, height, focus, onFocus]);
 	const settled = (0, import_react.useRef)(false);
+	/**
+	* The camera moves only when focus is CHOSEN (minimap, town tap, first
+	* load). It used to re-run on every `layout`/`baked` change too — and both
+	* change whenever a field is converted — so editing a field snapped the
+	* view back to the town (Chris, Oct 18). Focus set by panning is skipped.
+	*/
+	const centredOn = (0, import_react.useRef)(null);
 	(0, import_react.useEffect)(() => {
 		const el = stage.current;
 		const svg = surface.current;
 		if (!el || !svg || !focus) return;
+		if (pannedTo.current === focus) {
+			centredOn.current = focus;
+			pannedTo.current = null;
+			return;
+		}
+		if (centredOn.current === focus) return;
 		const plot = layout.plots.find((p) => p.county.id === focus);
 		if (!plot) return;
 		const scale = svg.clientWidth / width;
@@ -20452,6 +20497,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 			behavior: settled.current ? "smooth" : "auto"
 		});
 		settled.current = true;
+		centredOn.current = focus;
 	}, [
 		focus,
 		layout,
@@ -20970,8 +21016,9 @@ function wallSprites(layout) {
 		const dc = { n: 0, e: 1, s: 0, w: -1 }[seg.side], dr = { n: -1, e: 0, s: 1, w: 0 }[seg.side];
 		const neighbour = countyIdAtWorld(layout, seg.col + dc, seg.row + dr);
 		const back = seg.side === "n" || seg.side === "w";
-		// a shared border is drawn once, as the front county's back edge
-		if (!back && neighbour !== null) continue;
+		// No wall along the world's outer edge (Chris, Oct 18: it hid cows and
+		// fields on the edge); a shared border is drawn once, as a back edge.
+		if (neighbour === null || !back) continue;
 		if (road.has(`${seg.col},${seg.row}`) && road.has(`${seg.col + dc},${seg.row + dr}`)) continue;
 		const t = cellTop(seg.col, seg.row);
 		const T = [t.x, t.y], R = [t.x + TILE_W / 2, t.y + TILE_H / 2], B = [t.x, t.y + TILE_H], L = [t.x - TILE_W / 2, t.y + TILE_H / 2];
