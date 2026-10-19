@@ -46,6 +46,7 @@ STATUS = {
     'old': ('SUPERSEDED', '#8a8a8a'),
 }
 
+R3 = A + 'review-s3/'    # ChatGPT green-screen copies + mine redo, accepted Oct 18
 R2 = A + 'review-s2/'    # ChatGPT sheet-2 batch, accepted Oct 15-17 (update 3)
 RW = R2 + '_raw/'       # icons stay on their navy square, as delivered
 CN = A + '_canon/'      # the canon set (Sep 4-5), copied from Downloads Oct 12
@@ -114,10 +115,11 @@ add(S, 'Water', ['overhead.tile.water'],
     'Water is a map-border element only, not a playable terrain (standing '
     'decision, LOTR2 precedent). Deferred: sheet 1 has a water tile if it is '
     'ever wanted.')
-add(S, 'Castle yard ground', ['overhead.tile.yard'], [], 'redo',
+add(S, 'Castle yard ground', ['overhead.tile.yard'], [], 'remove',
     'Work-yard ground under the open-air forge on the labor screen, laid 3x3 '
     '(the castle-yard sprite does not cover it). Today it is an old pixel tile, '
-    'rejected Oct 18. Needs a packed-earth yard slab; prompt in CHATGPT_PROMPTS.md.')
+    'rejected Oct 18. Dropped the same day: the labor screen is now one painted backdrop, so '
+    'nothing draws this key. Remove it in Phase B.')
 
 # ---------------------------------------------------------------- fields
 S = 'Fields'
@@ -177,6 +179,8 @@ add('Borders', 'County border wall', [],
 
 # ---------------------------------------------------------------- settlements
 S = 'Castles and town'
+TIER_N = {'woodenPalisade': 1, 'motteAndBailey': 2, 'normanKeep': 3, 'stoneCastle': 4, 'royalCastle': 5}
+TIER_F = {'woodenPalisade': 'palisade', 'motteAndBailey': 'motte-bailey', 'normanKeep': 'norman-keep', 'stoneCastle': 'stone', 'royalCastle': 'royal'}
 for k, name, d in [
     ('woodenPalisade', 'Wooden palisade', 'Tier 1: a timber stockade fort.'),
     ('motteAndBailey', 'Motte and bailey', 'Tier 2: a wooden tower on an earth mound.'),
@@ -185,37 +189,36 @@ for k, name, d in [
     ('royalCastle', 'Royal castle', 'Tier 5: the largest castle.'),
 ]:
     add(S, name, ['overhead.castle.' + k],
-        [], 'approved',
-        d + ' Design approved Oct 18: the canon tier (Sep 5) is the castle. It can\'t go in '
-        'as-is: it sits on its own grass slab on a dark background, and cutting it out '
-        'automatically eats the grey stone (tested Oct 18). Needs ONE redraw of this exact '
-        'castle on solid green, no slab, no flags. The game draws the owner\'s flag on top.')
+        [('green-screen copy, Oct 18', R3 + 'castle-%d-%s.png' % (TIER_N[k], TIER_F[k]))], 'have',
+        d + ' Green-screen copy of the approved canon tier (ChatGPT), cut off green Oct 18 with no '
+        'holes. No flags: the game draws the owner\'s flag on top.' +
+        (' Note: this copy is a square stone keep, where the canon tier 3 was a cluster of round '
+         'towers. Confirm which.' if k == 'normanKeep' else ''))
 for i, c in enumerate(SEATS):
     add(S, 'Castle flag: ' + c, ['overhead.castle.flag.%d' % i],
         [(c, A + 'flag/flag-%s.png' % c)], 'have',
         'The owner\'s flag, drawn over their castle and on their caravans. Cut '
         'from the banner-bearer art. Phase B: raise it above the wagon canopy.')
 add(S, 'Town', ['overhead.town'],
-    [('stand-in', ST + 'house-thatch.png')], 'approved',
+    [('green-screen copy, Oct 18', R3 + 'town.png')], 'have',
     'The county\'s town: a village cluster of several houses (decided Oct 7). '
-    'Canon design approved Oct 18; needs a green-screen copy (no slab, no flags).')
+    'Green-screen copy of the canon village cluster, cut Oct 18.')
 
 # ---------------------------------------------------------------- industry
 S = 'Industry'
 add(S, 'Mine', ['overhead.industry.mine'],
-    [('green pack, Oct 11 (rejected Oct 18: too big)', A + 'buildings/building-mine.png')], 'redo',
-    'Mine entrance in a rocky outcrop. The Oct 11 version (tall winding tower) was rejected '
-    'Oct 18 as too big. Redo it low and wide from the canon design (shown below): a timber '
-    'tunnel mouth in grey rock, rails and ore carts, no headframe. Prompt in CHATGPT_PROMPTS.md.')
+    [('redo, Oct 18', R3 + 'mine.png'), ('rejected Oct 11 version', A + 'buildings/building-mine.png')], 'have',
+    'Mine entrance in a low, wide grey rock outcrop with a timber tunnel mouth, rails and ore '
+    'carts, no headframe. Redone Oct 18 from the canon design (the Oct 11 tower version was too big).')
 add(S, 'Lumber mill', ['overhead.industry.lumberMill'],
-    [('stand-in: barn', ST + 'barn.png')], 'approved',
-    'Where woodcutters turn timber into wood. Canon design approved Oct 18; needs a green-screen copy.')
+    [('green-screen copy, Oct 18', R3 + 'lumber-mill.png')], 'have',
+    'Where woodcutters turn timber into wood. Green-screen copy, cut Oct 18 (grass kept with a tighter key; gaps between log piles are real and show the lawn).')
 add(S, 'Blacksmith', ['overhead.industry.blacksmith'],
-    [('stand-in: house', ST + 'house-blue.png')], 'approved',
-    'Forge that turns ore into weapons. Canon design approved Oct 18; needs a green-screen copy.')
+    [('green-screen copy, Oct 18', R3 + 'blacksmith.png')], 'have',
+    'Forge that turns ore into weapons. Green-screen copy, cut Oct 18.')
 add(S, 'Quarry', ['overhead.industry.quarry'],
-    [('stand-in: rocks', ST + 'rocks.png')], 'approved',
-    'Stone pit. Its floor uses the barren-field tile. Canon design approved Oct 18; needs a green-screen copy.')
+    [('green-screen copy, Oct 18', R3 + 'quarry.png')], 'have',
+    'Stone pit. Green-screen copy, cut Oct 18.')
 add(S, 'Open-air forge', ['overhead.sprite.forge-open'], [('sheet 2', R2 + 'open-forge.png')], 'have',
     'Canopy, anvil and hearth with no walls, on the labor screen. Sheet-2 batch, accepted Oct 15.')
 add(S, 'Castle yard', ['overhead.sprite.castle-yard'], [('sheet 2', R2 + 'castle-yard.png')], 'have',

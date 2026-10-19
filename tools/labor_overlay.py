@@ -20,7 +20,7 @@ FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'
 ZONES = {
     'Grain':   ((20, 40, 490, 305), (255, 240), 90, -23, 'farmer'),
     'Pasture': ((545, 40, 1005, 305), (775, 190), 20, 0, 'herder'),
-    'Mine':    ((20, 340, 490, 665), (250, 585), 30, 0, 'herder'),
+    'Mine':    ((20, 340, 490, 665), (250, 585), 30, 0, 'herder'),  # 'Quarry' on quarry backdrops
     'Lumber':  ((545, 340, 1005, 665), (760, 590), 40, 0, 'farmer'),
     'Forge':   ((20, 705, 490, 1035), (250, 960), 0, 0, 'herder'),
     'Repair':  ((545, 705, 1005, 1035), (775, 880), 0, 0, 'farmer'),
@@ -48,13 +48,15 @@ def glow(base, centre, rx, ry, rgb):
     base.alpha_composite(g.filter(ImageFilter.GaussianBlur(22)))
 
 
-def main(src, out):
+def main(src, out, quarry=False):
     random.seed(4)
     base = Image.open(src).convert('RGBA')
     figs = {k: fig(k) for k in ('farmer', 'herder')}
     d = ImageDraw.Draw(base)
     f_plate = ImageFont.truetype(FONT, 30)
     for name, (box, (cx, cy), n, short, kind) in ZONES.items():
+        if name == 'Mine' and quarry:
+            name = 'Quarry'
         k = min(12, math.ceil(n / 10))
         cols = min(k, 4) or 1
         rows = math.ceil(k / cols) if k else 0
@@ -107,4 +109,4 @@ def main(src, out):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], 'quarry' in sys.argv[3:])

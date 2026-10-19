@@ -260,7 +260,7 @@ are reference only.
 | overhead.tile.forest | ✅ HAVE | `art/review-s2/forest-floor.png` (sheet-2 batch). |
 | overhead.tile.mountain | ✅ HAVE | Plain lawn under `overhead.sprite.mountain` (sheet 1 mountains are standing sprites). |
 | overhead.tile.water | ⏸ DEFERRED | |
-| overhead.tile.yard | ❌ REDO | Work-yard ground under the open-air forge on the labor screen (`overheadGroundArt("yard")`, laid 3x3). The castle-yard sprite does not cover it. Today's pixel tile was rejected Oct 18. Prompt in `CHATGPT_PROMPTS.md`. |
+| overhead.tile.yard | 🚫 REMOVE | Was the ground under the forge on the old tile-built labor screen. The labor screen is now one painted backdrop, so nothing draws it. Dropped Oct 18; remove the key in Phase B. |
 
 ## Roads (16 keys) — done
 
@@ -285,14 +285,14 @@ plain SVG lines in `CountyWalls`.
 | Key | Status | Notes |
 |---|---|---|
 | castle.{woodenPalisade, motteAndBailey, normanKeep, stoneCastle, royalCastle} | ✅ HAVE | The `4pjSa` file was a duplicate of the Norman keep. |
-| overhead.castle.* (5) | 🎨 APPROVED (Oct 18), needs green-screen copy | **The 5 tiers are done as designs**: the canon set (Sep 5, `art/_canon/castle-1..5-*.jpg`), same style family as the references. They can't be used as-is: each sits on its own grass slab on dark navy, and auto-cutting (`slabcut` + `unslab`, Oct 18) ate the grey stone and the motte's mound (5.8–11% holes; `art/_preview/canon-castles-autocut.png`). Fix: ChatGPT redraws each canon castle as the same castle on solid #00FF00, no slab, no flags — a copy, not a new design. |
+| overhead.castle.* (5) | ✅ HAVE (Oct 18) | Green-screen copies of the canon tiers, `art/review-s3/castle-{1-palisade, 2-motte-bailey, 3-norman-keep, 4-stone, 5-royal}.png` (raw in `_raw/`), all cut with no holes. **Check:** tier 3 came back as a square stone keep; the canon tier 3 was a cluster of round towers. |
 | overhead.castle.flag.0–3 | ✅ HAVE | `art/flag/flag-{crimson,azure,gold,sable}.png`, cut from the banner-bearers (Oct 7). Also drawn on player caravans; raise it above the canopy in Phase B. |
 
 ## Town (1 key)
 
 | Key | Status | Notes |
 |---|---|---|
-| overhead.town | 🎨 APPROVED (Oct 18), needs green-screen copy | Canon `village-cluster` is the town. Same fix as the castles. `house-thatch` stands in. |
+| overhead.town | ✅ HAVE (Oct 18) | `art/review-s3/town.png`, green-screen copy of the canon village cluster. |
 
 ## Industry (8 `industry.*` UNREAD + 4 overhead + open forge)
 
@@ -300,8 +300,8 @@ plain SVG lines in `CountyWalls`.
 |---|---|---|
 | industry.{lumberMill, blacksmith, quarry}.idle / .working | UNREAD | Moot: the map draws `overhead.industry.*`, one image each — no idle/working pair needed. |
 | industry.mine.idle / .working | UNREAD | |
-| overhead.industry.mine | ❌ REDO (Oct 18) | Today's `art/buildings/building-mine.png` (tall winding tower on a mound) looked too big on the labor-screen mock-up. Redo as a low, wide rocky outcrop with a timber tunnel entrance, based on the canon `industry-mine.jpg`; no headframe. Prompt in `CHATGPT_PROMPTS.md`. |
-| overhead.industry.{blacksmith, quarry, lumberMill} | 🎨 APPROVED (Oct 18), needs green-screen copy | Canon `industry-{blacksmith, quarry, lumbermill}.jpg`. Same fix as the castles. |
+| overhead.industry.mine | ✅ HAVE (Oct 18) | `art/review-s3/mine.png`: low grey outcrop, timber tunnel, rails, carts, no tower (redo of the too-big Oct 11 version). Size it at 0.85 tiles wide on the map and check it there. |
+| overhead.industry.{blacksmith, quarry, lumberMill} | ✅ HAVE (Oct 18) | `art/review-s3/{blacksmith, quarry, lumber-mill}.png`. Lumber mill recut with a tighter green key (LOW 150 / HIGH 215) so its bright grass stays; the gaps between log piles are real. |
 
 ## Fields (6 `field.*` UNREAD + 6 overhead used)
 
@@ -424,29 +424,31 @@ fenced boxes, which are also the tap areas).
 - Stand-ins: miner, woodcutter and idle figures borrow the farmer/herder
   sprites until the canon figures are cut.
 
-**Still to make (ChatGPT, prompts in `CHATGPT_PROMPTS.md`):** the quarry
-version (mine compartment swapped) and the castle site with each of the 5
-tiers. Later, for maps that need them: empty-lot / no-lumber / no-forge edits.
+**Delivered Oct 18:** `art/labor/labor-quarry.png` and `labor-castle-1..5.png`.
+Each edit also shifted the rest of the picture slightly (24–39% of changed
+pixels fell outside the target lot), so the game takes **only the edited lot**
+from each one and lays it on the base. `tools/labor_patch.py` does this with a
+soft edge on the dirt path; no visible seam (checked on quarry + castle 4).
+Mock-up: `art/_preview/labor-grid-overlay-quarry-castle4.png`. Later, for maps
+that need them: empty-lot / no-lumber / no-forge edits.
 
 Open: the Grain plate shows only the shortfall (−23); proposed
 "Grain 90 (−23)" so the workers already there are visible too.
 
-## Scorecard (update 3, revised Oct 18)
+## Scorecard (update 3, revised Oct 18 evening)
 
-The Art Book (`art/ART_BOOK.pdf`) has a page per asset: **87 assets, 58
-ready**. `art/ART_TODO.pdf` (12 pages) is the ChatGPT handoff: the 10 left.
+The Art Book (`art/ART_BOOK.pdf`) has a page per asset. Rebuild with
+`tools/art_book.py`; counts are printed on its "How to read this" page.
 
-- **Done:** everything else, including all canon laborers and troops
-  (approved Oct 18).
-- **Approved designs, need green-screen copies (ChatGPT):** 5 castle tiers,
-  town, lumber mill, blacksmith, quarry. One prompt for all nine in
-  `CHATGPT_PROMPTS.md`.
-- **New art (ChatGPT):** castle yard ground (the forge's work yard).
-- **Open:** lawn colour-match toward the reference.
+- **Done:** every map asset in Phase A, including the 5 castle tiers, town,
+  lumber mill, blacksmith, quarry and mine (green-screen batch, Oct 18), and
+  the labor screen (base, quarry, 5 castle lots).
+- **To confirm:** tier 3 (square keep vs the canon round-tower cluster).
+- **Open:** lawn colour-match toward the reference; Grain plate wording.
 - **Code only (Phase B):** keys for parched, border wall, decoration, builder,
-  crossbow/sword/mace/pike troops.
+  crossbow/sword/mace/pike troops; the labor-screen overlays and lot patching.
 - **Not started:** crests, mercenary offer (both unread keys today).
-- **Being removed:** 5 chokepoint keys.
+- **Being removed:** 5 chokepoint keys. **Dropped:** castle yard ground tile.
 
 ## Decisions only you can make
 
