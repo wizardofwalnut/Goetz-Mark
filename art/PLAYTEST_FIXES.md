@@ -1,20 +1,79 @@
-# Aldermarch — Playtest fixes (from Chris's S10e playtest, started Oct 18–19)
+# Aldermarch — Playtest fixes and recommendations
 
-Living list. Add to it during playtests; move items to **Done** with the
-commit when fixed. Builds are `aldermarch-playtest-phaseB-N.html`.
+Living list. Chris's S10e playtest (Oct 18–19) plus Claude's audit (Oct 19,
+build `aldermarch-playtest-phaseB-3`): every screen played at S10e size,
+a scripted conquest, save/load, a 100-turn passive game and a 40-turn
+"keep grain staffed" game. Evidence screenshots: session scratchpad `aud/`.
+Move items to **Done** with the commit when fixed.
 
-## Open
+Priority: **P1** = broken or misleading now · **P2** = hurts the game ·
+**P3** = polish / recommendation. "Decide" = Chris's call.
 
-| # | Fix | Found | Notes / decision needed |
+---
+
+## A. Bugs
+
+| # | P | Bug | Where / cause |
 |---|---|---|---|
-| 1 | **Labor allocation screen is too small** | Chris, Oct 19 | Chris isn't sure yet what he wants. Today the painting is fitted between the top bar and the bottom resource strip, so it shows at ~290 px wide on the S10e and the plates read at ~11 px. Options to show him as mockups: (a) let the screen cover the bottom strip while open, painting full width and taller (needs the strip's numbers moved into the header); (b) full width with vertical scroll; (c) tap a lot to zoom into it (2-lot view) with the stepper below; (d) a list/plate view beside a smaller painting. |
-| 2 | **Field pop-up is too plain** | Chris, Oct 19 | The "Plant grain / Graze cattle" pop-up: grey stock buttons, plain dark box, no art. Also a real bug: its title shows the internal id ("Field f_5_10") instead of a name. Direction to pick: style it like the labor/army panels (gold-rimmed parchment, field icon per choice, the + workers needed in the game's own numerals). |
-| 3 | Road corner under the town reads as a pale blob | Claude, Oct 19 | The road sheet draws corners as wide arcs; the corner next to the town sits half under the town sprite. Try a tighter corner piece or end the road with a straight piece into the plaza. |
-| 4 | Units don't face the way they move | Plan step 6 | `.away` art is embedded; code (track last move, mirror) not written. |
-| 5 | No bushes in the decoration | Oct 18 | Sheet-1 bush's lime skirt can't be cut cleanly. Needs a green-screen bush from ChatGPT. |
-| 6 | Map sharpness / memory on the phone | Phase B step 9 | Bake is 200 px per tile; raise if the map looks soft on the S10e. |
+| A1 | P1 | Attack prompt says **"Assault undefined's town?"** / "undefined's town is undefended" | `targetCounty.name` — the county *state* has no name; use the map county's name. Two copies (~20259, ~20381). |
+| A2 | P1 | Event text uses the internal id in lower case: **"greyfen taken in the streets"**, "greyfen held by its own people", "… taken — nobody left" | `detail: \`${countyId} …\`` in the conquest code (~17420). Use the county name. |
+| A3 | P1 | **Gold shows fractions** ("402.75") in the top bar; no thousands separator | `Readout` prints `String(value)`; army upkeep is 0.25 gold per soldier. Round for display (and consider whole-gold upkeep). |
+| A4 | P1 | Labor **"+" can never close a gap under 10** — Grain sat at "178 (−2)" for 40 turns with 148 idle | `setWorkerAllocation` rejects a step that passes the ceiling instead of clamping. After a levy takes a share, counts stop being multiples of 10. Clamp the step to the ceiling. |
+| A5 | P1 | Health report: **"Reaches target in ~-2 turns"** when health is above its target | Countdown goes negative; should read "falling to 50 in ~2 turns". |
+| A6 | P2 | Field pop-up title shows the internal id: **"Field f_5_10"** | Give fields a readable label (e.g. "Field north of the mill", or just "Field"). |
+| A7 | P2 | **Armies disappear behind the town/castle** — after taking Greyfen the army stood behind its town and only the flag showed | Side-effect of the new depth sort: a 1.9-tile town hides the cell behind it. Draw units above buildings, or nudge a unit forward when the cell behind a big sprite is occupied. |
+| A8 | P2 | **Capturing a county isn't announced** — the town just changes hands at End Turn, no event line | Add a "Greyfen is yours" event (and "Hollowmere has fallen" for losses). |
+| A9 | P2 | Settings offers **"Background Music: On"** but there is no music | Hide the toggle until the music ships. |
+| A10 | P3 | Population/Happiness/Health reports read **"TREND — LAST 0 SEASONS"** on turn 1 | Hide the header until there's history. |
+| A11 | P3 | Merchant: **Ale has no icon** (empty grey square) | Needs a `resource.ale` icon (art). |
+| A12 | P3 | ☰ menu stays open while you open other panels (closes on a map tap) | Close it when any panel opens. |
+| A13 | P3 | A player with 0 counties but an empty (0-troop) army still counts as "in the game", so no defeat screen | Drop 0-troop armies; only found by forcing state, rare in play. |
+
+## B. Gameplay and balance
+
+| # | P | Problem | Evidence | Recommendation |
+|---|---|---|---|---|
+| B1 | P1 | **The AI never attacks.** | 100 turns: AI held 33–35 troops per county the whole game while banking **92,000 gold, 35,000 wood, 6,000 stone**. It only took Hollowmere after it revolted to neutral. | AI troop target is "home guard + small strike" (~20–40) regardless of wealth, and it only attacks at 1.5–3× odds. Scale its army target with treasury and turn number, let it attack a weak player garrison, and spend surplus gold. Without this there's no pressure. |
+| B2 | P1 | **Food barely matters.** Births ignore food; happiness stayed 80–100% with empty stores. | Population 240 → 1,232 while "Stores are empty" fired 47 times; ~1,000 people idle with no penalty. | Tie births (and happiness) to actual grain in store; make idle population cost something (unrest), or LOTR2-style: people only grow when fed. |
+| B3 | P1 | **A new player starves without knowing why.** | Each county starts with 3 grain fields of 16 (7–11 fallow); Grain starts **72 workers short**; passive play empties the stores by ~turn 20 and the herd is eaten. | Start with the labor matching the need, and give a first-turn hint ("plant fallow fields to feed a growing town"). A tutorial/advisor line would cover this. |
+| B4 | P2 | **Levy "Max" takes half the county in one tap**, happiness → 0%, county **revolts next turn**. | 120 of 240 raised; revolt the following season. | Cap Max at a safe share, or warn in red with the predicted happiness before "Raise this levy". |
+| B5 | P2 | **Forge always shows red "short"** (−12 rising to −52) even if you never want weapons. | 40-turn run. | Only count the forge as short when a weapon is chosen and materials are waiting. |
+| B6 | P2 | **"Residents left in search of a happier county" every single season** at 64–70% happiness. | Event History. | Emigration starts below 85% — too high for "normal". Lower the ceiling (~60) or hide 1–5-person moves. |
+| B7 | P2 | **Castle upgrades are out of reach for the player.** | Norman Keep needs ~1,012 stone; you start with 10 and Hollowmere has a mine, not a quarry; stone costs 4 g at the merchant (~4,000 g) while gold drifts down at the 0% default tax. AI reached stone castles by turn ~80. | Give each start county a stone source or cheaper first stone tier; or explain the trade route. |
+| B8 | P2 | **Two pop-ups after every End Turn** (Report Card + What Happened). | Every turn. | Merge into one season summary; Report Card as a tab. |
+| B9 | P3 | Wood and ore pile up (3,000 each by turn 100) with nothing to spend them on. | Passive run. | Prompt toward the forge / castle, or let the merchant buy them. |
+| B10 | P3 | Health is effectively ration-only — it sat at exactly 50 in every county for 100 turns. | Long run. | Fine if intended; otherwise tie it to crowding/food/plague. |
+| B11 | P3 | Diplomacy only shows a relation number; nothing to do. | Panel. | Add actions (truce, tribute, alliance) or hide until it has some. |
+| B12 | P3 | Plague can strike on turn 2. | Event History. | Grace period for random disasters in the first year. |
+
+## C. Visual and UX
+
+| # | P | Item | Notes |
+|---|---|---|---|
+| C1 | P2 | **Labor allocation screen too small** (Chris) | Painting ~290 px wide; plates ~11 px. Options to mock up: (a) cover the bottom strip while open → full width, taller; (b) full width + scroll; (c) tap a lot to zoom it; (d) list beside a smaller painting. **Decide.** |
+| C2 | P2 | **Field pop-up too plain** (Chris) | Grey stock buttons, no art. Style like the army/labor panels, with a field picture per choice and the worker numbers. |
+| C3 | P2 | **Emoji UI next to painted art** | Bottom stats (👥😊❤️🏰🤝👑), CARAVAN 🚚, LEVY ⚔️, map 🗺️, menu items, report icons are emoji; the resources are painted. 🤝 and 👑 have no label. Replace with painted icons in one batch (ChatGPT, navy icon style). |
+| C4 | P2 | **Low-contrast numbers** in the bottom resource strip | "+35" in dark blue and "-23" in dark red on navy are hard to read on the phone. Use the light gold/green/red tones. |
+| C5 | P2 | **No intro or goal** on New Game | Drops straight onto the map. A one-screen "You are Lord of Hollowmere — hold every county to win" and a first-season hint list. |
+| C6 | P3 | Title screen is an emoji castle on black | A painted title backdrop (ChatGPT) would do a lot for first impressions and store screenshots. |
+| C7 | P3 | Minimap is four flat coloured squares | Use a tiny version of the map or county crests. |
+| C8 | P3 | Best Noble rampart is flat grey bricks on blue | Below the new art; candidate for a painted backdrop. |
+| C9 | P3 | First view shows a band of black void at the world edge | Frame the start view on land, or clamp the camera nearer the edge. |
+| C10 | P3 | Castle panel: "Full cost 220 Wood, 1100 Stone" then "You'll actually pay 1012 Stone" | The maths is right (credit for the current tier) but reads as a mistake. Label it "Upgrade cost (after credit for your Motte & Bailey)". |
+| C11 | P3 | Road corner under the town reads as a pale blob | Road sheet draws corners as wide arcs. |
+| C12 | P3 | Stat chips are clickable divs (no button role) | Screen readers / keyboard can't reach them. |
+| C13 | P3 | Units don't face the way they move | `.away` art is embedded; code not written (plan step 6). |
+| C14 | P3 | No bushes in the decoration | Needs a green-screen bush from ChatGPT. |
+| C15 | P3 | Map sharpness on the phone | Bake 200 px per tile; raise if soft. |
+
+## What's working (checked)
+
+Save / Load / Continue / autosave; levy and mercenary hire; army select, reach
+highlights, assault confirm and capture; merchant; caravan loading; castle
+panel; 100 turns with no console errors and steady memory; county seams,
+walls with road gaps, shadows, labor screen variants.
 
 ## Done
 
-- Oct 18 `77b2c9e`: quarry drawn 0.95 tiles (was 1.3); no wall on the world's outer edge (hid cows/fields); camera no longer snaps back to the town after a field edit or when panning into another county; road spur to an empty castle site hidden until a castle is built.
-- Oct 19 `8cdc319`: road runs up to the castle gate (castle slid onto the road's entry edge); no road piece drawn under the town/castle.
+- Oct 18 `77b2c9e`: quarry drawn 0.95 tiles (was 1.3); no wall on the world's outer edge; camera no longer snaps back after a field edit or when panning into another county; road spur to an empty castle site hidden until a castle is built.
+- Oct 19 `8cdc319`: road runs up to the castle gate; no road piece drawn under the town/castle.
