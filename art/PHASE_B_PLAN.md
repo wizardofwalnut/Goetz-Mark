@@ -155,7 +155,7 @@ Each step depends on the ones above it.
      trees, cows, wagons, soldiers) gets a soft, blurred shadow offset the same
      way, like target-look-5 — the main thing still separating the map from the
      reference after the lawn colour fix.
-   - Lawn: `overhead.tile.ground` → `art/tileset-grok/lawnm-??.png` (colour-matched).
+   - Lawn: `overhead.tile.ground` → `art/tileset-grok/lawngm-??.png` (grass texture, colour-matched; rebuild at the bake width).
    - Mine: draw 0.85 tiles wide (decided Oct 13; 1.25 looked too big).
    - Laborers: fit each figure by its body, not its bounding box — the new
      farmer's scythe rises above his hat, so a height fit makes him ~10%

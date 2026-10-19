@@ -116,7 +116,7 @@ closer to the target look (`_preview-variants.png`).
 
 | Key | File(s) |
 |---|---|
-| overhead.tile.ground | ✅ HAVE (Oct 18: matched) | **Use `art/tileset-grok/lawnm-??.png`** — the sheet-1 lawn colour-matched to `target-look-5` by `tools/lawn_match.py` (brightness 74%→52%, lime→olive green; Chris: "the middle is better"). The original `lawn-??` stays as source. A finer grass texture is requested from ChatGPT (prompt in `CHATGPT_PROMPTS.md`); if accepted, rebuild with `groundgen_iso.py` at 270 px and colour-match the same way. Known bug: today the key points at a road tile through `aliasOf`; fix in Phase B. |
+| overhead.tile.ground | ✅ HAVE (Oct 18: grass texture) | **Use `art/tileset-grok/lawngm-??.png`** — built by `groundgen_iso.py` (240 px, 2x2 variants, 1.55) from ChatGPT's seamless grass texture (`_src/grass-texture-chatgpt.png`), then colour-matched to `target-look-5` by `tools/lawn_match.py` (hue 70, brightness 52%, texture close to the reference). Chris: "good enough, for now I'll go with it" (Oct 18). Seamless across tiles. Earlier candidates kept: `lawnm-??` (matched sheet-1 lawn), `lawn-??` (sheet 1). Rebuild at the bake size (~270) in Phase B. Known bug: today the key points at a road tile through `aliasOf`; fix in Phase B. |
 | overhead.tile.forest | `ground-forest-??.png` (trees still drawn on top) |
 | overhead.field.fallow | `ground-fallow-??.png` |
 | overhead.field.barren | `ground-barren-??.png` |
@@ -449,7 +449,8 @@ Measured against `art/_reference/target-look-5-oct18.jpg`:
 2. **No long cast shadows** — the reference's cows, wagons, castle and houses
    all throw soft shadows one way across the grass. Phase B: draw a soft,
    offset shadow under every standing sprite (added to the Phase B plan).
-3. **Grass too smooth up close** — finer grass texture requested from ChatGPT.
+3. **Grass too smooth up close** — fixed with ChatGPT's grass texture (`lawngm-??`, accepted Oct 18).
+4. **Lime fringes** — roads and bush clumps still carry thin strips of the old lime grass at their edges; colour-match them to the new lawn (Claude, to do).
 
 **Roads:** Chris is considering going back to stone roads. Undecided; a stone
 road texture prompt is ready in `CHATGPT_PROMPTS.md` and the 16 shapes rebuild
@@ -464,7 +465,7 @@ The Art Book (`art/ART_BOOK.pdf`) has a page per asset. Rebuild with
   lumber mill, blacksmith, quarry and mine (green-screen batch, Oct 18), and
   the labor screen (base, quarry, 5 castle lots).
 - **Decided Oct 18:** tier 3 is the square Norman keep.
-- **Open:** lawn colour-match toward the reference.
+- **Open:** lime grass fringes on roads and bushes (colour-match to the new lawn); stone vs dirt roads (Chris).
 - **Code only (Phase B):** keys for parched, border wall, decoration, builder,
   crossbow/sword/mace/pike troops; the labor-screen overlays and lot patching.
 - **Not started:** crests, mercenary offer (both unread keys today).
