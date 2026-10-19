@@ -285,7 +285,7 @@ plain SVG lines in `CountyWalls`.
 | Key | Status | Notes |
 |---|---|---|
 | castle.{woodenPalisade, motteAndBailey, normanKeep, stoneCastle, royalCastle} | ✅ HAVE | The `4pjSa` file was a duplicate of the Norman keep. |
-| overhead.castle.* (5) | ✅ HAVE (Oct 18) | Green-screen copies of the canon tiers, `art/review-s3/castle-{1-palisade, 2-motte-bailey, 3-norman-keep, 4-stone, 5-royal}.png` (raw in `_raw/`), all cut with no holes. **Check:** tier 3 came back as a square stone keep; the canon tier 3 was a cluster of round towers. |
+| overhead.castle.* (5) | ✅ HAVE (Oct 18) | Green-screen copies of the canon tiers, `art/review-s3/castle-{1-palisade, 2-motte-bailey, 3-norman-keep, 4-stone, 5-royal}.png` (raw in `_raw/`), all cut with no holes. Tier 3 is a square stone keep — Chris updated it to look more like a Norman keep (Oct 18), replacing the canon round-tower cluster. |
 | overhead.castle.flag.0–3 | ✅ HAVE | `art/flag/flag-{crimson,azure,gold,sable}.png`, cut from the banner-bearers (Oct 7). Also drawn on player caravans; raise it above the canopy in Phase B. |
 
 ## Town (1 key)
@@ -432,8 +432,8 @@ soft edge on the dirt path; no visible seam (checked on quarry + castle 4).
 Mock-up: `art/_preview/labor-grid-overlay-quarry-castle4.png`. Later, for maps
 that need them: empty-lot / no-lumber / no-forge edits.
 
-Open: the Grain plate shows only the shortfall (−23); proposed
-"Grain 90 (−23)" so the workers already there are visible too.
+Open: Grain plate wording when short — A "−23", B "90 (−23)", C "90 / 113";
+compared in `art/_preview/labor-grain-plate-options.png`.
 
 ## Scorecard (update 3, revised Oct 18 evening)
 
@@ -443,7 +443,7 @@ The Art Book (`art/ART_BOOK.pdf`) has a page per asset. Rebuild with
 - **Done:** every map asset in Phase A, including the 5 castle tiers, town,
   lumber mill, blacksmith, quarry and mine (green-screen batch, Oct 18), and
   the labor screen (base, quarry, 5 castle lots).
-- **To confirm:** tier 3 (square keep vs the canon round-tower cluster).
+- **Decided Oct 18:** tier 3 is the square Norman keep.
 - **Open:** lawn colour-match toward the reference; Grain plate wording.
 - **Code only (Phase B):** keys for parched, border wall, decoration, builder,
   crossbow/sword/mace/pike troops; the labor-screen overlays and lot patching.

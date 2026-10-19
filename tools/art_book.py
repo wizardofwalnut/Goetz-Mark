@@ -192,8 +192,8 @@ for k, name, d in [
         [('green-screen copy, Oct 18', R3 + 'castle-%d-%s.png' % (TIER_N[k], TIER_F[k]))], 'have',
         d + ' Green-screen copy of the approved canon tier (ChatGPT), cut off green Oct 18 with no '
         'holes. No flags: the game draws the owner\'s flag on top.' +
-        (' Note: this copy is a square stone keep, where the canon tier 3 was a cluster of round '
-         'towers. Confirm which.' if k == 'normanKeep' else ''))
+        (' A square stone keep: Chris chose this over the canon round-tower cluster to look '
+         'more like a Norman keep (Oct 18).' if k == 'normanKeep' else ''))
 for i, c in enumerate(SEATS):
     add(S, 'Castle flag: ' + c, ['overhead.castle.flag.%d' % i],
         [(c, A + 'flag/flag-%s.png' % c)], 'have',

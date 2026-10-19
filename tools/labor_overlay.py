@@ -28,6 +28,7 @@ ZONES = {
     'Castle':  ((545, 1080, 1005, 1460), (775, 1270), 0, 0, 'farmer'),
 }
 FIG_H = 72
+PLATE = 'short'   # Grain plate style when short: 'short' (-23), 'both' (90 (-23)), 'of' (90 / 113)
 COW_W = 74
 # two cows tucked in the pasture's right corner (Chris, Oct 18: "like two in the corner")
 COWS = [(900, 165), (950, 245)]
@@ -89,7 +90,12 @@ def main(src, out, quarry=False):
                 base.alpha_composite(sh)
                 base.alpha_composite(c, (round(x - c.width / 2), round(y - c.height)))
         # plate: name + exact number, at the top of the compartment
-        label = f'{name}  {short:+d}' if short else f'{name}  {n}'
+        if short and PLATE == 'both':
+            label = f'{name}  {n} ({short:+d})'
+        elif short and PLATE == 'of':
+            label = f'{name}  {n} / {n - short}'
+        else:
+            label = f'{name}  {short:+d}' if short else f'{name}  {n}'
         tw = d.textlength(label, font=f_plate)
         px, py = (box[0] + box[2]) / 2, box[1] + 42
         on = n > 0 or short
