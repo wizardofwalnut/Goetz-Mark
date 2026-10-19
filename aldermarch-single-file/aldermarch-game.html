@@ -19354,6 +19354,20 @@ function visibleRoad(interior, castleTier) {
 	}
 	return [...keep.values()];
 }
+/**
+* Where to slide a castle so its gate (bottom-centre of the art) lands where
+* the road arrives. Only the two front edges can meet the gate; a road coming
+* from behind just runs under the walls. Offsets are in MapSprite units.
+*/
+function castleGateOffset(plot) {
+	const c = plot.interior.castle;
+	if (!c) return void 0;
+	const has = new Set((plot.road ?? plot.interior.road).map((r) => `${r.col},${r.row}`));
+	const s = has.has(`${c.col},${c.row + 1}`), e = has.has(`${c.col + 1},${c.row}`);
+	if (s && !e) return { x: -.25, y: -.2 };
+	if (e && !s) return { x: .25, y: -.2 };
+	return void 0;
+}
 /** A county-local cell in world coordinates. */
 var toWorld = (origin, cell) => ({
 	col: cell.col + origin.col,
@@ -19648,7 +19662,11 @@ async function bakeCounty(plot, masks, season) {
 			const lawn = groundVariantArt(cell.col, cell.row).url;
 			if (cell.kind === "ground" || cell.kind === "mountain") blitTile(ctx, lawn, cell.col, cell.row);
 			else blitTile(ctx, overheadGroundArt(cell.kind, season).url, cell.col, cell.row);
-			if (road) {
+			// The town and castle stand ON the road's end: their own cell's road
+			// piece only poked out from under the sprite as a stray curve or stub
+			// (Chris, Oct 19). Neighbouring pieces still run up to the edge.
+			const underBuilding = interior.town && k === `${interior.town.col},${interior.town.row}` || interior.castle && k === `${interior.castle.col},${interior.castle.row}`;
+			if (road && !underBuilding) {
 				const world = toWorld(origin, road);
 				const mask = masks[`${world.col},${world.row}`];
 				if (mask !== void 0) blitTile(ctx, overheadRoadArt(mask).url, cell.col, cell.row);
@@ -20700,6 +20718,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 					cell: keep,
 					art: overheadCastleArt(state.castleTier),
 					size: 1.5,
+					offset: castleGateOffset(plot),
 					label: `${plot.county.name} castle`
 				}, `${plot.county.id}-keep`)
 			});
