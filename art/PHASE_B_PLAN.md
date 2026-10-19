@@ -1,6 +1,15 @@
-# Phase B wiring plan (written Oct 7, not started)
+# Phase B wiring plan (written Oct 7; APPLIED Oct 18)
 
-Doc only — nothing here has been applied to the game file. This is the
+> **Status Oct 18 (night):** steps 0–5, 7, 8 and the Save Export fix are in
+> the game (commits `74cfd32`, `d461681`, `267173e`, `197561a`). Differences
+> from the plan below: the bake is **200 px**, not ~270 (one merged ground
+> canvas per county; tall props are live sprites, not baked); `builder` job
+> not added (castle-lot crowds use the farmer); decoration is rocks only
+> (bushes need skirt-free art). **Not done:** step 6 (facing — the `.away`
+> keys are embedded, the code isn't), and the on-device S10e check in step 9.
+> Details: `claude/BIG_BANG_STATUS.md`.
+
+Originally doc only — nothing here had been applied to the game file. This is the
 ordered list of every change Phase B makes for the art accepted so far, so the
 pass runs as one batch (BIG_BANG_ART_PASS_PLAN §5) instead of being worked out
 mid-way. Checked against `aldermarch-single-file/aldermarch-game.html` at

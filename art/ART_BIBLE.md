@@ -8,6 +8,17 @@ reviewed everything not marked ready and approved all the canon art as is
 (castles, town, industry, laborers, troops, siege ram); only the castle yard
 ground was rejected. Left: green-screen copies of the 9 canon buildings and
 one new yard tile.
+**Phase B wired, Oct 18 (night):** every ✅ key below now points at its
+accepted file inside the game (embedded as WebP under `bb/...`); the rows
+still say "Phase B: do X" as the record of what was asked. Deviations: bake
+200 px (not ~270); tall things are live sprites; border wall wired as
+`overhead.wall.run` / `.post`; new keys `overhead.sprite.decor.rock`
+(`art/tileset-grok/standing-m/rocks.png`, skirt stripped by
+`tools/decor_match.py`), `labor.backdrop`, `labor.lot.quarry`,
+`labor.lot.castle.<tier>`, and `.away` keys for the army bearers, soldier and
+wagon. **Decoration bushes deferred:** the sheet-1 bush's lime skirt can't be
+cut without eating its leaves — needs a green-screen bush from ChatGPT.
+Status: `claude/BIG_BANG_STATUS.md`.
 **What this is:** every art key in the game's manifest, with its status and
 where the art lives. Checked against the live game file on GitHub
 (`aldermarch-single-file/aldermarch-game.html`): **171 manifest keys** (the
