@@ -3331,6 +3331,21 @@ full standalone screen, not a panel over gameplay. */
   color: #a4906c;
 }
 
+/* Labor screen open: full screen except a compact row of season deltas. */
+body.ov-labor-full .ov-top,
+body.ov-labor-full .ov-figbar-status-row,
+body.ov-labor-full .ov-figbar-sidebar,
+body.ov-labor-full .ov-figbar-name,
+body.ov-labor-full .ov-figbar-corner { display: none !important; }
+body.ov-labor-full .ov-figbar { padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #3a3527; }
+body.ov-labor-full .ov-figbar-resources { gap: 6px; justify-content: center; flex-wrap: wrap; overflow: visible; }
+body.ov-labor-full .ov-figbar-card { width: auto; flex-direction: row; align-items: stretch; }
+body.ov-labor-full .ov-figbar-card-icon { width: 30px; height: 30px; border-radius: 5px 0 0 5px; }
+body.ov-labor-full .ov-figbar-card-numbers { width: auto; min-width: 40px; padding: 2px 7px; border-top: 1px solid #3a3527; border-left: none; border-radius: 0 5px 5px 0; }
+body.ov-labor-full .ov-figbar-card-delta { font-size: 15px; }
+body.ov-labor-full .ov-figbar-card-delta.pos { color: #8cc4ff; }
+body.ov-labor-full .ov-figbar-card-delta.neg { color: #ff8f78; }
+body.ov-labor-full .ov-labor-painted .ov-labor-header { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
 /* Painted labor screen (Phase B, Oct 18): header row doubles as the stepper,
    the painting fills whatever height is left, never scrolls. */
 .ov-labor-painted .ov-labor-header { padding: 8px 10px; min-height: 52px; gap: 8px; }
@@ -23506,18 +23521,32 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
 	 * the map or leave a gap exactly on the devices that can least afford it.
 	 */
 	const shell = import_react.useRef(null);
+	/**
+	 * Full screen, minus the season deltas (Chris, Oct 19: "basically full
+	 * screen, except deltas must be shown"). While open, `ov-labor-full` on
+	 * <body> hides the top bar and everything in the bottom strip except the
+	 * resource cards, which turn into one compact row; the overlay sits on top
+	 * of that row, measured, because the row's height changes with the cards.
+	 */
 	import_react.useEffect(() => {
+		document.body.classList.add("ov-labor-full");
 		const fit = () => {
 			const el = shell.current;
 			if (!el) return;
-			const top = document.querySelector(".ov-top");
 			const strip = document.querySelector(".ov-figbar");
-			el.style.setProperty("--ov-chrome-top", `${top ? top.getBoundingClientRect().height : 0}px`);
+			el.style.setProperty("--ov-chrome-top", "0px");
 			el.style.setProperty("--ov-chrome-bottom", `${strip ? strip.getBoundingClientRect().height : 0}px`);
 		};
 		fit();
+		const strip = document.querySelector(".ov-figbar");
+		const ro = typeof ResizeObserver !== "undefined" && strip ? new ResizeObserver(fit) : null;
+		ro?.observe(strip);
 		window.addEventListener("resize", fit);
-		return () => window.removeEventListener("resize", fit);
+		return () => {
+			document.body.classList.remove("ov-labor-full");
+			ro?.disconnect();
+			window.removeEventListener("resize", fit);
+		};
 	}, []);
 
 	const plots = planPlots(county, {
