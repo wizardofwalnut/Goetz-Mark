@@ -50,8 +50,22 @@ if os.environ.get('FIELDS') == 's2':
         if g['kind'] == 'forest':
             cell[(g['col'], g['row'])] = '../review-s2/forest-floor'
             sprites_on[(g['col'], g['row'])] = ('art/review-s2/forest.png', 1.05)
+# NEWART=1: the green-screen buildings accepted Oct 18 (art/review-s3/), standing on the lawn
+NEWART = os.environ.get('NEWART') == '1'
+if NEWART:
+    R3 = 'art/review-s3/'
+    for k in it.get('castles', [it.get('castle')]):
+        big.pop((k['col'], k['row']), None)
+        sprites_on[(k['col'], k['row'])] = (R3 + os.environ.get('CASTLE', 'castle-2-motte-bailey') + '.png', 1.5)
+    for k in it.get('towns', [it.get('town')]):
+        big.pop((k['col'], k['row']), None)
+        sprites_on[(k['col'], k['row'])] = (R3 + 'town.png', 1.6)
+    IND = {}
+    NEW_IND = {'lumberMill': ('lumber-mill', 1.3), 'blacksmith': ('blacksmith', 1.2), 'quarry': ('quarry', 1.3), 'mine': ('mine', 0.85 * 1.15)}
 for i in it['industry']:
-    if i['kind'] in IND:
+    if NEWART and i['kind'] in NEW_IND:
+        sprites_on[(i['col'], i['row'])] = (R3 + NEW_IND[i['kind']][0] + '.png', NEW_IND[i['kind']][1])
+    elif i['kind'] in IND:
         big[(i['col'], i['row'])] = IND[i['kind']]
     elif i['kind'] == 'mine':
         sprites_on[(i['col'], i['row'])] = ('art/buildings/building-mine.png', float(os.environ.get('MINE_SCALE', '1.25')))
@@ -113,7 +127,8 @@ def mask(c, r):
 
 
 if len(args) > 4:
-    ccol, crow, SW, SH, HUD = float(args[4]), float(args[5]), int(args[6]), int(args[7]), args[8]
+    ccol, crow, SW, SH = float(args[4]), float(args[5]), int(args[6]), int(args[7])
+    HUD = args[8] if len(args) > 8 and os.path.exists(args[8]) else None
     ox = SW / 2 - (ccol - crow) * W / 2
     oy = SH * 0.42 - (ccol + crow) * H / 2
 else:
