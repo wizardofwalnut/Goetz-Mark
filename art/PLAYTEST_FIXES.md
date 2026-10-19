@@ -66,6 +66,44 @@ Priority: **P1** = broken or misleading now · **P2** = hurts the game ·
 | C14 | P3 | No bushes in the decoration | Needs a green-screen bush from ChatGPT. |
 | C15 | P3 | Map sharpness on the phone | Bake 200 px per tile; raise if soft. |
 
+---
+
+## Second pass (Oct 19, late) — new findings
+
+The tickable version of this whole list is the **Aldermarch Fix List** artifact (84 items, saves ticks).
+
+**Bugs**
+- **P1 Castle assault never fights; the county turns neutral.** Repro: army beside Marlbrook's castle (AI home county), confirm "Assault …'s castle?", End Turn → no battle report, event "marlbrook cut off and lost", AI garrison gone, county owner null; your army can't take it on later turns.
+- **P2 Archer harassment report doesn't match the armies:** report says attacker archers lost 14; the army still has 30 (defenders 20 → 5).
+- **P2 Castle plate "Building (800) 0" / "(80)"** = seasons left; cryptic, and 800 with no builders. Stepper header truncates to "Build…".
+- **P3 Castle panel** "Assign builders from the Labor screen" sits outside the panel; no button to get there.
+
+**Gameplay**
+- **AI attacks only in trickles:** against an undefended Hollowmere it sent bands of 1–15 that the townsfolk beat every time ("held by its own people") for 20 turns.
+- **Castle build times:** Norman Keep needs 800 builder-seasons (80 seasons with 10 builders).
+- **Forge:** 10 smiths → 2 swords a season; plate demands −200 workers.
+- **Tax** moves in 1% steps (20 taps to 20%).
+- **Season report** lists every harvested field on its own line.
+- **Town militia** defends automatically but is never shown.
+- **"Cut off" rule** is invisible: a county not connected to your capital is lost at once.
+
+**Look and feel**
+- **Winter looks exactly like spring.**
+- **Landscape is unusable** (map strip ~200 px, labor painting a thumbnail).
+- **No owner colours on the map**; flags only on garrisoned castles.
+- **No troop counts on armies**; you must tap to see size.
+- Forge weapon buttons are tiny tap targets and push the labor painting smaller.
+
+## Recommendations — add / change / remove
+
+**Add:** first-game guidance (intro card + steward checklist); end-turn warnings strip; "Fill to need" and hold-to-repeat in the labor stepper; owner colours on towns and border posts; troop-count badges; a proper battle report; difficulty / AI personalities; map choice and more maps (paid content); season tint or snow; floating numbers at harvest/tax; sound effects; long-press help on stats; victory/defeat recap; store readiness (icon, splash, screenshots, privacy page, TWA packaging); optional auto-manage labor.
+
+**Change:** AI army size and attack logic; food drives births and happiness; starting labor matches need; Levy "Safe max"; forge only "short" when a weapon is wanted; emigration threshold ~60; one season summary instead of two pop-ups; tax in 5% steps; castle and forge throughput; readable bottom-strip numbers; painted icons instead of emoji.
+
+**Remove / cut:** music toggle until music ships; Report Card pop-up (keep as a tab); Levy "Max" as is; Diplomacy chip unless it gets actions; field-by-field harvest lines; 1–5 person emigration lines; dead code (old TownPlan labor screen, 79 unread manifest keys, leftover pixel art).
+
+**Decisions for Chris:** labor layout; field pop-up style; AI difficulty; keep or drop the "cut off" rule; diplomacy build-or-hide; portrait lock vs landscape; season tint vs winter art; how the game makes money; how harsh famine should be.
+
 ## What's working (checked)
 
 Save / Load / Continue / autosave; levy and mercenary hire; army select, reach
