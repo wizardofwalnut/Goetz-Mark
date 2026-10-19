@@ -42,7 +42,7 @@ script first.
 
 Reference: `art/_reference/target-look-hollowmere.jpg`. Match its **style**,
 not the exact picture:
-- **Zoom:** not locked yet — see "Zoom and bake resolution". Fields are
+- **Zoom:** 4 tiles across the phone (decided Oct 18). Fields are
   groups of tiles that join seamlessly into big blocks.
 - **Chunky diorama tiles:** each tile reads as a raised slab with soil showing
   on its front edge; rich texture (wheat stalks, furrows, cracked earth).
@@ -58,7 +58,13 @@ not the exact picture:
 - From the reference: the **parched field** (cracked earth) is in; the
   **town is a village cluster** (several houses).
 
-## Zoom and bake resolution — OPEN (your decision)
+## Zoom and bake resolution — DECIDED Oct 18: 4 across
+
+Chris chose **4 tiles across** after the side-by-side with the accepted Oct 18
+buildings (`art/_preview/zoom-compare-newart.jpg`): closest to the reference,
+buildings and soldiers read clearly; more scrolling. Tile ≈ 270 px wide on the
+S10e, so bake at ~270 px — still to test on the phone (memory, smoothness).
+The candidates as they were compared:
 
 Two candidates, both mocked up at the S10e's real 1080 px width with the real
 HUD on top:
@@ -456,5 +462,4 @@ The Art Book (`art/ART_BOOK.pdf`) has a page per asset. Rebuild with
 1. Best Noble fleur-de-lis.
 2. Flooded fields: add art or drop the state? (Parched is in — it's in the target look.)
 3. The 79 unread keys: delete from the manifest, or keep dormant? (Either way, no art for them this pass.)
-4. **Zoom: 4 or 7 tiles across** (recommended 4 — see "Zoom and bake
-   resolution"). This one blocks the bake test and Phase B step 1.
+4. ~~Zoom~~ — decided Oct 18: 4 across. Next: the ~270 px bake test on the S10e.

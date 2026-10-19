@@ -108,11 +108,10 @@ Each step depends on the ones above it.
    - Camera/scroll: `VIEW_COLS` now counts diamond widths across the screen.
    Do this before step 1 — the bake sizes below are diamond sizes.
 
-1. **Zoom and bake — waiting on the zoom decision (4 or 7 across; 4
-   recommended, see the Art Bible).** 7 across = 160 px bake (tested);
-   4 across = ~270 px (test on the S10e first).
-   - Set `VIEW_COLS` to the chosen number.
-   - One `BAKE_TILE_PX` constant (160 or ~270) (diamond width) replaces the hard-coded
+1. **Zoom and bake — 4 across (decided Oct 18).** Bake at ~270 px; test on
+   the S10e first (160 px at 7 across was the only size tested so far).
+   - Set `VIEW_COLS` to 4.
+   - One `BAKE_TILE_PX` constant (~270) (diamond width) replaces the hard-coded
      32 px native tile; scale `BAKE_PAD_PX` with it.
    - Bake only the county in view (+ neighbours lazily), and merge the
      ground/fields/roads layers into one canvas — all 4 counties x 4 layers at
