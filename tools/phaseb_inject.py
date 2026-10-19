@@ -107,7 +107,8 @@ def webp(im):
     return 'data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode()
 
 
-def main(p):
+def main(p, tables=None, remove=(), renames=()):
+    tables = tables or ((GROUND, norm_ground), (SPRITES, norm_sprite))
     s = open(p, encoding='utf-8').read()
     # the inlined art map is one JSON object on one line
     head = '<script>window.__ALDERMARCH_ART__ = '
@@ -116,7 +117,18 @@ def main(p):
     art = json.loads(s[a0:a1].strip().rstrip(';'))
     mani_end = s.index('\n\t}\n};\nvar inlinedArt')
     added, changed = [], []
-    for table, norm in ((GROUND, norm_ground), (SPRITES, norm_sprite)):
+    for old, new_key in renames:
+        n0 = s.count(f'\t\t"{old}": {{')
+        assert n0 == 1, (old, n0)
+        s = s.replace(f'\t\t"{old}": {{', f'\t\t"{new_key}": {{')
+    removed = []
+    for key in remove:
+        entry = re.compile(r',?\n\t\t"' + re.escape(key) + r'": \{[^}]*\}')
+        if entry.search(s):
+            s = entry.sub('', s, count=1)
+            removed.append(key)
+    mani_end = s.index('\n\t}\n};\nvar inlinedArt')
+    for table, norm in tables:
         for key, src in table.items():
             path = 'bb/' + key.replace('.', '/') + '.webp'
             art[path] = webp(norm(src))
@@ -135,7 +147,7 @@ def main(p):
     a1 = s.index('</script>', a0)
     s = s[:a0] + blob + ';' + s[a1:]
     open(p, 'w', encoding='utf-8').write(s)
-    print(f'changed {len(changed)} keys, added {len(added)}: {added}')
+    print(f'changed {len(changed)} keys, added {len(added)}: {added}; removed {removed}')
     print(f'file now {len(s) / 1e6:.1f} MB')
 
 
