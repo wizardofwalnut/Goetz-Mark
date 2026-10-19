@@ -432,7 +432,8 @@ soft edge on the dirt path; no visible seam (checked on quarry + castle 4).
 Mock-up: `art/_preview/labor-grid-overlay-quarry-castle4.png`. Later, for maps
 that need them: empty-lot / no-lumber / no-forge edits.
 
-Open: Grain plate wording when short — A "−23", B "90 (−23)", C "90 / 113";
+**Plate wording when short (decided Oct 18, option B):** "Grain 90 (−23)" —
+workers there plus the shortfall in brackets; same for Pasture. Options
 compared in `art/_preview/labor-grain-plate-options.png`.
 
 ## Scorecard (update 3, revised Oct 18 evening)
@@ -444,7 +445,7 @@ The Art Book (`art/ART_BOOK.pdf`) has a page per asset. Rebuild with
   lumber mill, blacksmith, quarry and mine (green-screen batch, Oct 18), and
   the labor screen (base, quarry, 5 castle lots).
 - **Decided Oct 18:** tier 3 is the square Norman keep.
-- **Open:** lawn colour-match toward the reference; Grain plate wording.
+- **Open:** lawn colour-match toward the reference.
 - **Code only (Phase B):** keys for parched, border wall, decoration, builder,
   crossbow/sword/mace/pike troops; the labor-screen overlays and lot patching.
 - **Not started:** crests, mercenary offer (both unread keys today).

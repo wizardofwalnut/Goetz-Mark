@@ -28,7 +28,7 @@ ZONES = {
     'Castle':  ((545, 1080, 1005, 1460), (775, 1270), 0, 0, 'farmer'),
 }
 FIG_H = 72
-PLATE = 'short'   # Grain plate style when short: 'short' (-23), 'both' (90 (-23)), 'of' (90 / 113)
+PLATE = 'both'    # chosen Oct 18 (B). Grain/Pasture plate style when short: 'short' (-23), 'both' (90 (-23)), 'of' (90 / 113)
 COW_W = 74
 # two cows tucked in the pasture's right corner (Chris, Oct 18: "like two in the corner")
 COWS = [(900, 165), (950, 245)]
