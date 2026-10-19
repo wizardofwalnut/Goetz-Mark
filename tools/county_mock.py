@@ -15,6 +15,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 TS = 'art/tileset-grok/'
+LAWN = os.environ.get('LAWN', 'lawn')      # 'lawnm' = colour-matched to target-look-5 (Oct 18)
 RATIO = 1.55
 SHEET_TALL = ('castle', 'house', 'barn', 'wheat', 'mountain', 'bushes', 'rocks', 'watch', 'pasture')
 
@@ -157,11 +158,11 @@ def put(n, c, r, scale=1.0):
 def ground_name(c, r):
     n = cell[(c, r)]
     if 'review-s2' in n:
-        return n if not n.endswith('growing-wheat') else f'lawn-{c % 2}{r % 2}'
+        return n if not n.endswith('growing-wheat') else f'{LAWN}-{c % 2}{r % 2}'
     if n == 'lawn' or (c, r) in roads or (c, r) in big or (c, r) in sprites_on or n.startswith(SHEET_TALL) and n not in ('pasture-cows',):
         if n in ('water',):
             return n
-        return f'lawn-{c % 2}{r % 2}'
+        return f'{LAWN}-{c % 2}{r % 2}'
     return n
 
 
@@ -171,7 +172,7 @@ for c, r in order:
     if n.startswith(('lawn', 'water', 'tilled', 'grass', 'pasture')) or 'review-s2' in n:
         put(n, c, r)
     else:
-        put(f'lawn-{c % 2}{r % 2}', c, r)
+        put(f'{LAWN}-{c % 2}{r % 2}', c, r)
     if (c, r) in roads:
         gx, gy = corner(c, r)
         img.alpha_composite(road(mask(c, r)), (round(gx), round(gy - H / 2)))
