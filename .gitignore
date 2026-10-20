@@ -16,3 +16,4 @@ coverage/
 dist/
 tsconfig.tsbuildinfo
 __pycache__/
+_site/
