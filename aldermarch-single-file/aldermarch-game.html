@@ -1270,6 +1270,8 @@ End Turn stays the visually dominant element between them. */
   color: #a8a096;
 }
 
+.ov-ration-short-line { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.35; color: #f0a08a; padding: 3px 0; }
+
 .ov-ration-zone {
   margin: 0 16px 10px;
   background: #3a352e;
@@ -18303,12 +18305,26 @@ function advanceSeason(match, map) {
 			kind: "emergencyCulling",
 			detail: `${cowsEatenTotal} head of cattle eaten to cover a food shortfall`
 		});
-		const starving = wheat < 0;
-		if (starving) events.push({
+		/**
+		* Achieved ration (Chris, Oct 20 — option A, LOTR2's rule: "the
+		* Achieved ration will be lower than the Wanted ration if the county
+		* does not have enough food"). People eat what is in store; the ration
+		* they actually got, not the one ordered, drives health and happiness
+		* below — so empty stores now hurt the same way ordering Half or None
+		* does. `wheat` here is the stock after the season's eating and any
+		* emergency culling; a negative value is the part of the wanted ration
+		* that couldn't be served.
+		*/
+		const wantedFood = county.population * GRAIN_PER_HEAD * county.rationLevel;
+		const eatenShare = county.population > 0 ? Math.max(0, wantedFood + Math.min(0, wheat)) / (county.population * GRAIN_PER_HEAD) : county.rationLevel;
+		const achievedRation = Math.min(county.rationLevel, eatenShare >= 3 ? 3 : eatenShare >= 2 ? 2 : eatenShare >= 1 ? 1 : eatenShare >= .5 ? .5 : .1);
+		if (achievedRation < county.rationLevel) events.push({
 			county: id,
 			kind: "starving",
-			detail: "Stores are empty"
+			detail: `Stores ran out: people ate ${achievedRation === .1 ? "almost nothing" : `${rationName(achievedRation)} rations`}, not ${rationName(county.rationLevel)}`
 		});
+		/** Reported once, above, as the eaten ration (it always falls short when stores run dry). */
+		const starving = wheat < 0;
 		wheat = Math.max(0, wheat);
 		const stormOrDrought = eventsOn && (season === "spring" || season === "summer") ? createRng(seedFrom(working.id, working.turn.number, id, "weather")).next() < (season === "spring" ? STORM_CHANCE : DROUGHT_CHANCE) : false;
 		const damagedFieldIds = /* @__PURE__ */ new Set();
@@ -18620,7 +18636,8 @@ function advanceSeason(match, map) {
 		* to 0 whenever the policy actually changes, so this can simply
 		* increment every season rather than re-deriving "did it change" here.
 		*/
-		const rationLevel = county.rationLevel;
+		/** What people actually ate this season (see `achievedRation` above); the order itself (`county.rationLevel`) stays as the player set it. */
+		const rationLevel = achievedRation;
 		const seasonsAtRation = county.seasonsAtRation + 1;
 		const newHealth = advanceHealth(county.health, rationLevel);
 		const health = healthTier(newHealth);
@@ -18777,7 +18794,8 @@ function advanceSeason(match, map) {
 			greatestPopulation,
 			populationCauses: null,
 			conscriptedThisSeason: 0,
-			rationLevel,
+			rationLevel: county.rationLevel,
+			achievedRation: null,
 			seasonsAtRation,
 			health: 65,
 			healthHistory,
@@ -18824,7 +18842,8 @@ function advanceSeason(match, map) {
 			greatestPopulation,
 			populationCauses,
 			conscriptedThisSeason: 0,
-			rationLevel,
+			rationLevel: county.rationLevel,
+			achievedRation,
 			seasonsAtRation,
 			health: newHealth,
 			healthHistory,
@@ -24601,7 +24620,17 @@ function RationScreen({ match, countyId, countyName, onChange, onClose }) {
 	const outlook = projectedCattleOutlook(county, match);
 	const dairyProduced = outlook.dairyProduced;
 	const grainDrawn = outlook.grainDrawn;
-	const happinessContribution = RATION_HAPPINESS[county.rationLevel] ?? 0;
+	/**
+	* What people will actually eat next season (achieved ration, Oct 20):
+	* the order, unless stores + dairy + the herd can't cover it. The rows
+	* below forecast from this, so the panel warns a season ahead instead
+	* of promising "+1 happiness" from food that isn't there.
+	*/
+	const perHead = county.population * GRAIN_PER_HEAD;
+	const supply = (county.food.wheat ?? 0) + dairyProduced + (county.herd ?? 0) * BEEF_FEEDS_PER_COW * GRAIN_PER_HEAD;
+	const share = perHead > 0 ? Math.min(perHead * county.rationLevel, supply) / perHead : county.rationLevel;
+	const willEat = Math.min(county.rationLevel, share >= 3 ? 3 : share >= 2 ? 2 : share >= 1 ? 1 : share >= .5 ? .5 : .1);
+	const happinessContribution = RATION_HAPPINESS[willEat] ?? 0;
 
 	/**
 	* Same shortfall check `advanceSeason`'s emergency herd consumption
@@ -24612,7 +24641,7 @@ function RationScreen({ match, countyId, countyName, onChange, onClose }) {
 	*/
 	const cowsEatenProjected = -outlook.eating;
 
-	const healthTarget = RATION_HEALTH_TARGET[county.rationLevel] ?? 50;
+	const healthTarget = RATION_HEALTH_TARGET[willEat] ?? 50;
 	const healthDirectionLabel = healthTierLabel(healthTarget);
 	/**
 	* Live turn-count to the ration-driven target — recalculated on every
@@ -24622,7 +24651,7 @@ function RationScreen({ match, countyId, countyName, onChange, onClose }) {
 	* just tapping between them, rather than only ever seeing a tier name
 	* with no sense of when.
 	*/
-	const healthTurnsAway = turnsToHealthTarget(county.health, county.rationLevel);
+	const healthTurnsAway = turnsToHealthTarget(county.health, willEat);
 
 	const rows = [
 		{ icon: "\u{1F60A}", label: "happiness", value: `${happinessContribution >= 0 ? "+" : ""}${Math.round(happinessContribution)}`, tone: happinessContribution >= 0 ? "pos" : "neg" },
@@ -24650,6 +24679,10 @@ function RationScreen({ match, countyId, countyName, onChange, onClose }) {
 				onClick: () => adjustRation(1),
 			}, "+") : null,
 		]),
+		willEat < county.rationLevel || county.achievedRation != null && county.achievedRation < county.rationLevel ? h("div", { className: "ov-ration-zone", key: "eaten" }, [
+			willEat < county.rationLevel && h("div", { className: "ov-ration-short-line", key: "next" }, `\u26A0\uFE0F The stores can't cover ${rationName(county.rationLevel)}: next season people will eat ${rationName(willEat)} rations.`),
+			county.achievedRation != null && county.achievedRation < county.rationLevel && h("div", { className: "ov-ration-short-line", key: "last" }, `Last season they ate ${rationName(county.achievedRation)}.`),
+		]) : null,
 		h("div", { className: "ov-ration-section-label", key: "l1" }, "Consequences This Season"),
 		h("div", { className: "ov-ration-zone", key: "z1" },
 			rows.map((r, i) => h("div", { className: "ov-ration-row", key: `r${i}` }, [
@@ -24935,7 +24968,7 @@ function HappinessReportScreen({ match, countyId, countyName, onClose }) {
 	* three stay snapshot-based, unlike tax/ration.
 	*/
 	const liveTax = -TAX_SELF_PENALTY(county.taxRate);
-	const liveRation = RATION_HAPPINESS[county.rationLevel] ?? 0;
+	const liveRation = RATION_HAPPINESS[Math.min(county.rationLevel, county.achievedRation ?? county.rationLevel)] ?? 0;
 	const average = history.length > 0 ? Math.round(history.reduce((sum, v) => sum + v, 0) / history.length) : county.happiness;
 	const lastSeason = history.length > 1 ? history[history.length - 2] : county.happiness;
 	const thisSeason = county.happiness;
@@ -26219,7 +26252,8 @@ function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpen
 								onMinus: () => adjustRation(-1),
 								onPlus: () => adjustRation(1),
 								onValueClick: () => onOpenRation?.(county.id),
-								title: "Ration level \u2014 tap the name for the full breakdown"
+								extra: state.achievedRation != null && state.achievedRation < state.rationLevel ? `\u26A0 ate ${rationName(state.achievedRation)}` : null,
+								title: state.achievedRation != null && state.achievedRation < state.rationLevel ? `Ordered ${rationName(state.rationLevel)}, but the stores ran out and people ate ${rationName(state.achievedRation)} \u2014 tap for the breakdown` : "Ration level \u2014 tap the name for the full breakdown"
 							}),
 							(owned && onSendCaravan || owned && onOpenLevy) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "ov-figbar-action-pair",
