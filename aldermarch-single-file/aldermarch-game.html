@@ -2381,6 +2381,7 @@ image.ov-tut-glow { animation: ov-tut-pulse-img 1.2s ease-in-out infinite; }
 }
 
 .ov-merchant-icon img { width: 30px; height: 30px; }
+.ov-merchant-glyph { display: flex; align-items: center; justify-content: center; font-size: 20px; background: none; }
 
 .ov-merchant-body-text { flex: 1; min-width: 0; }
 
@@ -15485,6 +15486,8 @@ var armyFigureCount = (troops) => troops <= 300 ? 1 : troops <= 600 ? 2 : 3;
 */
 var unitArt = (kind, faction) => resolveAsset(faction ? [`unit.${kind}.${faction}`, `unit.${kind}`] : [`unit.${kind}`]);
 var resourceArt = (resource) => resolveAsset([`resource.${resource}`]);
+/** Stand-in glyph where a resource has no painted icon yet (ale: fix list b14 until the ChatGPT icon, m6, lands). */
+var RESOURCE_GLYPH = { ale: "\u{1F37A}" };
 var overheadGroundArt = (kind) => resolveAsset([`overhead.tile.${kind}`]);
 var overheadFieldArt = (status, stage) => resolveAsset(status === "grain" && stage ? [`overhead.field.grain.${stage}`, "overhead.field.fallow"] : [`overhead.field.${status}`, "overhead.field.fallow"]);
 /**
@@ -18254,7 +18257,8 @@ function checkVictory(match) {
 	*/
 	const ownableCounties = Object.values(match.counties).filter((c) => c.interior);
 	const countyOwners = ownableCounties.map((c) => c.owner).filter(Boolean);
-	const armyOwners = Object.values(match.armies).map((a) => a.owner).filter(Boolean);
+	/** Only armies with soldiers keep a lord in the game: an emptied 0-troop army used to stop the defeat screen (fix list b17). */
+	const armyOwners = Object.values(match.armies).filter((a) => Object.values(a.troops ?? {}).some((n) => n > 0)).map((a) => a.owner).filter(Boolean);
 	if (ownableCounties.length > 0) {
 		const uniqueCountyOwners = new Set(countyOwners);
 		if (uniqueCountyOwners.size === 1 && countyOwners.length === ownableCounties.length) {
@@ -20728,6 +20732,8 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 	const layout = (0, import_react.useMemo)(() => worldLayout(map, match), [map, match]);
 	const [focus, setFocus] = (0, import_react.useState)(initialFocus ?? null);
 	const [laborScreenCounty, setLaborScreenCounty] = (0, import_react.useState)(null);
+	/** Job to open the labor screen on (the castle panel's "Assign builders" button, fix list b16). */
+	const [laborInitialSlot, setLaborInitialSlot] = (0, import_react.useState)(null);
 	const [rationScreenCounty, setRationScreenCounty] = (0, import_react.useState)(null);
 	const [levyScreenCounty, setLevyScreenCounty] = (0, import_react.useState)(null);
 	const [merchantScreenCounty, setMerchantScreenCounty] = (0, import_react.useState)(null);
@@ -20971,6 +20977,12 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				countyId: castleScreenCounty,
 				countyName: layout.plots.find((p) => p.county.id === castleScreenCounty)?.county.name ?? castleScreenCounty,
 				onChange,
+				onOpenLabor: (slot) => {
+					const id = castleScreenCounty;
+					setCastleScreenCounty(null);
+					setLaborInitialSlot(slot);
+					setLaborScreenCounty(id);
+				},
 				onClose: () => setCastleScreenCounty(null)
 			}),
 			battleScreenCounty && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BattleReportScreen, {
@@ -21056,7 +21068,11 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				countyId: laborScreenCounty,
 				countyName: layout.plots.find((p) => p.county.id === laborScreenCounty)?.county.name ?? laborScreenCounty,
 				onChange,
-				onClose: () => setLaborScreenCounty(null)
+				initialSlot: laborInitialSlot,
+				onClose: () => {
+					setLaborScreenCounty(null);
+					setLaborInitialSlot(null);
+				}
 			}),
 			levyScreenCounty && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LevyPanel, {
 				match,
@@ -23005,8 +23021,9 @@ function MerchantPanel({ match, countyId, countyName, onChange, onClose }) {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "ov-merchant-icon",
 							children: art.missing || !art.url ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "ov-chip",
-								"aria-hidden": true
+								className: "ov-chip ov-merchant-glyph",
+								"aria-hidden": true,
+								children: RESOURCE_GLYPH[good] ?? null
 							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
 								src: art.url,
 								alt: good
@@ -23533,6 +23550,20 @@ var POOLED_RESOURCES = [
 function TopBarMenu({ onOpenSave, onOpenHistory, onOpenSettings }) {
 	const [open, setOpen] = (0, import_react.useState)(false);
 	const h = import_react.createElement;
+	const rootRef = (0, import_react.useRef)(null);
+	/**
+	* The backdrop sits under the bottom strip and other always-on chrome, so a
+	* tap on a stat chip opened its panel with the menu still open (fix list b15).
+	* Any press outside the menu closes it, whatever it lands on.
+	*/
+	(0, import_react.useEffect)(() => {
+		if (!open) return;
+		const close = (e) => {
+			if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+		};
+		document.addEventListener("pointerdown", close, true);
+		return () => document.removeEventListener("pointerdown", close, true);
+	}, [open]);
 	const item = (icon, label, onClick) => h("button", {
 		key: label,
 		className: "ov-menu-item",
@@ -23544,7 +23575,7 @@ function TopBarMenu({ onOpenSave, onOpenHistory, onOpenSettings }) {
 		h("span", { className: "ov-menu-item-icon", key: "i" }, icon),
 		h("span", { key: "l" }, label)
 	]);
-	return h("div", { className: "ov-menu" }, [
+	return h("div", { className: "ov-menu", ref: rootRef }, [
 		h("button", {
 			key: "btn",
 			className: "ov-save-btn",
@@ -24531,7 +24562,7 @@ function LaborBackdrop({ county, zones, idle, selected, onSelect }) {
 	return h("svg", { className: "ov-labor-paint", viewBox: `0 0 ${LABOR_W} ${LABOR_H}`, preserveAspectRatio: "xMidYMid meet", role: "img",
 		"aria-label": `Town centre: ${idle} idle` }, nodes);
 }
-function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
+function LaborScreen({ match, countyId, countyName, onChange, onClose, initialSlot = null }) {
 	const county = match.counties[countyId];
 	if (!county) return null;
 	const grainFields = county.interior.fields.filter((f) => f.status === "grain");
@@ -24636,7 +24667,7 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
 		return null;
 	};
 	const seat = match.players.findIndex((p) => p.id === county.owner);
-	const [selected, setSelected] = import_react.useState(null);
+	const [selected, setSelected] = import_react.useState(initialSlot);
 	const h = import_react.createElement;
 
 	/**
@@ -25255,7 +25286,7 @@ function HappinessReportScreen({ match, countyId, countyName, onClose }) {
 			h("h2", { key: "t" }, `\u{1F60A} Happiness Report \u2014 ${countyName ?? countyId}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
-		h("div", { className: "ov-happiness-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`),
+		history.length > 0 ? h("div", { className: "ov-happiness-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-happiness-zone", key: "z1" }, [
 			h("div", { className: "ov-happiness-chart", key: "chart" }, history.map((value, i) => h("div", { className: "ov-happiness-bar-col", key: i }, [
 				h("div", {
@@ -25329,7 +25360,7 @@ function HealthReportScreen({ match, countyId, countyName, onClose }) {
 			h("h2", { key: "t" }, `\u2764\uFE0F Health Report \u2014 ${countyName ?? countyId}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
-		h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`),
+		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
 			h("div", { className: "ov-health-chart", key: "chart" }, history.map((value, i) => h("div", { className: "ov-health-bar-col", key: i }, [
 				h("div", {
@@ -25452,7 +25483,7 @@ function CattleReportScreen({ match, countyId, countyName, onClose }) {
 			h("h2", { key: "t" }, `\u{1F404} Cattle Report \u2014 ${countyName ?? countyId}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
-		h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`),
+		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
 			h("div", { className: "ov-health-chart", key: "chart" }, history.map((value, i) => h("div", { className: "ov-health-bar-col", key: i }, [
 				h("div", {
@@ -25525,7 +25556,7 @@ function GrainReportScreen({ match, countyId, countyName, onClose }) {
 			h("h2", { key: "t" }, `\u{1F33E} Grain Report \u2014 ${countyName ?? countyId}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
-		h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`),
+		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
 			h("div", { className: "ov-health-chart", key: "chart" }, history.map((value, i) => h("div", { className: "ov-health-bar-col", key: i }, [
 				h("div", {
@@ -25942,7 +25973,7 @@ function PopulationReportScreen({ match, countyId, countyName, onClose }) {
 			h("h2", { key: "t" }, `\u{1F465} Population Report \u2014 ${countyName ?? countyId}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
-		h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`),
+		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
 			h("div", { className: "ov-health-chart", key: "chart" }, history.map((value, i) => h("div", { className: "ov-health-bar-col", key: i }, [
 				h("div", {
@@ -25991,7 +26022,14 @@ function PopulationReportScreen({ match, countyId, countyName, onClose }) {
 * that's the Labor screen's job, same separation the AI's own build logic
 * already respects (see `startCastleBuild`'s comment).
 */
-function CastleScreen({ match, countyId, countyName, onChange, onClose }) {
+function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLabor }) {
+	/** "Assign builders" used to be a bare footnote (one of them outside its box) with no way to act on it (fix list b16). */
+	const buildersBtn = (slot) => owned && onOpenLabor ? h("button", {
+		key: "hint",
+		className: "ov-title-btn",
+		style: { alignSelf: "center", marginTop: 8 },
+		onClick: () => onOpenLabor(slot)
+	}, "\u{1F477} Assign builders") : null;
 	const h = import_react.createElement;
 	const county = match.counties[countyId];
 	if (!county) return null;
@@ -26075,7 +26113,7 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose }) {
 					h("span", { className: "ov-ration-row-icon", key: "i" }, (county.castleRepairWorkers ?? 0) > 0 ? "\u{1F477}" : "\u26A0\uFE0F"),
 					h("span", { className: "ov-ration-row-label", key: "l" }, (county.castleRepairWorkers ?? 0) > 0 ? `${county.castleRepairWorkers} builders assigned` : "No builders assigned \u2014 stalled"),
 				]),
-				h("div", { className: "ov-title-footnote", key: "hint" }, "Assign builders from the Labor screen."),
+				buildersBtn("castleRepair"),
 			] : [
 				h("div", { className: "ov-ration-row", key: "blurb" }, [
 					h("span", { className: "ov-ration-row-val neutral", key: "v" }, `Repairing costs ${Math.round(CASTLE_REPAIR_COST_SHARE * 100)}% of this tier's own build price \u2014 cheaper than raising it from nothing, but real cost, not a free reset.`),
@@ -26105,7 +26143,7 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose }) {
 					h("span", { className: `ov-ration-row-val ${county.castleWorkers > 0 ? "pos" : "neg"}`, key: "v" }, turnsLeft !== null ? `~${turnsLeft} season${turnsLeft === 1 ? "" : "s"}` : "\u2014"),
 				]),
 			]),
-			h("div", { className: "ov-title-footnote", key: "hint" }, "Assign builders from the Labor screen."),
+			buildersBtn("castle"),
 		] : availableTiers.length > 0 ? [
 			h("div", { className: "ov-health-section-label", key: "l2" }, "Available Tiers \u2014 Choose Any"),
 			...availableTiers.map((tierKey) => {
@@ -26138,12 +26176,12 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose }) {
 						h("span", { className: "ov-ration-row-label", key: "l" }, "Defence \u00D7 / Tax + / Garrison"),
 						h("span", { className: "ov-ration-row-val pos", key: "v" }, `\u00D7${castle.defence.toFixed(2)}  +${Math.round(castle.taxBonus * 100)}%  +${castle.garrisonBonus}`),
 					]),
-					h("div", { className: "ov-ration-row", key: "fullcost" }, [
-						h("span", { className: "ov-ration-row-label", key: "l" }, "Full cost (this tier)"),
+					county.castleTier === "none" ? null : h("div", { className: "ov-ration-row", key: "fullcost" }, [
+						h("span", { className: "ov-ration-row-label", key: "l" }, county.castleTier === "none" ? "Cost" : "Cost from bare ground"),
 						h("span", { className: "ov-ration-row-val neutral", key: "v" }, fmtCost(fullCost)),
 					]),
 					h("div", { className: "ov-ration-row", key: "cost" }, [
-						h("span", { className: "ov-ration-row-label", key: "l" }, "You'll actually pay"),
+						h("span", { className: "ov-ration-row-label", key: "l" }, county.castleTier === "none" ? "You pay" : `Upgrade cost (after credit for your ${CASTLES[county.castleTier]?.name ?? "castle"})`),
 						h("span", { className: `ov-ration-row-val ${affordable ? "pos" : "neg"}`, key: "v" }, Object.keys(cost).length > 0 ? fmtCost(cost) : "Nothing \u2014 already covered"),
 					]),
 					h("div", { className: "ov-ration-row", key: "builders" }, [
@@ -26170,7 +26208,7 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose }) {
 				h("span", { className: "ov-ration-row-icon", key: "i" }, (county.ramWorkers ?? 0) > 0 ? "\u{1F477}" : "\u26A0\uFE0F"),
 				h("span", { className: "ov-ration-row-label", key: "l" }, (county.ramWorkers ?? 0) > 0 ? `${county.ramWorkers} builders assigned` : "No builders assigned \u2014 stalled"),
 			]),
-			h("div", { className: "ov-title-footnote", key: "hint" }, "Assign builders from the Labor screen."),
+			buildersBtn("ram"),
 		] : [
 			h("div", { className: "ov-ration-row", key: "blurb" }, [
 				h("span", { className: "ov-ration-row-val neutral", key: "v" }, "Breaks a besieged castle's defence early — its whole job is knocking the door down, not fighting the garrison." ),
