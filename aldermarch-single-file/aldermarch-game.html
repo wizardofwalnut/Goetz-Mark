@@ -16489,8 +16489,8 @@ function projectProduction(input) {
 	* design (every cattle field shares the same number).
 	*
 	* Grain itself no longer has a line here at all — it's a discrete
-	* seasonal plant/harvest cycle now (spring plant, autumn harvest, winter
-	* release), not a continuous per-season rate, and that whole cycle
+	* seasonal cycle now (reap last year's crop and sow the next, both as
+	* Winter ends — see `advanceSeason`), not a continuous per-season rate, and that whole cycle
 	* lives in `advanceSeason` where it can mutate the wheat stock directly
 	* at the moment planting consumes seed or a harvest lands. This
 	* function still reports a "grainProduced" number for the UI preview
