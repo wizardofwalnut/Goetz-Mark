@@ -115,3 +115,8 @@ walls with road gaps, shadows, labor screen variants.
 
 - Oct 18 `77b2c9e`: quarry drawn 0.95 tiles (was 1.3); no wall on the world's outer edge; camera no longer snaps back after a field edit or when panning into another county; road spur to an empty castle site hidden until a castle is built.
 - Oct 19 `8cdc319`: road runs up to the castle gate; no road piece drawn under the town/castle.
+- Oct 19 `f1bbb8f`: **AI difficulty + real military AI** (B1, "AI attacks only in trickles"): New Game rival picker (Easy/Normal/Hard/Very Hard); army scales with population, one campaign target valued by its real defence, gather-then-strike, threat-sized guards, mercenaries from spare gold. Rules fix: troops camped beside a castle now defend it. Cut-off counties kept with −5 happiness a season (fixes the castle-assault-goes-neutral bug); county names in events (A2); "undefined's town" prompt (A1). Sims vs a mirror player, player ahead: Easy ~75%, Normal ~69%, Hard ~34%, Very Hard ~16%. A passive player now loses Hollowmere around season 17–30 on Normal.
+- Oct 19 `2954de0`: **Diplomacy** (B11): truce (8 seasons, optional tribute), gift, demand, break truce; AI offers truces when losing and demands gold when far stronger; truces enforced for both sides; Diplomacy panel rebuilt; 🤝 chip shows the relation or "!" for a waiting offer. Alliance shown as needing a third lord.
+
+**Open from this pass (for Chris):** mercenaries are 20 elite troops for 60 gold, so late games turn into merc stalemates (both sides 3,000+ troops, the last county never falls) — price/upkeep is a balance call; the AI doesn't build rams yet. Capture/loss announcements (A8) still read from the attacker's side ("Hollowmere stormed — 6 lost taking it" when you lose it).
+
