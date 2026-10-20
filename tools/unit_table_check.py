@@ -11,7 +11,7 @@ codebase_health_sweep.py after adding or renaming a unit kind.
 import re
 import sys
 
-s = open(sys.argv[1], encoding='utf-8').read()
+s = open(sys.argv[1] if len(sys.argv) > 1 else 'aldermarch-single-file/aldermarch-game.html', encoding='utf-8').read()
 units_block = s[s.index('var UNITS = {'):]
 units_block = units_block[:units_block.index('\n};')]
 kinds = re.findall(r'^\t(\w+): \{', units_block, re.M)
