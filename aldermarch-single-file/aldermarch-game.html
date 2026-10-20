@@ -22829,12 +22829,12 @@ function MerchantPanel({ match, countyId, countyName, onChange, onClose }) {
 					className: "ov-merchant-gold",
 					title: "Your gold",
 					children: [
-						"\u{1FA99} ", treasury.gold ?? 0,
+						"\u{1FA99} ", Math.round(treasury.gold ?? 0).toLocaleString("en-US"),
 						hasOrder && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "arrow", children: "\u2192" }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 								className: `projected ${netGold >= 0 ? "up" : "down"}`,
-								children: (treasury.gold ?? 0) + netGold
+								children: Math.round((treasury.gold ?? 0) + netGold).toLocaleString("en-US")
 							})
 						] })
 					]
@@ -23354,7 +23354,9 @@ function TopBar({ match, label, onOpenSave, onOpenHistory, onOpenSettings, onFoc
 */
 function Readout({ resource, value, signed = false }) {
 	const art = resourceArt(resource);
-	const text = signed && value > 0 ? `+${value}` : String(value);
+	/** Whole numbers with thousands separators (Chris, Oct 20: no fractions — wages are a quarter gold a head). */
+	const shown = typeof value === "number" ? Math.round(value).toLocaleString("en-US") : String(value);
+	const text = signed && value > 0 ? `+${shown}` : shown;
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: `ov-readout${!signed ? "" : value > 0 ? " up" : value < 0 ? " down" : ""}`,
 		title: resource,
@@ -25053,7 +25055,7 @@ function HealthReportScreen({ match, countyId, countyName, onClose }) {
 			h("div", { className: "ov-health-progress-caption", key: "cap" },
 				turnsAway === 0
 					? "Already at target"
-					: [`Reaches target in `, h("span", { className: "turns", key: "n" }, `~${turnsAway} turn${turnsAway === 1 ? "" : "s"}`), ` at the current ration`]
+					: [`${county.health > target ? "Falling" : "Rising"} to ${target} in `, h("span", { className: "turns", key: "n" }, `~${turnsAway} turn${turnsAway === 1 ? "" : "s"}`), ` at the current ration`]
 			)
 		]),
 		plagueActive ? h("div", { className: "ov-health-section-label", key: "l3" }, "Active Event") : null,
@@ -25554,7 +25556,7 @@ function KingdomResourcesPanel({ match, layout, playerId, onClose, onOpenGrain, 
 			return h("div", { className: "ov-kr-material-row", key: m.resource }, [
 				art.missing || !art.url ? h("span", { className: "ov-chip", "aria-hidden": true }) : h("img", { src: art.url, alt: m.resource }),
 				h("span", { className: "ov-kr-m-label" }, RESOURCE_LABEL[m.resource] ?? m.resource),
-				h("span", { className: "ov-kr-m-total" }, m.total.toLocaleString()),
+				h("span", { className: "ov-kr-m-total" }, Math.round(m.total).toLocaleString("en-US")),
 				h("span", { className: `ov-kr-m-delta ${deltaClass(m.delta)}` }, deltaText(m.delta))
 			]);
 		})),
@@ -25563,7 +25565,7 @@ function KingdomResourcesPanel({ match, layout, playerId, onClose, onOpenGrain, 
 			const art = resourceArt(w.resource);
 			return h("div", { className: "ov-kr-weapon-item", key: w.resource, title: RESOURCE_LABEL[w.resource] ?? w.resource }, [
 				h("div", { className: "ov-kr-w-icon", key: "i" }, art.missing || !art.url ? h("span", { className: "ov-chip", "aria-hidden": true }) : h("img", { src: art.url, alt: w.resource })),
-				h("div", { className: "ov-kr-w-total", key: "t" }, w.total.toLocaleString()),
+				h("div", { className: "ov-kr-w-total", key: "t" }, Math.round(w.total).toLocaleString("en-US")),
 				h("div", { className: `ov-kr-w-delta ${deltaClass(w.delta)}`, key: "d" }, deltaText(w.delta))
 			]);
 		})),
