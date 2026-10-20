@@ -1666,6 +1666,29 @@ full standalone screen, not a panel over gameplay. */
 .ov-dip-btn:disabled { opacity: 0.4; }
 .ov-dip-foot { margin: 4px 16px 24px; max-width: none; }
 
+/* Tutorial steward card (Oct 19). */
+.ov-tut { position: fixed; z-index: 40; left: 10px; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 58px); max-width: 420px; margin: 0 auto; background: rgb(26 21 18 / .96); border: 1.5px solid #c9a227; border-radius: 10px; padding: 6px 12px 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .55); color: #e8dcc0; font-family: Arial, sans-serif; }
+.ov-tut.docked { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+.ov-tut-top { display: flex; justify-content: space-between; align-items: center; }
+.ov-tut-who { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #a8a096; }
+.ov-tut-min { width: 40px; height: 32px; border: 0; background: transparent; color: #e3bf4a; font: 700 20px Arial, sans-serif; }
+.ov-tut-did { font-size: 13px; color: #8fd694; margin-top: 2px; }
+.ov-tut-goal { font: 700 16px Georgia, serif; color: #e3bf4a; margin-top: 2px; }
+.ov-tut-text { margin: 3px 0 6px; font-size: 13.5px; line-height: 1.35; }
+.ov-tut-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+.ov-tut-q { font-size: 13px; flex: 1 1 100%; }
+.ov-tut-btn { min-height: 40px; padding: 0 16px; border-radius: 8px; border: 1.5px solid #c9a227; background: rgb(201 162 39 / .12); color: #e3bf4a; font: 700 14px Arial, sans-serif; }
+.ov-tut-btn.primary { background: #c9a227; color: #1a1611; margin-left: auto; }
+.ov-tut-link { border: 0; background: transparent; color: #a8a096; font: 13px Arial, sans-serif; text-decoration: underline; min-height: 40px; padding: 0 4px; }
+.ov-tut-wait { margin-left: auto; font-size: 13px; color: #a8a096; font-style: italic; }
+.ov-tut-pill { position: fixed; z-index: 40; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 62px); display: flex; gap: 6px; align-items: center; max-width: calc(100% - 20px); min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1.5px solid #c9a227; background: #1a1512; color: #e3bf4a; font: 700 13px Arial, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-tut-pill.docked { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+.ov-tut-glow { animation: ov-tut-pulse 1.2s ease-in-out infinite; position: relative; z-index: 2; }
+image.ov-tut-glow { animation: ov-tut-pulse-img 1.2s ease-in-out infinite; }
+@keyframes ov-tut-pulse { 0%, 100% { box-shadow: 0 0 0 2px #ffd54a, 0 0 6px 2px rgb(255 213 74 / .6); } 50% { box-shadow: 0 0 0 3px #ffd54a, 0 0 16px 6px rgb(255 213 74 / .85); } }
+@keyframes ov-tut-pulse-img { 0%, 100% { filter: drop-shadow(0 0 4px #ffd54a) drop-shadow(0 0 2px #ffd54a); } 50% { filter: drop-shadow(0 0 14px #ffd54a) drop-shadow(0 0 4px #ffd54a); } }
+@media (prefers-reduced-motion: reduce) { .ov-tut-glow { animation: none; box-shadow: 0 0 0 3px #ffd54a; } image.ov-tut-glow { animation: none; filter: drop-shadow(0 0 8px #ffd54a); } }
+
 .ov-title-btn.primary {
   background: #c9a227;
   color: #1a1611;
@@ -17300,10 +17323,17 @@ function setWorkerAllocation(match, countyId, slot, count) {
 	if (!Number.isFinite(count) || count < 0) return fail("Count must be a non-negative number");
 	const county = match.counties[countyId];
 	if (!county) return fail("No such county");
-	const rounded = Math.round(count);
+	let rounded = Math.round(count);
 	const isNamedSlot = LABOR_SLOT_FIELDS.includes(slot);
 	if (!isNamedSlot && !county.interior.industry.some((s) => s.kind === slot)) return fail(`County has no ${slot}`);
 	const currentCount = isNamedSlot ? county[`${slot}Workers`] : county.interior.industry.find((s) => s.kind === slot).workers ?? 0;
+	/**
+	* A step past what's available stops AT the limit instead of being
+	* refused (fix-list b5: Grain sat at "178 (-2)" for 40 turns because a
+	* +10 step that would pass the ceiling, or use more idle hands than
+	* there were, was rejected outright).
+	*/
+	if (rounded > currentCount) rounded = Math.min(rounded, currentCount + unemployedWorkersOf(county));
 	const delta = rounded - currentCount;
 	if (delta > 0 && delta > unemployedWorkersOf(county)) return fail("Not enough unemployed laborers");
 	/**
@@ -17318,7 +17348,10 @@ function setWorkerAllocation(match, countyId, slot, count) {
 	const capacity = slotCapacity(county, slot);
 	if (capacity !== null) {
 		const ceiling = capacity <= 0 ? 0 : Math.ceil(capacity / LABOR_STEP) * LABOR_STEP;
-		if (rounded > ceiling) return fail(`This site can't put more than ${ceiling} workers to use`);
+		if (rounded > ceiling && rounded > currentCount) {
+			if (currentCount >= ceiling) return fail(`This site can't put more than ${ceiling} workers to use`);
+			rounded = ceiling;
+		}
 	}
 	if (isNamedSlot) return {
 		ok: true,
@@ -20292,6 +20325,103 @@ async function bakeCounty(plot, masks, season) {
 * decision. One county across, and the rest of the world is scrolled to.
 */
 var VIEW_COLS = 4;
+/**
+* Tutorial (Chris, Oct 19: "build out the tutorial, like Civ and L2"; the
+* 4-county map is the free tutorial). A steward walks a first game step by
+* step, Civ-style: one goal at a time, the control to use glowing, and the
+* step completing itself the moment the game state shows it's done. Lives
+* on `match.tutorial` so it survives save/load; the rival is Easy.
+*
+* Each step: `goal` (the checklist line), `text` (what to do and why),
+* `done(ctx)` (checked against the live match and the panels you've opened),
+* `glow` (elements to highlight). Steps with `done: null` wait for Next.
+*/
+var TUTORIAL_HOME = () => REALM.starts[0].county;
+var tutTroops = (match, id) => Object.values(match.armies).filter((a) => a.owner === id).reduce((s, a) => s + troopCount(a.troops), 0);
+var tutGrainNeed = (c) => c.interior.fields.filter((f) => f.status === "grain").length * MAX_SACKS_PER_FIELD * LABORERS_PER_SACK;
+var tutByTitle = (sel, re) => [...document.querySelectorAll(sel)].filter((e) => re.test(e.getAttribute("title") || e.querySelector("title")?.textContent || ""));
+var TUTORIAL_STEPS = [
+	{ id: "welcome", goal: "Meet your steward", done: null,
+		text: "My lord, I am your steward. You hold Hollowmere. Lady Aubrey holds Marlbrook across the realm, and the two counties between you belong to no one. Hold all four and the realm is yours. I'll show you how, one step at a time." },
+	{ id: "labor", goal: "Open the Town Centre", done: (x) => x.seen.labor,
+		glow: () => tutByTitle("svg.ov-map image", /Hollowmere town centre/),
+		text: "Your people need work. Tap the town in the middle of Hollowmere (it's glowing) to open the Town Centre, where you put people to work." },
+	{ id: "grain", goal: "Staff the grain fields", done: (x) => x.home.farmWorkers >= tutGrainNeed(x.home),
+		text: "Grain shows a red number: that's how many workers the crop is short. Tap Pasture, Mine or Lumber and press − to free people, then tap Grain and press + until the red number is gone. Unharvested grain rots, and your people eat grain." },
+	{ id: "field", goal: "Look at a field", done: (x) => x.seen.field,
+		text: "Close the Town Centre. Tap any field on the map to see what it's doing. Brown fallow fields can be sown with grain or turned to pasture, but each grain field needs 60 workers, so plant more only as your town grows." },
+	{ id: "tax", goal: "Set a 5% tax", done: (x) => (x.home.taxRate ?? 0) >= 5,
+		glow: () => [...document.querySelectorAll(".ov-figbar-stat-card")].filter((c) => /TAX/i.test(c.textContent)).map((c) => c.querySelector(".ov-figbar-stat-btn.plus")).filter(Boolean),
+		text: "Soldiers cost gold every season. Press + on Tax Rate until it reads 5%. Higher taxes bring more gold but make people unhappy, and unhappy counties revolt." },
+	{ id: "end", goal: "End your first season", done: (x) => x.turn > x.start.turn,
+		glow: () => [...document.querySelectorAll(".ov-figbar-end-turn")],
+		text: "Each turn is one season. When you're ready, press End Turn. The season report tells you what happened; close it to carry on." },
+	{ id: "levy", goal: "Raise 20 troops", done: (x) => tutTroops(x.match, x.you.id) >= x.start.troops + 20,
+		glow: () => tutByTitle("button, [role=button], .ov-figbar-action", /Raise an army/),
+		text: "You'll need an army. Tap LEVY and raise at least 20 troops. Each soldier is one less worker, so don't empty the fields." },
+	{ id: "conquer", goal: "Take a second county", done: (x) => Object.values(x.match.counties).filter((c) => c.owner === x.you.id).length >= 2,
+		text: "Greyfen and Ravensgate belong to no one. Tap your army to see where it can go, then tap the town of a neighbouring county (use 🗺️ to travel the map). Its townsfolk will fight back, so bring more than a handful." },
+	{ id: "diplomacy", goal: "Check on Lady Aubrey", done: (x) => x.seen.diplomacy,
+		glow: () => tutByTitle(".ov-figbar-status-chip", /^Relations/),
+		text: "Lady Aubrey is watching. Tap 🤝 to see where you stand with her. You can propose a truce, send a gift, or demand gold." },
+	{ id: "castle", goal: "Look at your castle", done: (x) => x.seen.castle,
+		glow: () => tutByTitle(".ov-figbar-status-chip", /build or upgrade/),
+		text: "Walls make defenders count for more. Tap 🏰 to see castle upgrades. They need wood, stone and builders from the Town Centre." },
+	{ id: "finish", goal: "Rule the Aldermarch", done: null, last: true,
+		text: "That's the realm, my lord. Keep the grain staffed, keep people content, and build your army. Lady Aubrey will leave you in peace for a while; after that, guard your borders. Hold all four counties to win." }
+];
+function tutorialCtx(match, seen) {
+	const you = match.players.find((p) => p.controller.kind === "human");
+	return { match, you, home: match.counties[TUTORIAL_HOME()], turn: match.turn.number, start: match.tutorial.start, seen: { ...match.tutorial.seen, ...seen } };
+}
+/** Start state for a tutorial game. */
+function withTutorial(match) {
+	const you = match.players.find((p) => p.controller.kind === "human");
+	return { ...match, tutorial: { step: 0, seen: {}, start: { turn: match.turn.number, troops: tutTroops(match, you.id) } } };
+}
+function TutorialCard({ match, onChange, docked }) {
+	const h = import_react.createElement;
+	const [min, setMin] = (0, import_react.useState)(false);
+	const [confirmSkip, setConfirmSkip] = (0, import_react.useState)(false);
+	const tut = match.tutorial;
+	const step = TUTORIAL_STEPS[tut.step] ?? null;
+	/** Glow the control the step is about; re-applied as the UI re-renders. */
+	(0, import_react.useEffect)(() => {
+		if (!step?.glow || min) return;
+		const apply = () => {
+			document.querySelectorAll(".ov-tut-glow").forEach((e) => e.classList.remove("ov-tut-glow"));
+			try { step.glow().forEach((e) => e.classList.add("ov-tut-glow")); } catch {}
+		};
+		apply();
+		const t = setInterval(apply, 500);
+		return () => {
+			clearInterval(t);
+			document.querySelectorAll(".ov-tut-glow").forEach((e) => e.classList.remove("ov-tut-glow"));
+		};
+	}, [step?.id, min]);
+	if (!step) return null;
+	const advance = () => onChange({ ...match, tutorial: { ...tut, step: tut.step + 1, justDid: step.goal } });
+	const close = (how) => onChange({ ...match, tutorial: { ...tut, [how]: true } });
+	const n = TUTORIAL_STEPS.length;
+	if (min) return h("button", { className: `ov-tut-pill${docked ? " docked" : ""}`, onClick: () => setMin(false), "aria-label": `Steward: ${step.goal}. Tap to open` }, [h("span", { key: "i", "aria-hidden": true }, "\u{1F4DC}"), h("span", { key: "g" }, step.goal)]);
+	return h("div", { className: `ov-tut${docked ? " docked" : ""}`, role: "dialog", "aria-label": "Tutorial" }, [
+		h("div", { className: "ov-tut-top", key: "top" }, [
+			h("span", { className: "ov-tut-who", key: "w" }, `Steward · ${Math.min(tut.step + 1, n)} of ${n}`),
+			h("button", { className: "ov-tut-min", key: "m", onClick: () => setMin(true), "aria-label": "Minimise" }, "–")
+		]),
+		tut.justDid && tut.step > 0 ? h("div", { className: "ov-tut-did", key: "did" }, `✓ ${tut.justDid}`) : null,
+		h("div", { className: "ov-tut-goal", key: "g" }, step.goal),
+		h("p", { className: "ov-tut-text", key: "t" }, step.text),
+		confirmSkip ? h("div", { className: "ov-tut-row", key: "sk" }, [
+			h("span", { key: "q", className: "ov-tut-q" }, "Leave the tutorial? The game carries on."),
+			h("button", { key: "n", className: "ov-tut-btn", onClick: () => setConfirmSkip(false) }, "Stay"),
+			h("button", { key: "y", className: "ov-tut-btn primary", onClick: () => close("off") }, "Leave")
+		]) : h("div", { className: "ov-tut-row", key: "r" }, [
+			!step.last && h("button", { key: "s", className: "ov-tut-link", onClick: () => setConfirmSkip(true) }, "Skip tutorial"),
+			step.done === null ? h("button", { key: "next", className: "ov-tut-btn primary", onClick: step.last ? () => close("done") : advance }, step.last ? "Begin" : "Next") : h("span", { key: "wait", className: "ov-tut-wait" }, "Waiting for you…")
+		])
+	]);
+}
 function LivingMap({ map, match, initialFocus, onChange }) {
 	const layout = (0, import_react.useMemo)(() => worldLayout(map, match), [map, match]);
 	const [focus, setFocus] = (0, import_react.useState)(initialFocus ?? null);
@@ -20350,6 +20480,28 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 	* copies.
 	*/
 	const [turnEvents, setTurnEvents] = (0, import_react.useState)([]);
+	/** Tutorial: record which panels you've opened and complete steps as the game state satisfies them. */
+	const tutActive = !!match.tutorial && !match.tutorial.off && !match.tutorial.done;
+	const anyOverlay = !!(laborScreenCounty || rationScreenCounty || levyScreenCounty || merchantScreenCounty || bestNobleOpen || kingdomResourcesOpen || saveScreenOpen || eventHistoryOpen || settingsOpen || reportCardOpen || happinessScreenCounty || healthScreenCounty || cattleScreenCounty || grainScreenCounty || castleScreenCounty || battleScreenCounty || populationScreenCounty || diplomacyOpen || turnEvents.length > 0);
+	const tutLive = (0, import_react.useRef)(null);
+	tutLive.current = { match, onChange, flags: { labor: !!laborScreenCounty, levy: !!levyScreenCounty, castle: !!castleScreenCounty, diplomacy: diplomacyOpen } };
+	(0, import_react.useEffect)(() => {
+		if (!tutActive) return;
+		const t = setInterval(() => {
+			const { match: m, onChange: change, flags } = tutLive.current;
+			const tut = m.tutorial;
+			if (!tut || tut.off || tut.done || !change) return;
+			const now = { ...flags, field: !!document.querySelector(".ov-steward") };
+			const add = Object.keys(now).filter((k) => now[k] && !tut.seen?.[k]);
+			const seen = { ...tut.seen, ...Object.fromEntries(add.map((k) => [k, true])) };
+			const step = TUTORIAL_STEPS[tut.step];
+			let finished = false;
+			try { finished = !!step?.done && !!step.done(tutorialCtx(m, seen)); } catch {}
+			if (!add.length && !finished) return;
+			change({ ...m, tutorial: { ...tut, seen, ...finished ? { step: tut.step + 1, justDid: step.goal } : {} } });
+		}, 400);
+		return () => clearInterval(t);
+	}, [tutActive]);
 	const endSeason = () => {
 		/**
 		* Snapshot of ownership BEFORE this turn's combat/conquest/revolts
@@ -20501,6 +20653,11 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				countyId: populationScreenCounty,
 				countyName: layout.plots.find((p) => p.county.id === populationScreenCounty)?.county.name ?? populationScreenCounty,
 				onClose: () => setPopulationScreenCounty(null)
+			}),
+			tutActive && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TutorialCard, {
+				match,
+				onChange,
+				docked: anyOverlay
 			}),
 			diplomacyOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DiplomacyScreen, {
 				match,
@@ -24157,7 +24314,7 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
 					onClick: () => adjustSlot(chosen.slot, chosen.current, -STEP) }, "−"),
 				h("span", { key: "v", className: "ov-town-count" }, chosen.current),
 				h("button", { key: "+", className: "ov-town-btn", "aria-label": `10 more on ${chosen.label}`,
-					disabled: !owned || chosen.locked || unemployed < STEP,
+					disabled: !owned || chosen.locked || unemployed <= 0,
 					onClick: () => adjustSlot(chosen.slot, chosen.current, STEP) }, "+"),
 				proj ? h("span", { key: "p", className: "ov-lb-proj", title: proj.title }, [
 					proj.icon ? h("img", { key: "i", src: proj.icon, alt: "", width: 24, height: 24 }) : null,
@@ -24574,7 +24731,7 @@ function DifficultyPicker({ onPick, onBack }) {
 		])
 	]);
 }
-function TitleScreen({ hasAutosave, onNewGame, onContinue, onLoadGame, onSettings }) {
+function TitleScreen({ hasAutosave, onNewGame, onTutorial, onContinue, onLoadGame, onSettings }) {
 	const h = import_react.createElement;
 	const [picking, setPicking] = import_react.useState(false);
 	if (picking) return h("div", { className: "ov-title-screen" }, [
@@ -24586,6 +24743,7 @@ function TitleScreen({ hasAutosave, onNewGame, onContinue, onLoadGame, onSetting
 		h("div", { className: "ov-title-tagline", key: "tag" }, "A county-management chronicle"),
 		h("div", { className: "ov-title-menu", key: "menu" }, [
 			h("button", { className: "ov-title-btn primary", key: "continue", disabled: !hasAutosave, onClick: onContinue }, "Continue"),
+			h("button", { className: `ov-title-btn${hasAutosave ? "" : " primary"}`, key: "tut", onClick: onTutorial }, "Tutorial"),
 			h("button", { className: "ov-title-btn", key: "new", onClick: () => setPicking(true) }, "New Game"),
 			h("button", { className: "ov-title-btn", key: "load", onClick: onLoadGame }, "Load Game"),
 			h("button", { className: "ov-title-btn", key: "settings", onClick: onSettings }, "Settings"),
@@ -26211,6 +26369,23 @@ function Standalone() {
 		setLivingMatch(fresh);
 		setScreen("game");
 	};
+	/** The tutorial: the 4-county map against an Easy rival, with the steward guiding. */
+	const startTutorial = async () => {
+		if (hasAutosave && !(await confirmAsync("Starting the tutorial will eventually overwrite your autosave once you play a turn. Continue?"))) return;
+		const fresh = createMatch({
+			map: REALM,
+			rng: createRng(Date.now()).next,
+			interiorGrid: { cols: 7, rows: 19 },
+			seats: demoMatch.players.map((p) => ({
+				displayName: p.displayName,
+				factionId: p.factionId,
+				controller: p.controller.kind === "ai" ? { ...p.controller, difficulty: "easy" } : p.controller
+			})),
+			config: { ...DEFAULT_CONFIG, randomEventsEnabled: false }
+		});
+		setLivingMatch(withTutorial(fresh));
+		setScreen("game");
+	};
 	const continueGame = () => {
 		const resumed = loadFromSlot(AUTOSAVE_KEY);
 		if (!resumed.ok) return noticeAsync(resumed.reason ?? "Could not load your autosave.");
@@ -26222,6 +26397,7 @@ function Standalone() {
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TitleScreen, {
 				hasAutosave,
 				onNewGame: startNewGame,
+				onTutorial: startTutorial,
 				onContinue: continueGame,
 				onLoadGame: () => setShowLoadScreen(true),
 				onSettings: () => setShowSettings(true)
