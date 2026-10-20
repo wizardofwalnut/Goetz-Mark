@@ -2120,6 +2120,11 @@ image.ov-tut-glow { animation: ov-tut-pulse-img 1.2s ease-in-out infinite; }
   color: #e3bf4a;
 }
 
+/* Season Summary tabs (fix list g8: one pop-up, Report Card as a tab). */
+.ov-events-tabs { display: flex; gap: 8px; padding: 10px 16px 0; flex: 0 0 auto; }
+.ov-events-tab { flex: 1; min-height: 40px; font: 700 14px Arial, sans-serif; color: #cfc6b0; background: #1d1711; border: 1px solid #4a3f2c; border-radius: 8px; cursor: pointer; }
+.ov-events-tab.on { color: #1a1611; background: #c9a227; border-color: #e3bf4a; }
+.ov-events-tab:focus-visible { outline: 2px solid #e3bf4a; outline-offset: 2px; }
 .ov-events-county-label {
   padding: 14px 16px 6px;
   font-family: Arial, sans-serif;
@@ -20971,10 +20976,6 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 			settingsOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsScreen, {
 				onClose: () => setSettingsOpen(false)
 			}),
-			reportCardOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReportCardScreen, {
-				match,
-				onClose: () => setReportCardOpen(false)
-			}),
 			saveScreenOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SaveLoadScreen, {
 				match,
 				onChange,
@@ -21052,11 +21053,16 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				match,
 				onClose: () => setGameOverDismissed(true)
 			}),
-			turnEvents.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TurnEventsScreen, {
+			(turnEvents.length > 0 || reportCardOpen) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TurnEventsScreen, {
 				events: turnEvents,
 				layout,
+				match,
+				showStandings: reportCardOpen,
 				onOpenBattle: (id) => setBattleScreenCounty(id),
-				onClose: () => setTurnEvents([])
+				onClose: () => {
+					setTurnEvents([]);
+					setReportCardOpen(false);
+				}
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(World, {
 				layout,
@@ -22861,7 +22867,11 @@ var BEST_NOBLE_CATEGORIES = [
 * at the call site in `endSeason`, not inside this component, so a
 * disabled Report Card never even gets constructed.
 */
-function ReportCardScreen({ match, onClose }) {
+/**
+* Fix list g8/r2: the Report Card no longer pops up on its own. It is the
+* Standings tab of the one Season Summary (`TurnEventsScreen`).
+*/
+function reportCardBody(match) {
 	const h = import_react.createElement;
 	const you = match.players.find((p) => p.controller.kind === "human");
 	if (!you) return null;
@@ -22869,12 +22879,8 @@ function ReportCardScreen({ match, onClose }) {
 	const rival = rivalId ? match.players.find((p) => p.id === rivalId) : null;
 	const yourStats = nobleStats(match, you.id);
 	const rivalStats = rival ? nobleStats(match, rivalId) : null;
-	return h("div", { className: "ov-health-overlay" }, [
-		h("div", { className: "ov-health-header", key: "hd" }, [
-			h("h2", { key: "t" }, `\u{1F4CA} Report Card \u2014 ${describeTurn(match.turn.number)}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
-		]),
-		h("div", { className: "ov-health-section-label", key: "l1" }, rival ? `You vs ${rival.displayName}` : "Your Realm"),
+	return [
+		h("div", { className: "ov-events-county-label", key: "l1" }, rival ? `You vs ${rival.displayName}` : "Your Realm"),
 		h("div", { className: "ov-ration-zone", key: "z1" }, BEST_NOBLE_CATEGORIES.map((cat) => {
 			const mine = yourStats[cat.key];
 			const theirs = rivalStats ? rivalStats[cat.key] : null;
@@ -22885,7 +22891,7 @@ function ReportCardScreen({ match, onClose }) {
 				h("span", { className: `ov-ration-row-val ${tone}`, key: "v" }, rivalStats ? `${mine} vs ${theirs}` : String(mine)),
 			]);
 		})),
-	]);
+	];
 }
 function BestNoblePanel({ match, onClose }) {
 	const [active, setActive] = (0, import_react.useState)("troops");
@@ -25204,12 +25210,12 @@ function SettingsScreen({ onClose }) {
 				]),
 			]),
 		]),
-		h("div", { className: "ov-save-section-label", key: "l2" }, "Report Card"),
+		h("div", { className: "ov-save-section-label", key: "l2" }, "Season Summary"),
 		h("div", { className: "ov-save-zone", key: "z2" }, [
 			h("div", { className: "ov-save-row", key: "reportcard" }, [
 				h("div", { className: "ov-save-row-info", key: "i" }, [
-					h("div", { className: "ov-save-row-label", key: "l" }, "Report Card"),
-					h("div", { className: "ov-save-row-detail", key: "d" }, "A you-vs-rival comparison after every End Turn"),
+					h("div", { className: "ov-save-row-label", key: "l" }, "Standings"),
+					h("div", { className: "ov-save-row-detail", key: "d" }, "A Standings tab (you vs your strongest rival) in the season summary"),
 				]),
 				h("div", { className: "ov-save-row-actions", key: "a" }, [
 					h("button", { className: "ov-save-action-btn", key: "t", onClick: toggleReportCard }, settings.reportCardEnabled ? "On" : "Off"),
@@ -26349,8 +26355,9 @@ function GameOverScreen({ match, onClose }) {
 			: `${winnerPlayer?.displayName ?? "A rival"} has claimed every remaining county and army. Your realm has fallen.`),
 	]);
 }
-function TurnEventsScreen({ events, layout, onClose, onOpenBattle }) {
+function TurnEventsScreen({ events, layout, onClose, onOpenBattle, match, showStandings }) {
 	const h = import_react.createElement;
+	const [tab, setTab] = (0, import_react.useState)(events.length > 0 || !showStandings ? "events" : "standings");
 	const grouped = new Map();
 	for (const event of events) {
 		const countyName = layout.plots.find((p) => p.county.id === event.county)?.county.name ?? event.county ?? "The Realm";
@@ -26359,10 +26366,14 @@ function TurnEventsScreen({ events, layout, onClose, onOpenBattle }) {
 	}
 	return h("div", { className: "ov-events-overlay" }, [
 		h("div", { className: "ov-events-header", key: "hd" }, [
-			h("h2", { key: "t" }, "\u{1F4DC} What Happened This Season"),
+			h("h2", { key: "t" }, `\u{1F4DC} ${match ? describeTurn(match.turn.number) : "This Season"}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
-		...Array.from(grouped.entries()).map(([countyName, countyEvents], gi) => [
+		showStandings && match ? h("div", { className: "ov-events-tabs", key: "tabs", role: "tablist" }, [
+			h("button", { key: "e", role: "tab", "aria-selected": tab === "events", className: `ov-events-tab${tab === "events" ? " on" : ""}`, onClick: () => setTab("events") }, "What happened"),
+			h("button", { key: "s", role: "tab", "aria-selected": tab === "standings", className: `ov-events-tab${tab === "standings" ? " on" : ""}`, onClick: () => setTab("standings") }, "Standings")
+		]) : null,
+		...tab === "standings" && match ? reportCardBody(match) ?? [] : events.length === 0 ? [h("div", { className: "ov-events-zone", key: "quiet" }, "A quiet season \u2014 nothing out of the ordinary.")] : Array.from(grouped.entries()).map(([countyName, countyEvents], gi) => [
 			h("div", { className: "ov-events-county-label", key: `l${gi}` }, countyName),
 			h("div", { className: "ov-events-zone", key: `z${gi}` }, countyEvents.map((event, i) => {
 				/** Fights open their Battle Report (Oct 20: it existed but nothing opened it). */
