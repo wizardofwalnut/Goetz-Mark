@@ -123,4 +123,6 @@ walls with road gaps, shadows, labor screen variants.
 
 **Decisions Oct 19 (late):** no snow art for now, revisit later (d7); the 4-county map is the free tutorial (d8, rest of the money plan still open); phone orientation explained with real captures and a landscape mock-up, recommendation portrait-lock, Chris to choose (d6).
 - Oct 20 `f7cbf32`: **Mercenary companies** (d10): LOTR2-style named companies (150–250 men, 1,800–6,000 gold), one visiting a held county at a time, wages double a citizen soldier's, gone the moment a wage is missed, never merged with other armies; coin-and-sword sign on the town; hire from the Levy panel. AI hires them and now builds and crews **rams**. Two latent ram bugs fixed (no counter entry; crews could never die). Merchant **wheat 4 / cows 24** (were reversed). Sims: games now end outright (median season 41–48); player ahead Easy 95%, Normal ~72%, Hard ~33%, Very Hard ~20%. Check script `tools/unit_table_check.py` added.
+- Oct 20 `aa53be2`: gold shown as whole numbers with commas everywhere (b4); health report says "Falling/Rising to 50 in ~N turns" (b6).
+- Oct 20 `6caff8c`: **Food (option A, LOTR2 achieved ration)** (g2, d9): people eat what's in store; the eaten ration drives health/happiness; Ration card shows "ate Half", panel forecasts next season. Idle people: no penalty.
 
