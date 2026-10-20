@@ -1270,6 +1270,9 @@ End Turn stays the visually dominant element between them. */
   color: #a8a096;
 }
 
+button.ov-events-row.tappable { width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid #2e2a24; color: inherit; font: inherit; cursor: pointer; }
+.ov-events-row-more { margin-left: auto; padding-left: 8px; color: #e3bf4a; font: 700 12.5px Arial, sans-serif; white-space: nowrap; }
+.ov-report-note { margin: 4px 0 2px; max-width: none; color: #cfc3a6; font-size: 12.5px; }
 .ov-ration-short-line { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.35; color: #f0a08a; padding: 3px 0; }
 
 .ov-ration-zone {
@@ -16020,6 +16023,9 @@ function resolveBattle(input) {
 		mods.push(...counterModifiers(troops, enemy));
 		const faction = factionModifier(factionId, attacking);
 		if (faction) mods.push(faction);
+		/** ROTK11: a shot from range does ~70% of a close-in attack (both sides of a volley). */
+		if (input.rangedVolley) mods.push({ label: "Fired from range", factor: RANGED_VOLLEY_POWER });
+		if (attacking && input.attackerOutputMultiplier && input.attackerOutputMultiplier !== 1) mods.push({ label: "Archers on the walls", factor: input.attackerOutputMultiplier });
 		if (!attacking) {
 			const factor = TERRAIN_DEFENCE_MODIFIER[terrain];
 			if (factor !== 1) mods.push({
@@ -17628,82 +17634,101 @@ function erodeRamDurability(match) {
 * can return fire). Enforced here by simply not applying the exchange's
 * attacker-side losses unless the defending garrison itself has archers.
 */
+/**
+* Ranged volleys (Oct 20; Chris: "for matters of combat, look to ROTK11").
+* From ROTK11: a shot from range does about 70% of a close-in attack
+* (RANGED_VOLLEY_POWER), melee troops can't answer it, and woods block it.
+* Two directions now:
+*   at the walls — archers/crossbowmen in an army within ARCHER_RANGE of
+*     an enemy town shoot its garrison (the old harassment);
+*   from the walls — a garrison's archers/crossbowmen shoot enemy armies
+*     camped within ARCHER_RANGE of their town (ROTK11's archer turrets).
+* Every volley is one-way: only bowmen shoot, and the target's own
+* bowmen answer in the other pass (a garrison's from its walls, a camp's
+* at the walls), so melee troops never return fire. A shooter
+* standing in woods can't loose, and an army standing in woods can't be
+* hit. Reports record the losses each army actually took (walls reduce
+* the garrison's), not the raw battle numbers.
+*/
+var RANGED_KINDS = ["archers", "crossbowmen"];
+var RANGED_VOLLEY_POWER = .7;
+/** Height advantage for archers shooting OUT from walls. Smaller than ARCHER_CASTLE_DEFENCE_BONUS (2.25, for meeting an assault): stacked on a volley that wiped 30 archers with 40 in one season. */
+var WALL_FIRE_BONUS = 1.5;
+var rangedOf = (troops) => {
+	const out = {};
+	for (const k of RANGED_KINDS) if ((troops[k] ?? 0) > 0) out[k] = troops[k];
+	return out;
+};
+var inWoods = (county, at) => !!at && county.interior.ground.some((g) => g.col === at.col && g.row === at.row && g.kind === "forest");
+var headcount = (match, ids) => ids.reduce((s, id) => s + troopCount(match.armies[id]?.troops ?? {}), 0);
 function resolveArcherHarassment(match, ix) {
 	let current = match;
 	const events = [];
-	const fieldArmiesByCounty = /* @__PURE__ */ new Map();
-	for (const army of Object.values(current.armies)) {
-		if (army.location.kind !== "field") continue;
-		const list = fieldArmiesByCounty.get(army.location.county) ?? [];
-		list.push(army);
-		fieldArmiesByCounty.set(army.location.county, list);
-	}
-	for (const [countyId, armies] of fieldArmiesByCounty) {
+	for (const countyId of Object.keys(current.counties)) {
 		const county = current.counties[countyId];
 		if (!county || !county.owner || !county.interior) continue;
-		const townPos = county.interior.town;
-		for (const archerArmy of armies) {
-			if (archerArmy.owner === county.owner) continue;
-			const archerCount = archerArmy.troops.archers ?? 0;
-			if (archerCount <= 0) continue;
-			const dist = Math.abs(archerArmy.location.col - townPos.col) + Math.abs(archerArmy.location.row - townPos.row);
-			if (dist > ARCHER_RANGE) continue;
-			const defenders = garrisonOf(current, countyId).filter((a) => a.owner === county.owner && troopCount(a.troops) > 0);
-			if (defenders.length === 0) continue;
-			const defenderTroops = mergeTroops(defenders);
-			const breached = isCastleBreached(county);
-			const bonus = archerCastleBonusMultiplier(defenderTroops, breached);
+		const town = county.interior.town;
+		const near = (a) => a.location.kind === "field" && a.location.county === countyId && a.owner !== county.owner && !atPeace(current, a.owner, county.owner) && Math.abs(a.location.col - town.col) + Math.abs(a.location.row - town.row) <= ARCHER_RANGE;
+		const breached = isCastleBreached(county);
+		const walls = breached ? 1 : CASTLES[county.castleTier].defence;
+		const volley = (shooterIds, targetIds, shooterTroops, targetTroops, fromWalls, archerBonus) => {
 			const result = resolveBattle({
-				attacker: {
-					troops: { archers: archerCount },
-					stance: DEFAULT_ATTACK_STANCE,
-					factionId: factionOf(current, archerArmy.owner)
-				},
-				defender: {
-					troops: defenderTroops,
-					stance: DEFAULT_DEFENCE_STANCE,
-					factionId: factionOf(current, county.owner)
-				},
+				attacker: { troops: shooterTroops, stance: DEFAULT_ATTACK_STANCE, factionId: factionOf(current, current.armies[shooterIds[0]].owner) },
+				defender: { troops: targetTroops, stance: DEFAULT_DEFENCE_STANCE, factionId: factionOf(current, current.armies[targetIds[0]].owner) },
 				terrain: "open",
-				seed: seedFrom(current.id, current.turn.number, countyId, archerArmy.id),
+				seed: seedFrom(current.id, current.turn.number, countyId, shooterIds[0], targetIds[0]),
 				maxRounds: 1,
-				defenderOutputMultiplier: bonus
+				rangedVolley: true,
+				attackerOutputMultiplier: archerBonus,
+				defenderOutputMultiplier: 1
 			});
-			const defenderHasArchers = (defenderTroops.archers ?? 0) > 0;
-			current = applyCasualties(current, [archerArmy], defenderHasArchers ? result.attackerLosses : {}, 1);
-			const survivorBias = isCastleBreached(county) ? 1 : CASTLES[county.castleTier].defence;
-			current = applyCasualties(current, defenders, result.defenderLosses, survivorBias);
-			current = updateCounty(current, countyId, (c) => ({
-				...c,
-				lastBattleReport: {
-					turn: current.turn.number,
-					season: seasonOfTurn(current.turn.number),
-					kind: "harassment",
-					attacker: archerArmy.owner,
-					defender: county.owner,
-					breached,
-					defenceMultiplier: breached ? 1 : CASTLES[county.castleTier].defence,
-					archerBonus: bonus,
-					outcome: result.outcome,
-					rounds: result.rounds,
-					attackerLosses: troopCount(defenderHasArchers ? result.attackerLosses : {}),
-					defenderLosses: troopCount(result.defenderLosses),
-					groundTaken: false
-				}
-			}));
-			current = adjustRelation(current, archerArmy.owner, county.owner, -RELATION_COST_HARASSMENT);
-			if (troopCount(result.defenderLosses) > 0) events.push({
-				county: countyId,
-				kind: "battle",
-				attacker: archerArmy.owner,
-				detail: `${nameOfCounty(ix, countyId)}'s garrison took fire from archers at the walls`
-			});
+			/** One-way: the target's bowmen (if any) answer in their own pass. */
+			const returnFire = troopCount(rangedOf(targetTroops)) > 0;
+			const tBefore = headcount(current, targetIds);
+			const targets = targetIds.map((id) => current.armies[id]);
+			current = applyCasualties(current, targets, result.defenderLosses, fromWalls ? 1 : walls);
+			return { result, returnFire, shooterLost: 0, targetLost: tBefore - headcount(current, targetIds), rawTarget: troopCount(result.defenderLosses) };
+		};
+		/** At the walls: besiegers' archers shoot the garrison. */
+		for (const army of Object.values(current.armies).filter(near)) {
+			if (inWoods(county, army.location)) continue;
+			const shooting = rangedOf(army.troops);
+			if (troopCount(shooting) <= 0) continue;
+			const garrison = garrisonOf(current, countyId).filter((a) => a.owner === county.owner && troopCount(a.troops) > 0);
+			if (garrison.length === 0) continue;
+			const gTroops = mergeTroops(garrison);
+			const v = volley([army.id], garrison.map((a) => a.id), shooting, gTroops, false, 1);
+			current = updateCounty(current, countyId, (c) => ({ ...c, lastBattleReport: {
+				turn: current.turn.number, season: seasonOfTurn(current.turn.number), kind: "harassment",
+				attacker: army.owner, defender: county.owner, breached, defenceMultiplier: walls,
+				archerBonus: archerCastleBonusMultiplier(gTroops, breached), outcome: v.result.outcome, rounds: v.result.rounds,
+				attackerLosses: v.shooterLost, defenderLosses: v.targetLost, wallsSpared: Math.max(0, v.rawTarget - v.targetLost),
+				returnFire: v.returnFire, groundTaken: false
+			} }));
+			current = adjustRelation(current, army.owner, county.owner, -RELATION_COST_HARASSMENT);
+			if (v.targetLost > 0) events.push({ county: countyId, kind: "battle", attacker: army.owner, detail: `${nameOfCounty(ix, countyId)}'s garrison took fire from archers at the walls — ${v.targetLost} fell` });
+		}
+		/** From the walls: the garrison's archers shoot armies camped close (ROTK11's archer turrets). */
+		const garrison = garrisonOf(current, countyId).filter((a) => a.owner === county.owner && troopCount(a.troops) > 0);
+		const gRanged = rangedOf(mergeTroops(garrison));
+		if (troopCount(gRanged) <= 0) continue;
+		for (const army of Object.values(current.armies).filter(near)) {
+			if (!current.armies[army.id] || inWoods(county, army.location)) continue;
+			const g = garrisonOf(current, countyId).filter((a) => a.owner === county.owner && troopCount(rangedOf(a.troops)) > 0);
+			if (g.length === 0) break;
+			const shooting = rangedOf(mergeTroops(g));
+			const v = volley(g.map((a) => a.id), [army.id], shooting, current.armies[army.id].troops, true, breached ? 1 : WALL_FIRE_BONUS);
+			current = updateCounty(current, countyId, (c) => ({ ...c, lastBattleReport: {
+				turn: current.turn.number, season: seasonOfTurn(current.turn.number), kind: "wallFire",
+				attacker: county.owner, defender: army.owner, breached, defenceMultiplier: walls,
+				archerBonus: breached ? 1 : WALL_FIRE_BONUS, outcome: v.result.outcome, rounds: v.result.rounds,
+				attackerLosses: v.shooterLost, defenderLosses: v.targetLost, wallsSpared: 0,
+				returnFire: v.returnFire, groundTaken: false
+			} }));
+			if (v.targetLost > 0) events.push({ county: countyId, kind: "battle", attacker: county.owner, detail: `Archers on ${nameOfCounty(ix, countyId)}'s walls shot at ${current.players.find((p) => p.id === army.owner)?.displayName ?? "an"} army camped nearby — ${v.targetLost} fell` });
 		}
 	}
-	return {
-		match: current,
-		events
-	};
+	return { match: current, events };
 }
 //#region src/domain/army/resolveConquest.ts
 /** Stance an AI or an unattended garrison defends with. */
@@ -17857,8 +17882,12 @@ function resolveConquest(match, ix) {
 			defenderOutputMultiplier: archerBonus
 		});
 		const survivorBias = defenceMultiplier;
+		/** Report what each side actually lost (walls cut the garrison's), not the raw battle numbers (Oct 20). */
+		const atkIds = attackers.map((a) => a.id), defIds = defenders.map((a) => a.id);
+		const atkBefore = headcount(current, atkIds), defBefore = headcount(current, defIds);
 		current = applyCasualties(current, attackers, result.attackerLosses, 1);
 		current = applyCasualties(current, defenders, result.defenderLosses, survivorBias);
+		const atkLost = atkBefore - headcount(current, atkIds), defLost = defBefore - headcount(current, defIds);
 		/**
 		* `resolveBattle` already computes a full round-by-round breakdown
 		* (base output, every modifier, casualties per round) — this used
@@ -17883,8 +17912,9 @@ function resolveConquest(match, ix) {
 				archerBonus,
 				outcome: result.outcome,
 				rounds: result.rounds,
-				attackerLosses: troopCount(result.attackerLosses),
-				defenderLosses: troopCount(result.defenderLosses),
+				attackerLosses: atkLost,
+				defenderLosses: defLost,
+				wallsSpared: Math.max(0, troopCount(result.defenderLosses) - defLost),
 				groundTaken: attackerTakesGround(result)
 			}
 		}));
@@ -17896,7 +17926,7 @@ function resolveConquest(match, ix) {
 				county: countyId,
 				kind: "battle",
 				attacker: lead.owner,
-				detail: `${nameOfCounty(ix, countyId)} stormed — the attackers lost ${troopCount(result.attackerLosses)}`
+				detail: `${nameOfCounty(ix, countyId)} stormed — the attackers lost ${atkLost}`
 			});
 		} else events.push({
 			county: countyId,
@@ -20965,6 +20995,7 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 			turnEvents.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TurnEventsScreen, {
 				events: turnEvents,
 				layout,
+				onOpenBattle: (id) => setBattleScreenCounty(id),
 				onClose: () => setTurnEvents([])
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(World, {
@@ -25673,16 +25704,16 @@ function BattleReportScreen({ match, countyId, countyName, onClose }) {
 	const report = county.lastBattleReport;
 	const nameOf = (id) => id ? match.players.find((p) => p.id === id)?.displayName ?? id : "Nobody";
 	const fmtMods = (mods) => mods.length === 0 ? "no modifiers" : mods.map((m) => `${m.label} \u00D7${m.factor.toFixed(2)}`).join(", ");
-	return h("div", { className: "ov-health-overlay" }, [
+	return h("div", { className: "ov-health-overlay", style: { zIndex: 35 } }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u2694\uFE0F Battle Report \u2014 ${countyName ?? countyId}`),
 			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
 		]),
 		!report ? h("div", { className: "ov-health-zone", key: "empty" }, "No fighting here yet.") : [
-			h("div", { className: "ov-health-section-label", key: "l1" }, `${report.kind === "harassment" ? "Archer Harassment" : "Siege"} \u2014 ${capitalise(report.season)} ${report.turn}`),
+			h("div", { className: "ov-health-section-label", key: "l1" }, `${report.kind === "harassment" ? "Archers at the walls" : report.kind === "wallFire" ? "Archers on the walls" : "Siege"} \u2014 ${capitalise(report.season)} ${report.turn}`),
 			h("div", { className: "ov-ration-zone", key: "z1" }, [
 				h("div", { className: "ov-ration-row", key: "sides" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, "Attacker vs Defender"),
+					h("span", { className: "ov-ration-row-label", key: "l" }, report.kind === "siege" ? "Attacker vs Defender" : "Shooting vs Shot at"),
 					h("span", { className: "ov-ration-row-val neutral", key: "v" }, `${nameOf(report.attacker)} vs ${nameOf(report.defender)}`),
 				]),
 				h("div", { className: "ov-ration-row", key: "outcome" }, [
@@ -25690,9 +25721,11 @@ function BattleReportScreen({ match, countyId, countyName, onClose }) {
 					h("span", { className: `ov-ration-row-val ${report.groundTaken ? "neg" : "pos"}`, key: "v" }, report.groundTaken ? "Ground taken" : report.outcome === "mutualDestruction" ? "Mutual destruction" : "Held"),
 				]),
 				h("div", { className: "ov-ration-row", key: "losses" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, "Losses (attacker / defender)"),
+					h("span", { className: "ov-ration-row-label", key: "l" }, report.kind === "siege" ? "Losses (attacker / defender)" : "Losses (shooting / shot at)"),
 					h("span", { className: "ov-ration-row-val neutral", key: "v" }, `${report.attackerLosses} / ${report.defenderLosses}`),
 				]),
+				report.kind !== "siege" ? h("div", { className: "ov-title-footnote ov-report-note", key: "nofire" }, report.returnFire ? "Their archers answered in a volley of their own." : "The side shot at has no archers or crossbowmen, so it couldn't shoot back.") : null,
+				(report.wallsSpared ?? 0) > 0 ? h("div", { className: "ov-title-footnote ov-report-note", key: "spared" }, `The walls spared ${report.wallsSpared} defender${report.wallsSpared === 1 ? "" : "s"}.`) : null,
 				h("div", { className: "ov-ration-row", key: "wall" }, [
 					h("span", { className: "ov-ration-row-label", key: "l" }, "Wall state"),
 					h("span", { className: `ov-ration-row-val ${report.breached ? "neg" : "neutral"}`, key: "v" }, report.breached ? "Breached \u2014 no defence bonus" : `Holding \u2014 \u00D7${report.defenceMultiplier.toFixed(2)} defence, \u00D7${report.archerBonus.toFixed(2)} archer bonus`),
@@ -25704,12 +25737,13 @@ function BattleReportScreen({ match, countyId, countyName, onClose }) {
 					h("span", { className: "ov-ration-row-label", key: "l", style: { fontWeight: 700 } }, `Round ${round.number}`),
 				]),
 				h("div", { className: "ov-ration-row", key: "atk" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, `Attacker: ${Math.round(round.attacker.baseOutput)} \u2192 ${Math.round(round.attacker.finalOutput)}`),
-					h("span", { className: "ov-ration-row-val neg", key: "v" }, `-${round.attacker.casualtiesTaken}`),
+					h("span", { className: "ov-ration-row-label", key: "l" }, `${report.kind === "siege" ? "Attacker" : "Shooting"}: ${Math.round(round.attacker.baseOutput)} \u2192 ${Math.round(round.attacker.finalOutput)}`),
+					/** Before Oct 20 this printed the volley's raw return damage even when it was never applied (a melee garrison can't shoot back). */
+					h("span", { className: "ov-ration-row-val neg", key: "v" }, report.kind !== "siege" ? "\u2014" : `-${round.attacker.casualtiesTaken}`),
 				]),
 				h("div", { className: "ov-title-footnote", key: "atkmods" }, fmtMods(round.attacker.modifiers)),
 				h("div", { className: "ov-ration-row", key: "def" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, `Defender: ${Math.round(round.defender.baseOutput)} \u2192 ${Math.round(round.defender.finalOutput)}`),
+					h("span", { className: "ov-ration-row-label", key: "l" }, `${report.kind === "siege" ? "Defender" : "Shot at"}: ${Math.round(round.defender.baseOutput)} \u2192 ${Math.round(round.defender.finalOutput)}${(report.wallsSpared ?? 0) > 0 ? " (before the walls)" : ""}`),
 					h("span", { className: "ov-ration-row-val neg", key: "v" }, `-${round.defender.casualtiesTaken}`),
 				]),
 				h("div", { className: "ov-title-footnote", key: "defmods" }, fmtMods(round.defender.modifiers)),
@@ -26185,7 +26219,7 @@ function GameOverScreen({ match, onClose }) {
 			: `${winnerPlayer?.displayName ?? "A rival"} has claimed every remaining county and army. Your realm has fallen.`),
 	]);
 }
-function TurnEventsScreen({ events, layout, onClose }) {
+function TurnEventsScreen({ events, layout, onClose, onOpenBattle }) {
 	const h = import_react.createElement;
 	const grouped = new Map();
 	for (const event of events) {
@@ -26200,10 +26234,15 @@ function TurnEventsScreen({ events, layout, onClose }) {
 		]),
 		...Array.from(grouped.entries()).map(([countyName, countyEvents], gi) => [
 			h("div", { className: "ov-events-county-label", key: `l${gi}` }, countyName),
-			h("div", { className: "ov-events-zone", key: `z${gi}` }, countyEvents.map((event, i) => h("div", { className: "ov-events-row", key: i }, [
-				h("span", { className: "ov-events-row-icon" }, EVENT_KIND_ICON[event.kind] ?? "\u{1F4DC}"),
-				h("span", { className: "ov-events-row-detail" }, event.detail ?? event.kind)
-			])))
+			h("div", { className: "ov-events-zone", key: `z${gi}` }, countyEvents.map((event, i) => {
+				/** Fights open their Battle Report (Oct 20: it existed but nothing opened it). */
+				const fight = onOpenBattle && event.county && (event.kind === "battle" || event.kind === "repelled");
+				return h(fight ? "button" : "div", { className: `ov-events-row${fight ? " tappable" : ""}`, key: i, ...fight ? { onClick: () => onOpenBattle(event.county), "aria-label": `${event.detail} \u2014 open the battle report` } : {} }, [
+					h("span", { className: "ov-events-row-icon", key: "i" }, EVENT_KIND_ICON[event.kind] ?? "\u{1F4DC}"),
+					h("span", { className: "ov-events-row-detail", key: "d" }, event.detail ?? event.kind),
+					fight ? h("span", { className: "ov-events-row-more", key: "m", "aria-hidden": true }, "Report \u203A") : null
+				]);
+			}))
 		]),
 		h("button", { className: "ov-events-dismiss", key: "dismiss", onClick: onClose }, "Continue")
 	]);
