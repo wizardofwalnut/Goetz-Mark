@@ -132,6 +132,7 @@ walls with road gaps, shadows, labor screen variants.
 - Oct 20 `9d75504`: as winter ends, every ripe grain field is now reaped before any is sown (was field by field, so the first field could go unsown with the harvest still in the other fields).
 
 - Oct 20 (build 12): **Combat after ROTK11, first step** — one-way ranged volleys at 70% power (archers and crossbowmen), garrison bowmen shoot armies camped within 2 tiles (x1.5 from the walls), woods block arrows; Battle Report shows real losses, "walls spared N", and opens from the season report (it was unreachable) (b7).
+- Oct 20: volleys scaled to wear, not wipe (~0.15 kills per bowman a season); walls give defence only, no shooting bonus. **Direction (Chris): combat overall should feel closer to ROTK11** — fights that last several seasons, ranged vs melee roles, siege engines with jobs.
 - **Next for combat:** an on-map replay after End Turn (arrows in flight, floating losses) with longbow range 3 vs crossbow range 2; needs archer firing art (fix list m9). **Later:** catapults/siege towers; flesh combat out further along ROTK11 lines (Chris, Oct 20).
 
 **Later (Chris, Oct 20):** a Civ-style advisor in normal games ("what I'd do next", New/Experienced levels) — LOTR2 "sort of had an advisor"; and **voiced explanations** like LOTR2's narrated screens, once the note texts settle.
