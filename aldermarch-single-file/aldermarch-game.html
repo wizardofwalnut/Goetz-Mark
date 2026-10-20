@@ -3346,6 +3346,25 @@ body.ov-labor-full .ov-figbar-card-delta { font-size: 15px; }
 body.ov-labor-full .ov-figbar-card-delta.pos { color: #8cc4ff; }
 body.ov-labor-full .ov-figbar-card-delta.neg { color: #ff8f78; }
 body.ov-labor-full .ov-labor-painted .ov-labor-header { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+/* Steward's panel — the field chooser (Oct 19, mockup A). */
+.ov-steward { position: fixed; left: 10px; right: 10px; max-width: 440px; margin: 0 auto; z-index: 6; color: #e8dcc0;
+  background: linear-gradient(180deg, #1d1711, #120f0b); border: 2px solid #6b5836; outline: 1px solid #2a231c; outline-offset: 2px;
+  border-radius: 10px; box-shadow: 0 10px 30px rgb(0 0 0 / .6), inset 0 0 0 1px #97803f; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+.ov-stw-head { display: flex; align-items: center; gap: 10px; }
+.ov-stw-thumb { position: relative; width: 58px; height: 44px; overflow: hidden; flex: 0 0 auto; display: grid; place-items: center; }
+.ov-stw-tile { position: absolute; inset: 0; background: no-repeat center bottom / 58px auto; }
+.ov-stw-thumb .ov-stw-cow { position: absolute; width: 26px; left: 18px; top: 2px; }
+.ov-stw-name { min-width: 0; flex: 1 1 auto; }
+.ov-stw-title { font: 700 17px 'Iowan Old Style', Georgia, serif; color: #e3bf4a; }
+.ov-stw-sub { font-size: 12px; color: #a4906c; }
+.ov-stw-close { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #4a3f31; background: #231b12; color: #e8dcc0; font-size: 15px; flex: 0 0 auto; }
+.ov-stw-reason { margin: 0; font-size: 13px; color: #cfc6b0; }
+.ov-stw-opt { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border: 1px solid #4a3f31; border-radius: 8px; background: #211a13; }
+.ov-stw-body { min-width: 0; flex: 1 1 auto; }
+.ov-stw-optname { font: 700 15px 'Iowan Old Style', Georgia, serif; }
+.ov-stw-line { font-size: 12.5px; color: #e8dcc0; }
+.ov-stw-line.warn { color: #ff9a7a; } .ov-stw-line.good { color: #8fd36f; } .ov-stw-line.muted { color: #a4906c; }
+.ov-stw-go { flex: 0 0 auto; min-width: 64px; min-height: 40px; border: 0; border-radius: 6px; background: #e3bf4a; color: #1a1206; font-weight: 700; font-size: 14px; cursor: pointer; }
 /* Painted labor screen (Phase B, Oct 18): header row doubles as the stepper,
    the painting fills whatever height is left, never scrolls. */
 .ov-labor-painted .ov-labor-header { padding: 8px 10px; min-height: 52px; gap: 8px; }
@@ -20555,7 +20574,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 			}), baked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FieldTaps, {
 				plot: focusPlot,
 				fields: focusOwnedFields,
-				onSelectField: setSelectedField
+				onSelectField: (f) => setSelectedField({ field: f, county: focus })
 			}), baked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CattleHerds, {
 				layout,
 				match
@@ -20568,6 +20587,11 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				onOpenLabor,
 				onOpenMerchant,
 				onFocus
+			}), baked && selectedField && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FieldOutline, {
+				layout,
+				county: selectedField.county,
+				field: selectedField.field
+
 			}), baked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Highlights, {
 				plot: reachable?.plot,
 				cells: reachable?.cells,
@@ -20603,8 +20627,8 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 		]
 	}), selectedField && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FieldPicker, {
 		match,
-		countyId: focus,
-		field: selectedField,
+		countyId: selectedField.county,
+		field: match.counties[selectedField.county]?.interior.fields.find((f) => f.id === selectedField.field.id) ?? selectedField.field,
 		onChange,
 		onClose: () => setSelectedField(null)
 	}), selectedCaravan && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CaravanPanel, {
@@ -21119,6 +21143,25 @@ function CattleHerds({ layout, match }) {
 * click — tapping a field to reassign its use should never fight with
 * moving a unit that happens to be standing on it.
 */
+/**
+* Gold outline on the field the Steward's panel is about. Drawn from the
+* county captured when the field was tapped, not from `focus`: panning (or
+* the panel nudging the map clear of itself) can move focus to a neighbour,
+* and the panel must keep acting on, and showing, the field it opened for.
+*/
+function FieldOutline({ layout, county, field }) {
+	const plot = layout.plots.find((p) => p.county.id === county);
+	if (!plot) return null;
+	const world = toWorld(plot.origin, { col: field.col, row: field.row });
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+		points: cellDiamond(world.col, world.row),
+		fill: "rgba(255, 221, 120, 0.22)",
+		stroke: "#ffdd78",
+		strokeWidth: 2.5,
+		"data-field-id": field.id,
+		style: { pointerEvents: "none" }
+	});
+}
 function FieldTaps({ plot, fields, onSelectField }) {
 	if (!plot || !fields) return null;
 	const { origin } = plot;
@@ -21128,9 +21171,12 @@ function FieldTaps({ plot, fields, onSelectField }) {
 				col: field.col,
 				row: field.row
 			});
+			// The field the Steward's panel is about is outlined in gold, so the
+			// panel never talks about a field the player can't see (Oct 19).
 			return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
 				points: cellDiamond(world.col, world.row),
 				fill: "transparent",
+				"data-tap": field.id,
 				style: { cursor: "pointer" },
 				onClick: () => onSelectField(field)
 			}, field.id);
@@ -22035,6 +22081,18 @@ function FieldPicker({ match, countyId, field, onChange, onClose }) {
 		window.addEventListener("resize", measure);
 		return () => window.removeEventListener("resize", measure);
 	}, []);
+	(0, import_react.useEffect)(() => {
+		const id = requestAnimationFrame(() => {
+			const poly = document.querySelector(`polygon[data-field-id="${field.id}"]`);
+			const panel = document.querySelector(".ov-steward");
+			const stage = document.querySelector(".ov-stage");
+			if (!poly || !panel || !stage) return;
+			const pr = poly.getBoundingClientRect(), top = panel.getBoundingClientRect().top;
+			// slide the map so the field sits in the clear space above the panel
+			if (pr.bottom > top - 12) stage.scrollBy({ top: pr.bottom - top + Math.min(top * .45, pr.height + 60), behavior: "smooth" });
+		});
+		return () => cancelAnimationFrame(id);
+	}, [field.id]);
 	const grainFieldCount = county?.interior.fields.filter((f) => f.status === "grain").length ?? 0;
 	const cattleFieldCount = county?.interior.fields.filter((f) => f.status === "cattle").length ?? 0;
 	/**
@@ -22073,93 +22131,68 @@ function FieldPicker({ match, countyId, field, onChange, onClose }) {
 		if (result.ok) onChange(result.match);
 		onClose();
 	};
-	const FIELD_USE_LABEL = {
-		fallow: "Leave fallow",
-		grain: "Plant grain",
-		cattle: "Graze cattle"
+	/**
+	* The Steward's panel (Chris, Oct 19 — mockup A). Header: what the field is
+	* now, by picture and a name a player can use ("Fallow field · west of
+	* town", never its id). One row per choice: the field it becomes, what
+	* changes, and a warning when the county can't staff it.
+	*/
+	const h = import_react.createElement;
+	const stage = stageOf(field);
+	const STATUS_NAME = { fallow: "Fallow field", cattle: "Pasture", barren: "Barren field", grain: stage === "mature" ? "Ripe wheat" : stage === "growing" ? "Growing wheat" : stage === "sown" ? "Sown field" : "Grain field" };
+	const statusName = STATUS_NAME[field.status] ?? `${field.status[0].toUpperCase()}${field.status.slice(1)} field`;
+	const where = (() => {
+		const t = county?.interior.town;
+		if (!t) return "";
+		const dx = field.col - field.row - (t.col - t.row), dy = field.col + field.row - (t.col + t.row);
+		if (Math.abs(dx) + Math.abs(dy) <= 2) return "beside the town";
+		const a = Math.atan2(dy, dx) * 180 / Math.PI;
+		const dirs = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
+		return `${dirs[((Math.round(a / 45) % 8) + 8) % 8]} of town`;
+	})();
+	// a choice shows what the field becomes (ripe wheat); the header shows what it is now
+	const artFor = (st) => st === field.status ? overheadFieldArt(st, stage) : overheadFieldArt(st, st === "grain" ? "mature" : null);
+	const cow = cowArt();
+	const thumb = (st) => h("div", { className: "ov-stw-thumb", key: "th" }, [
+		h("div", { key: "t", className: "ov-stw-tile", style: { backgroundImage: `url(${artFor(st).url})` } }),
+		st === "cattle" && !cow.missing ? h("img", { key: "c", className: "ov-stw-cow", src: cow.url, alt: "" }) : null
+	]);
+	const ROW = {
+		grain: { name: "Plant grain", verb: "Plant" },
+		cattle: { name: "Graze cattle", verb: "Graze" },
+		fallow: { name: "Leave fallow", verb: "Rest" }
 	};
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "ov-field-picker",
-		style: {
-			position: "fixed",
-			left: "50%",
-			bottom: figbarHeight + 12,
-			transform: "translateX(-50%)",
-			background: "rgba(20, 16, 12, 0.94)",
-			border: `1px solid ${palette.parchmentShadow}`,
-			borderRadius: 8,
-			padding: "8px 10px",
-			color: palette.parchment,
-			fontSize: 13,
-			zIndex: 6,
-			display: "flex",
-			flexDirection: "column",
-			gap: 4,
-			minWidth: 150
-		},
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				style: {
-					display: "flex",
-					justifyContent: "space-between",
-					marginBottom: 4
-				},
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", {
-					children: `Field ${field.id}`
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-					onClick: onClose,
-					style: {
-						background: "none",
-						border: "none",
-						color: palette.parchmentShadow,
-						cursor: "pointer"
-					},
-					children: "\u2715"
-				})]
-			}),
-			options.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-				style: { color: palette.parchmentShadow },
-				children: "This field can't be reassigned yet."
-			}),
-			...options.map((opt) => {
-				const consequence = consequenceFor(opt);
-				/**
-				* Real, pre-existing bug — not from any of this session's other
-				* work, confirmed by scanning the whole file for this exact
-				* shape and finding only this one instance. `jsxs`/`jsx` here
-				* are the raw production react-jsx-runtime functions (used
-				* directly, not through the `h = createElement` alias every
-				* other screen in this file uses) — their 3rd argument is
-				* ONLY ever read as the reconciliation `key`, never as
-				* children; real children must live inside `props.children`.
-				* This was written as `jsxs("div", {key, style}, [button,
-				* ...spans])` — the `createElement` calling convention,
-				* not this runtime's — so `props.children` was silently
-				* `undefined` the whole time. Confirmed via the rendered
-				* fiber's own props before touching this: both option
-				* wrappers showed `children: undefined`, matching exactly
-				* what the playtest reported — a picker that opens, shows
-				* only its header, and offers nothing to actually tap.
-				*/
-				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					key: opt,
-					style: { display: "flex", flexDirection: "column", gap: 2, marginBottom: 4 },
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-							className: "chip",
-							onClick: () => choose(opt),
-							children: FIELD_USE_LABEL[opt] ?? opt
-						}),
-						...consequence.map((line, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							key: i,
-							style: { fontSize: 11, color: line.startsWith("\u26A0") ? "#ff8a70" : palette.parchmentShadow, paddingLeft: 4 },
-							children: line
-						}))
-					]
-				});
-			}),
-		]
-	});
+	const detailFor = (opt) => {
+		const lines = consequenceFor(opt).map((l) => ({ text: l.replace("Cattle fields", "Pasture fields").replace(/(\d+)→(\d+)/, "$1 → $2").replace(/ \(needs.*$/, ""), tone: l.startsWith("⚠") ? "warn" : "" }));
+		if (opt === "grain") {
+			const newGrain = grainFieldCount + 1 - (field.status === "grain" ? 1 : 0);
+			const req = newGrain * MAX_SACKS_PER_FIELD * LABORERS_PER_SACK;
+			const have = county?.farmWorkers ?? 0;
+			lines.push(have >= req ? { text: `Needs ${req} farmers · you have ${have}`, tone: "good" } : { text: `Needs ${req} farmers · you have ${have}`, tone: "warn" });
+		}
+		if (opt === "fallow") lines.push({ text: "Nothing grows here this year", tone: "muted" });
+		return lines;
+	};
+	const reason = options.length ? null : field.status === "barren" ? "Barren land has to be reclaimed first: put workers on Repair in the labor screen." : "Storm damage: this field settles to barren before it can be used again.";
+	return h("div", { className: "ov-steward", style: { bottom: figbarHeight + 8 } }, [
+		h("div", { className: "ov-stw-head", key: "hd" }, [
+			thumb(field.status),
+			h("div", { key: "n", className: "ov-stw-name" }, [
+				h("div", { key: "t", className: "ov-stw-title" }, statusName),
+				where ? h("div", { key: "w", className: "ov-stw-sub" }, where[0].toUpperCase() + where.slice(1)) : null
+			]),
+			h("button", { key: "x", className: "ov-stw-close", "aria-label": "Close", onClick: onClose }, "✕")
+		]),
+		reason ? h("p", { key: "r", className: "ov-stw-reason" }, reason) : null,
+		...options.map((opt) => h("div", { key: opt, className: "ov-stw-opt" }, [
+			thumb(opt),
+			h("div", { key: "b", className: "ov-stw-body" }, [
+				h("div", { key: "n", className: "ov-stw-optname" }, ROW[opt]?.name ?? opt),
+				...detailFor(opt).map((l, k) => h("div", { key: k, className: `ov-stw-line ${l.tone}` }, l.text))
+			]),
+			h("button", { key: "go", className: "ov-stw-go", onClick: () => choose(opt) }, ROW[opt]?.verb ?? "Choose")
+		]))
+	]);
 }
 /**
 * Cargo panel for a selected transport caravan.
