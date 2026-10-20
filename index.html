@@ -14868,7 +14868,7 @@ var ambientMusic = createAmbientMusicEngine();
 * immediately via `ambientMusic.setEnabled`, not just on next launch.
 */
 var SETTINGS_KEY = "aldermarch.settings";
-var DEFAULT_SETTINGS = { randomEventsEnabled: true, reportCardEnabled: true, musicEnabled: true };
+var DEFAULT_SETTINGS = { randomEventsEnabled: true, reportCardEnabled: true, musicEnabled: true, tipsEnabled: true };
 function loadSettings() {
 	try {
 		const raw = localStorage.getItem(SETTINGS_KEY);
@@ -20470,7 +20470,11 @@ async function bakeCounty(plot, masks, season) {
 var VIEW_COLS = 4;
 /**
 * Tutorial (Chris, Oct 19: "build out the tutorial, like Civ and L2"; the
-* 4-county map is the free tutorial). A steward walks a first game step by
+* 4-county map is the free tutorial). Oct 20 rework: follows the order of
+* LOTR2's Getting Started card (survey, workforce, agriculture, industry,
+* happiness, food, merchant, end turn) across the first YEAR, one season
+* per chapter, and only then the army (Chris: "L2 had a great, easy to
+* understand tutorial"). A steward walks a first game step by
 * step, Civ-style: one goal at a time, the control to use glowing, and the
 * step completing itself the moment the game state shows it's done. Lives
 * on `match.tutorial` so it survives save/load; the rival is Easy.
@@ -20484,34 +20488,62 @@ var tutTroops = (match, id) => Object.values(match.armies).filter((a) => a.owner
 var tutGrainNeed = (c) => grainFeedNeed(c).workers;
 var tutByTitle = (sel, re) => [...document.querySelectorAll(sel)].filter((e) => re.test(e.getAttribute("title") || e.querySelector("title")?.textContent || ""));
 var TUTORIAL_STEPS = [
+	// — Spring: your lands and your people (LOTR2 Getting Started, steps 1–3)
 	{ id: "welcome", goal: "Meet your steward", done: null,
-		text: "My lord, I am your steward. You hold Hollowmere. Lady Aubrey holds Marlbrook across the realm, and the two counties between you belong to no one. Hold all four and the realm is yours. I'll show you how, one step at a time." },
+		text: "My lord, I am your steward. You hold Hollowmere. Lady Aubrey holds Marlbrook, and the two counties between you belong to no one. Hold all four and the realm is yours. This first year we learn to run one county well; armies come once the year is done." },
+	{ id: "survey", goal: "Survey your lands", done: (x) => x.seen.minimap,
+		glow: () => [...document.querySelectorAll(".ov-minimap-tab")],
+		text: "Tap the map button (glowing, top right) to see the whole realm. Your county is in your colour. Tapping a county takes you there. Tap the button again to close the map." },
 	{ id: "labor", goal: "Open the Town Centre", done: (x) => x.seen.labor,
 		glow: () => tutByTitle("svg.ov-map image", /Hollowmere town centre/),
-		text: "Your people need work. Tap the town in the middle of Hollowmere (it's glowing) to open the Town Centre, where you put people to work." },
+		text: "Every one of your people works one job. Tap the town in the middle of Hollowmere (it's glowing) to open the Town Centre, where you choose who does what." },
 	{ id: "grain", goal: "Staff the grain fields", done: (x) => x.home.farmWorkers >= tutGrainNeed(x.home),
-		text: "Grain shows a red number: that's how many workers the crop is short. Tap Pasture, Mine or Lumber and press − to free people, then tap Grain and press + until the red number is gone. Unharvested grain rots, and your people eat grain." },
+		text: "Grain shows a red number: the workers it is short. Tap Mine or Lumber and press − to free people, then tap Grain and press + until the red number is gone. Why: when winter ends, these farmers sow the crop that feeds you a year later." },
 	{ id: "field", goal: "Look at a field", done: (x) => x.seen.field,
-		text: "Close the Town Centre. Tap any field on the map to see what it's doing. Brown fallow fields can be sown with grain or turned to pasture, but each grain field needs 60 workers, so plant more only as your town grows." },
+		text: "Close the Town Centre and tap any field on the map. Pasture feeds people every season with dairy; grain comes in once a year, when winter ends. Brown fallow fields can be sown later, as your town grows." },
+	{ id: "end1", goal: "End the spring", done: (x) => x.turn > x.start.turn,
+		glow: () => [...document.querySelectorAll(".ov-figbar-end-turn")],
+		text: "Each turn is one season. Press End Turn. The season report tells you what happened; close it to carry on." },
+	// — Summer: feed the masses, keep them happy (steps 5–6)
+	{ id: "ration", goal: "Check the ration", done: (x) => x.seen.ration,
+		glow: () => [...document.querySelectorAll(".ov-figbar-stat-card")].filter((c) => /RATION/.test(c.textContent)).map((c) => c.querySelector(".ov-figbar-stat-value")).filter(Boolean),
+		text: "Your people eat every season. Tap the word Normal on the Ration card. More food makes people healthier and happier; less saves grain. If the stores run short, people eat less than you ordered, and the card warns you." },
+	{ id: "happiness", goal: "See what pleases your people", done: (x) => x.seen.happiness,
+		glow: () => tutByTitle(".ov-figbar-status-chip", /^Happiness/),
+		text: "Tap the smiling face. Happy people stay and raise children; unhappy ones leave, and a county that stays miserable revolts. The report shows what's helping and what's hurting." },
 	{ id: "tax", goal: "Set a 5% tax", done: (x) => (x.home.taxRate ?? 0) >= 5,
 		glow: () => [...document.querySelectorAll(".ov-figbar-stat-card")].filter((c) => /TAX/i.test(c.textContent)).map((c) => c.querySelector(".ov-figbar-stat-btn.plus")).filter(Boolean),
-		text: "Soldiers cost gold every season. Press + on Tax Rate until it reads 5%. Higher taxes bring more gold but make people unhappy, and unhappy counties revolt." },
-	{ id: "end", goal: "End your first season", done: (x) => x.turn > x.start.turn,
+		text: "Gold pays your soldiers and builds your castles, and taxes bring it in, at a cost in happiness. Press + on Tax Rate until it reads 5%. Watch the small line under it: gold gained, happiness lost." },
+	{ id: "end2", goal: "End the summer", done: (x) => x.turn > x.start.turn + 1,
 		glow: () => [...document.querySelectorAll(".ov-figbar-end-turn")],
-		text: "Each turn is one season. When you're ready, press End Turn. The season report tells you what happened; close it to carry on." },
-	{ id: "levy", goal: "Raise 20 troops", done: (x) => tutTroops(x.match, x.you.id) >= x.start.troops + 20,
-		glow: () => tutByTitle("button, [role=button], .ov-figbar-action", /Raise an army/),
-		text: "You'll need an army. Tap LEVY and raise at least 20 troops. Each soldier is one less worker, so don't empty the fields." },
-	{ id: "conquer", goal: "Take a second county", done: (x) => Object.values(x.match.counties).filter((c) => c.owner === x.you.id).length >= 2,
-		text: "Greyfen and Ravensgate belong to no one. Tap your army to see where it can go, then tap the town of a neighbouring county (use 🗺️ to travel the map). Its townsfolk will fight back, so bring more than a handful." },
-	{ id: "diplomacy", goal: "Check on Lady Aubrey", done: (x) => x.seen.diplomacy,
-		glow: () => tutByTitle(".ov-figbar-status-chip", /^Relations/),
-		text: "Lady Aubrey is watching. Tap 🤝 to see where you stand with her. You can propose a truce, send a gift, or demand gold." },
+		text: "Press End Turn when you're ready. Glance at the season report: happiness, births and food all show there." },
+	// — Autumn: trade and industry (steps 4 and 7)
+	{ id: "merchant", goal: "Meet the merchant", done: null,
+		glow: () => tutByTitle("svg.ov-map image", /Merchant caravan/),
+		text: "A merchant's wagon travels the realm. While it stands in a county you hold, tap it to trade: buy grain if your stores run low, and sell spare wood, stone and ore. You sell at half what you pay." },
 	{ id: "castle", goal: "Look at your castle", done: (x) => x.seen.castle,
 		glow: () => tutByTitle(".ov-figbar-status-chip", /build or upgrade/),
-		text: "Walls make defenders count for more. Tap 🏰 to see castle upgrades. They need wood, stone and builders from the Town Centre." },
+		text: "Your mill, quarry and mine bring in wood, stone and ore. Walls are what they're for: a castle makes each defender count for more. Tap the castle to see the upgrades and what they cost." },
+	{ id: "end3", goal: "End the autumn", done: (x) => x.turn > x.start.turn + 2,
+		glow: () => [...document.querySelectorAll(".ov-figbar-end-turn")],
+		text: "Your grain has stood all year. Press End Turn; winter is next, and it matters most." },
+	// — Winter: making the food last
+	{ id: "winter", goal: "Make the grain last", done: null,
+		text: "When winter ends, your farmers reap last year's crop and sow the next, so keep Grain staffed through the winter. This first year your fields weren't sown, so the stores must carry you a full year. Open the Ration panel any time: if it warns the stores won't cover, buy grain from the merchant." },
+	{ id: "end4", goal: "End the winter", done: (x) => x.turn > x.start.turn + 3,
+		glow: () => [...document.querySelectorAll(".ov-figbar-end-turn")],
+		text: "Press End Turn. Your farmers sow next year's crop, and your first year is done, my lord." },
+	// — Year two: the army
+	{ id: "levy", goal: "Raise 20 troops", done: (x) => tutTroops(x.match, x.you.id) >= x.start.troops + 20,
+		glow: () => tutByTitle("button, [role=button], .ov-figbar-action", /Raise an army/),
+		text: "A year on, Hollowmere stands on its own feet. Now an army: tap LEVY and raise at least 20 troops. Every soldier is one less worker, so don't empty the fields." },
+	{ id: "conquer", goal: "Take a second county", done: (x) => Object.values(x.match.counties).filter((c) => c.owner === x.you.id).length >= 2,
+		text: "Greyfen and Ravensgate belong to no one. Tap your army to see where it can go, then tap the town of a neighbouring county (use the map button to travel). Its townsfolk will fight back, so bring more than a handful." },
+	{ id: "diplomacy", goal: "Check on Lady Aubrey", done: (x) => x.seen.diplomacy,
+		glow: () => tutByTitle(".ov-figbar-status-chip", /^Relations/),
+		text: "Lady Aubrey is watching. Tap the handshake to see where you stand with her. You can propose a truce, send a gift, or demand gold." },
 	{ id: "finish", goal: "Rule the Aldermarch", done: null, last: true,
-		text: "That's the realm, my lord. Keep the grain staffed, keep people content, and build your army. Lady Aubrey will leave you in peace for a while; after that, guard your borders. Hold all four counties to win." }
+		text: "That's the realm, my lord. Keep the grain staffed and the stores full, keep people content, and build your army. Lady Aubrey will leave you in peace a while longer; after that, guard your borders. Hold all four counties to win." }
 ];
 function tutorialCtx(match, seen) {
 	const you = match.players.find((p) => p.controller.kind === "human");
@@ -20535,6 +20567,68 @@ function withTutorial(match) {
 		if (moved > 0 && site) match = { ...match, counties: { ...match.counties, [homeId]: { ...home, farmWorkers: home.farmWorkers - moved, interior: { ...home.interior, industry: home.interior.industry.map((x) => x === site ? { ...x, workers: (x.workers ?? 0) + moved } : x) } } } };
 	}
 	return { ...match, tutorial: { step: 0, seen: {}, start: { turn: match.turn.number, troops: tutTroops(match, you.id) } } };
+}
+/**
+* Steward's notes — LOTR2's "tip screens" (Chris, Oct 20, option B): the
+* first time you open each screen, a short note says what it is, why it
+* matters and how to use it. Every game, not just the tutorial; once per
+* device; Settings can turn them off or show them again. Screens the
+* tutorial is teaching don't get a note on top of the steward's own card.
+* (Voiced notes, like LOTR2's narration, are on the fix list for later.)
+*/
+var TIPS = {
+	labor: { title: "The Town Centre", text: "Every one of your people works one job. Tap a lot, then + or \u2212 to move people between them. Grain and pasture feed the county; the mill, quarry and mine bring wood, stone and ore. A red number means a job is short-handed." },
+	ration: { title: "Rations", text: "How much your people eat each season. Double or Triple raise health and happiness but empty the stores faster; Half or Starvation save grain and anger people. If the stores run out, people eat less than you ordered." },
+	levy: { title: "The Levy", text: "Soldiers come out of your workforce, and taking too many at once angers the county. Weapons come from the forge or the merchant; without them you raise militia. When a mercenary company visits your county, you can hire it here." },
+	merchant: { title: "The Merchant", text: "The wagon trades only while it stands in a county you hold. Buy grain when your stores run low; sell spare wood, stone and ore. You sell at half what you pay." },
+	castle: { title: "Your Castle", text: "Walls make each defender count for more, and a bigger castle holds a bigger garrison. An upgrade costs wood and stone up front, then needs builders from the Town Centre every season until it's done." },
+	diplomacy: { title: "Diplomacy", text: "Relations rise with gifts and seasons of peace and fall with every attack. A truce stops you both attacking for 8 seasons. Break one and the other lord won't deal with you for a long while." },
+	battle: { title: "Battle Report", text: "The last fight in this county: who attacked, what the walls were worth, and the losses on both sides." },
+	happiness: { title: "Happiness", text: "Happy counties grow and keep their people; unhappy ones lose them, and a county that stays miserable revolts. Taxes, rations, health and ale all move it." },
+	health: { title: "Health", text: "Health follows the ration over a few seasons. Poor health costs happiness and invites plague; Double rations or better can break a plague." },
+	population: { title: "Population", text: "Births follow happiness, deaths follow the season. Soldiers you raise leave the count, and people move to a happier neighbour if they can." },
+	cattle: { title: "The Herd", text: "Cattle give dairy every season, and your people eat dairy before grain. Herders keep the herd growing; crowd too many cows onto the pasture and they start to die." },
+	grain: { title: "Grain", text: "When winter ends, your farmers reap last year's crop and sow the next one, so keep Grain staffed through the winter. What's in store must last until then." },
+	kingdom: { title: "Kingdom Resources", text: "What your counties share: wood, stone, ore, gold and weapons, with what each gains or loses this season." },
+	history: { title: "Event History", text: "The last hundred things that happened in your lands, newest first." },
+	bestNoble: { title: "Best Noble", text: "How you measure up against the other lords of the realm." }
+};
+var TIPS_SEEN_KEY = "aldermarch.tips.seen";
+var tipsSeen = () => {
+	try {
+		return JSON.parse(localStorage.getItem(TIPS_SEEN_KEY) ?? "{}") ?? {};
+	} catch {
+		return {};
+	}
+};
+var markTipSeen = (key) => {
+	try {
+		localStorage.setItem(TIPS_SEEN_KEY, JSON.stringify({ ...tipsSeen(), [key]: true }));
+	} catch {}
+};
+var resetTips = () => {
+	try {
+		localStorage.removeItem(TIPS_SEEN_KEY);
+	} catch {}
+};
+function TipCard({ tipKey, onDone }) {
+	const h = import_react.createElement;
+	const tip = TIPS[tipKey];
+	if (!tip) return null;
+	const close = (off) => {
+		markTipSeen(tipKey);
+		if (off) saveSettings({ ...loadSettings(), tipsEnabled: false });
+		onDone();
+	};
+	return h("div", { className: "ov-tut docked ov-tip", role: "dialog", "aria-label": `Steward's note: ${tip.title}` }, [
+		h("div", { className: "ov-tut-top", key: "top" }, [h("span", { className: "ov-tut-who", key: "w" }, "Steward's note")]),
+		h("div", { className: "ov-tut-goal", key: "g" }, tip.title),
+		h("p", { className: "ov-tut-text", key: "t" }, tip.text),
+		h("div", { className: "ov-tut-row", key: "r" }, [
+			h("button", { key: "off", className: "ov-tut-link", onClick: () => close(true) }, "Turn tips off"),
+			h("button", { key: "ok", className: "ov-tut-btn primary", onClick: () => close(false) }, "Got it")
+		])
+	]);
 }
 function TutorialCard({ match, onChange, docked }) {
 	const h = import_react.createElement;
@@ -20640,15 +20734,27 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 	/** Tutorial: record which panels you've opened and complete steps as the game state satisfies them. */
 	const tutActive = !!match.tutorial && !match.tutorial.off && !match.tutorial.done;
 	const anyOverlay = !!(laborScreenCounty || rationScreenCounty || levyScreenCounty || merchantScreenCounty || bestNobleOpen || kingdomResourcesOpen || saveScreenOpen || eventHistoryOpen || settingsOpen || reportCardOpen || happinessScreenCounty || healthScreenCounty || cattleScreenCounty || grainScreenCounty || castleScreenCounty || battleScreenCounty || populationScreenCounty || diplomacyOpen || turnEvents.length > 0);
+	/** The screen on top right now, for its first-visit note (TIPS). */
+	const openScreen = laborScreenCounty ? "labor" : rationScreenCounty ? "ration" : levyScreenCounty ? "levy" : merchantScreenCounty ? "merchant" : castleScreenCounty ? "castle" : diplomacyOpen ? "diplomacy" : battleScreenCounty ? "battle" : happinessScreenCounty ? "happiness" : healthScreenCounty ? "health" : populationScreenCounty ? "population" : cattleScreenCounty ? "cattle" : grainScreenCounty ? "grain" : kingdomResourcesOpen ? "kingdom" : eventHistoryOpen ? "history" : bestNobleOpen ? "bestNoble" : null;
+	const [tipTick, setTipTick] = (0, import_react.useState)(0);
+	const TUT_TAUGHT = new Set(["labor", "ration", "happiness", "castle", "diplomacy", "levy"]);
+	const tipKey = (() => {
+		if (!openScreen || !TIPS[openScreen] || loadSettings().tipsEnabled === false || tipsSeen()[openScreen]) return null;
+		if (tutActive && TUT_TAUGHT.has(openScreen)) return null;
+		return openScreen;
+	})();
+	(0, import_react.useEffect)(() => {
+		if (openScreen && tutActive && TUT_TAUGHT.has(openScreen)) markTipSeen(openScreen);
+	}, [openScreen, tutActive]);
 	const tutLive = (0, import_react.useRef)(null);
-	tutLive.current = { match, onChange, flags: { labor: !!laborScreenCounty, levy: !!levyScreenCounty, castle: !!castleScreenCounty, diplomacy: diplomacyOpen } };
+	tutLive.current = { match, onChange, flags: { labor: !!laborScreenCounty, levy: !!levyScreenCounty, castle: !!castleScreenCounty, diplomacy: diplomacyOpen, ration: !!rationScreenCounty, happiness: !!happinessScreenCounty, merchant: !!merchantScreenCounty } };
 	(0, import_react.useEffect)(() => {
 		if (!tutActive) return;
 		const t = setInterval(() => {
 			const { match: m, onChange: change, flags } = tutLive.current;
 			const tut = m.tutorial;
 			if (!tut || tut.off || tut.done || !change) return;
-			const now = { ...flags, field: !!document.querySelector(".ov-steward") };
+			const now = { ...flags, field: !!document.querySelector(".ov-steward"), minimap: !!document.querySelector(".mm") };
 			const add = Object.keys(now).filter((k) => now[k] && !tut.seen?.[k]);
 			const seen = { ...tut.seen, ...Object.fromEntries(add.map((k) => [k, true])) };
 			const step = TUTORIAL_STEPS[tut.step];
@@ -20828,11 +20934,15 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				countyName: layout.plots.find((p) => p.county.id === populationScreenCounty)?.county.name ?? populationScreenCounty,
 				onClose: () => setPopulationScreenCounty(null)
 			}),
-			tutActive && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TutorialCard, {
+			tutActive && !tipKey && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TutorialCard, {
 				match,
 				onChange,
 				docked: anyOverlay
 			}),
+			tipKey && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TipCard, {
+				tipKey,
+				onDone: () => setTipTick((n) => n + 1)
+			}, tipKey),
 			diplomacyOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DiplomacyScreen, {
 				match,
 				onChange,
@@ -24910,6 +25020,28 @@ function SettingsScreen({ onClose }) {
 				]),
 				h("div", { className: "ov-save-row-actions", key: "a" }, [
 					h("button", { className: "ov-save-action-btn", key: "t", onClick: toggleEvents }, settings.randomEventsEnabled ? "On" : "Off"),
+				]),
+			]),
+		]),
+		h("div", { className: "ov-save-section-label", key: "ltips" }, "Steward's Notes"),
+		h("div", { className: "ov-save-zone", key: "ztips" }, [
+			h("div", { className: "ov-save-row", key: "tips" }, [
+				h("div", { className: "ov-save-row-info", key: "i" }, [
+					h("div", { className: "ov-save-row-label", key: "l" }, "Tips"),
+					h("div", { className: "ov-save-row-detail", key: "d" }, "A short note the first time you open each screen"),
+				]),
+				h("div", { className: "ov-save-row-actions", key: "a" }, [
+					h("button", { className: "ov-save-action-btn", key: "t", onClick: () => {
+						const next = { ...settings, tipsEnabled: settings.tipsEnabled === false };
+						setSettings(next);
+						saveSettings(next);
+					} }, settings.tipsEnabled === false ? "Off" : "On"),
+					h("button", { className: "ov-save-action-btn", key: "r", onClick: () => {
+						resetTips();
+						const next = { ...settings, tipsEnabled: true };
+						setSettings(next);
+						saveSettings(next);
+					} }, "Show again"),
 				]),
 			]),
 		]),
