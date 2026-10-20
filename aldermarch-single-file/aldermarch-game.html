@@ -1622,6 +1622,16 @@ full standalone screen, not a panel over gameplay. */
   font-family: Arial, sans-serif;
 }
 
+/* New Game difficulty picker (Oct 19). */
+.ov-diff { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; }
+.ov-diff-title { color: #e3bf4a; font: 700 17px Georgia, serif; text-align: center; margin-bottom: 2px; }
+.ov-diff-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; background: rgb(201 162 39 / 0.06); border: 1.5px solid #5b4a1e; border-radius: 8px; padding: 10px 14px; color: #e8dcc0; font-family: Arial, sans-serif; min-height: 48px; }
+.ov-diff-opt.on { border-color: #e3bf4a; background: rgb(201 162 39 / 0.2); box-shadow: 0 0 0 1px #e3bf4a inset; }
+.ov-diff-name { font-weight: 700; font-size: 15px; color: #e3bf4a; }
+.ov-diff-blurb { font-size: 12.5px; color: #cfc3a6; line-height: 1.3; }
+.ov-diff-row { display: flex; gap: 10px; margin-top: 4px; }
+.ov-diff-row .ov-title-btn { flex: 1; }
+
 .ov-title-btn.primary {
   background: #c9a227;
   color: #1a1611;
@@ -17279,7 +17289,7 @@ function erodeRamDurability(match) {
 * can return fire). Enforced here by simply not applying the exchange's
 * attacker-side losses unless the defending garrison itself has archers.
 */
-function resolveArcherHarassment(match) {
+function resolveArcherHarassment(match, ix) {
 	let current = match;
 	const events = [];
 	const fieldArmiesByCounty = /* @__PURE__ */ new Map();
@@ -17347,7 +17357,7 @@ function resolveArcherHarassment(match) {
 				county: countyId,
 				kind: "battle",
 				attacker: archerArmy.owner,
-				detail: `${countyId}'s garrison took fire from archers at the walls`
+				detail: `${nameOfCounty(ix, countyId)}'s garrison took fire from archers at the walls`
 			});
 		}
 	}
@@ -17376,6 +17386,8 @@ var TOWN_LEVY_SHARE = .03;
 var MIN_TOWN_LEVY = 3;
 /** How many the town can put in the street. */
 var townLevy = (population) => population <= 0 ? 0 : Math.max(MIN_TOWN_LEVY, Math.round(population * TOWN_LEVY_SHARE));
+var CUT_OFF_UNREST = 5;
+var nameOfCounty = (ix, id) => ix?.countyById?.get(id)?.name ?? id;
 function resolveConquest(match, ix) {
 	const events = [];
 	let current = match;
@@ -17391,7 +17403,7 @@ function resolveConquest(match, ix) {
 	* rather than waiting a turn to "catch up."
 	*/
 	current = erodeRamDurability(current);
-	const harassment = resolveArcherHarassment(current);
+	const harassment = resolveArcherHarassment(current, ix);
 	current = harassment.match;
 	events.push(...harassment.events);
 	const contested = [...new Set(Object.values(current.armies).filter((a) => a.location.kind === "garrison").map((a) => a.location.county))].sort();
@@ -17401,7 +17413,14 @@ function resolveConquest(match, ix) {
 		const present = garrisonOf(current, countyId).filter((a) => troopCount(a.troops) > 0);
 		const attackers = present.filter((a) => a.owner !== county.owner);
 		if (attackers.length === 0) continue;
-		const defenders = present.filter((a) => a.owner === county.owner);
+		/**
+		* The owner's armies standing in the open in this county fight too.
+		* Only the garrison counted before, so a county with a full castle
+		* (a Motte holds 200) and 800 more troops camped beside it fell to
+		* 300 attackers (Oct 19 sims) — same for the player's own armies.
+		*/
+		const homeField = Object.values(current.armies).filter((a) => a.owner === county.owner && county.owner !== null && a.location.kind === "field" && a.location.county === countyId && troopCount(a.troops) > 0);
+		const defenders = [...present.filter((a) => a.owner === county.owner), ...homeField];
 		const lead = [...attackers].sort((a, b) => troopCount(b.troops) - troopCount(a.troops))[0];
 		const attackerTroops = mergeTroops(attackers);
 		if (defenders.length === 0) {
@@ -17413,7 +17432,7 @@ function resolveConquest(match, ix) {
 					county: countyId,
 					kind: "annexed",
 					attacker: lead.owner,
-					detail: `${countyId} taken — nobody left to hold it`
+					detail: `${nameOfCounty(ix, countyId)} taken — nobody left to hold it`
 				});
 				continue;
 			}
@@ -17451,13 +17470,13 @@ function resolveConquest(match, ix) {
 					county: countyId,
 					kind: "battle",
 					attacker: lead.owner,
-					detail: `${countyId} taken in the streets — ${fallen} townsfolk fell`
+					detail: `${nameOfCounty(ix, countyId)} taken in the streets — ${fallen} townsfolk fell`
 				});
 			} else events.push({
 				county: countyId,
 				kind: "repelled",
 				attacker: lead.owner,
-				detail: `${countyId} held by its own people`
+				detail: `${nameOfCounty(ix, countyId)} held by its own people`
 			});
 			continue;
 		}
@@ -17473,7 +17492,14 @@ function resolveConquest(match, ix) {
 		* payoff rather than a delayed one.
 		*/
 		const breached = isCastleBreached(county);
-		const defenceMultiplier = breached ? 1 : castle.defence;
+		/**
+		* Walls shelter the garrison only: troops camped in the open beside
+		* the castle fight at field strength, so the multiplier is averaged
+		* over the defenders by headcount.
+		*/
+		const walled = defenders.filter((a) => a.location.kind === "garrison").reduce((s, a) => s + troopCount(a.troops), 0);
+		const inOpen = troopCount(defenderTroops) - walled;
+		const defenceMultiplier = breached ? 1 : (walled * castle.defence + inOpen) / Math.max(1, walled + inOpen);
 		const archerBonus = archerCastleBonusMultiplier(defenderTroops, breached);
 		const result = resolveBattle({
 			attacker: {
@@ -17531,13 +17557,13 @@ function resolveConquest(match, ix) {
 				county: countyId,
 				kind: "battle",
 				attacker: lead.owner,
-				detail: `${countyId} stormed — ${troopCount(result.attackerLosses)} lost taking it`
+				detail: `${nameOfCounty(ix, countyId)} stormed — ${troopCount(result.attackerLosses)} lost taking it`
 			});
 		} else events.push({
 			county: countyId,
 			kind: "repelled",
 			attacker: lead.owner,
-			detail: `assault on ${countyId} thrown back`
+			detail: `assault on ${nameOfCounty(ix, countyId)} thrown back`
 		});
 	}
 	for (const player of current.players) {
@@ -17545,13 +17571,22 @@ function resolveConquest(match, ix) {
 		if (owned.length <= 1) continue;
 		const capital = capitalOf(current, ix, player.id, owned);
 		if (!capital) continue;
-		for (const lost of severedFrom(ix, owned, capital)) {
-			if (takenThisSeason.has(lost)) continue;
-			current = setOwner(current, lost, null);
+		/**
+		* Cut off from the capital: the county is NOT lost (Chris, Oct 19 —
+		* "I don't think you should lose a county if it's cut off, but maybe
+		* some loss"). Unrest instead, every season it stays cut off. This
+		* also fixed a conquered castle vanishing to neutral on the turn it
+		* was taken (playtest bug b3): `assaultTown` takes it during the
+		* player's turn, outside `takenThisSeason`.
+		*/
+		for (const cut of severedFrom(ix, owned, capital)) {
+			const c = current.counties[cut];
+			if (!c) continue;
+			current = { ...current, counties: { ...current.counties, [cut]: { ...c, happiness: Math.max(0, (c.happiness ?? 0) - CUT_OFF_UNREST) } } };
 			events.push({
-				county: lost,
+				county: cut,
 				kind: "severed",
-				detail: `${lost} cut off and lost`
+				detail: `${nameOfCounty(ix, cut)} is cut off from your capital — unrest grows (−${CUT_OFF_UNREST} happiness)`
 			});
 		}
 	}
@@ -17726,6 +17761,94 @@ var clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 * caught the same turn rather than lagging a turn behind. Never overwrites
 * an already-decided `winner` — once the match is over, it stays over.
 */
+/**
+* Difficulty levels (Chris, Oct 19: "standard strategy game difficulty, like
+* L2, Civ"). Normal is a fair fight: the AI plays the same rules as you.
+* Hard and Very Hard add Civ-style bonuses (more production, cheaper and
+* larger armies, bolder attacks); Easy holds back and gives you time.
+*   production   multiplier on the AI's seasonal gains (treasury + grain)
+*   armyShare    multiplier on the standing army the AI wants
+*   advantage    added to the odds the AI needs before attacking
+*   graceTurns   seasons before the AI will attack a human county
+*   playerFocus  0-1 preference for targeting the human over neutrals/AI
+* Saves from before the picker carry "steady" — read as Normal.
+*/
+var DIFFICULTY = {
+	easy: { label: "Easy", production: .7, armyShare: .55, advantage: 1.2, graceTurns: 24, playerFocus: 0 },
+	normal: { label: "Normal", production: 1, armyShare: 1, advantage: .2, graceTurns: 8, playerFocus: .15 },
+	hard: { label: "Hard", production: 1.45, armyShare: 1.45, advantage: -.4, graceTurns: 4, playerFocus: .6 },
+	veryHard: { label: "Very Hard", production: 2, armyShare: 1.9, advantage: -.6, graceTurns: 2, playerFocus: 1 }
+};
+var DIFFICULTY_ORDER = ["easy", "normal", "hard", "veryHard"];
+var difficultyKeyOf = (player) => DIFFICULTY[player?.controller?.difficulty] ? player.controller.difficulty : "normal";
+var difficultyOf = (player) => DIFFICULTY[difficultyKeyOf(player)];
+/**
+* Scale each AI seat's seasonal gains by its level's production multiplier
+* (treasury, grain, and on Hard+ population growth). Only gains are scaled — losses (upkeep, eating) stay as the rules say —
+* so an Easy AI is slower to grow rather than starving.
+*/
+function applyDifficultyBonuses(before, after) {
+	let out = after;
+	for (const player of after.players) {
+		if (!isAi(player)) continue;
+		const k = difficultyOf(player).production;
+		if (k === 1) continue;
+		const was = before.treasuries[player.id] ?? {};
+		const now = out.treasuries[player.id];
+		if (now) {
+			const t = { ...now };
+			for (const [res, v] of Object.entries(now)) {
+				const gain = v - (was[res] ?? 0);
+				if (typeof v === "number" && gain > 0) t[res] = Math.max(0, Math.round((was[res] ?? 0) + gain * k));
+			}
+			out = { ...out, treasuries: { ...out.treasuries, [player.id]: t } };
+		}
+		for (const [id, c] of Object.entries(out.counties)) {
+			if (c.owner !== player.id || before.counties[id]?.owner !== player.id) continue;
+			const was = before.counties[id];
+			const next = { ...c };
+			const gain = (c.food?.wheat ?? 0) - (was.food?.wheat ?? 0);
+			if (gain > 0) next.food = { ...c.food, wheat: Math.max(0, Math.round(was.food.wheat + gain * k)) };
+			/** Growth too, but only upward: a harder AI out-breeds you; an easier one isn't starved. */
+			const born = c.population - was.population;
+			if (k > 1 && born > 0) next.population = Math.round(was.population + born * k);
+			out = { ...out, counties: { ...out.counties, [id]: next } };
+		}
+	}
+	return out;
+}
+/**
+* One full season, exactly as End Turn runs it: AI economy, AI armies, the
+* merchant, the season itself (production, food, combat, conquest), then the
+* difficulty bonuses and the victory check. Shared by End Turn and the
+* headless simulator (`window.__ALDERMARCH_SIM__`), so tuning runs the real
+* rules.
+*/
+function runSeason(match, map) {
+	const ix = indexMap(map);
+	const marched = takeAllMilitaryTurns(takeAllAiTurns(match).match, ix);
+	const withMerchant = moveMerchantAI(marched.match);
+	const { match: seasonResult, events } = advanceSeason(withMerchant, map);
+	const boosted = applyDifficultyBonuses(withMerchant, seasonResult);
+	return { match: checkVictory(boosted), events, aiDecisions: marched.decisions };
+}
+/**
+* Headless simulator for tuning the AI (not used by the game itself).
+* Seat 0 is a "stand-in" for the human: an AI seat at Normal with no
+* bonuses that the other AI treats as the human (grace turns, focus).
+*/
+if (typeof window !== "undefined") window.__ALDERMARCH_SIM__ = {
+	newMatch: ({ seed = 1, difficulty = "normal", factions = ["knight", "warden"] } = {}) => createMatch({
+		map: REALM,
+		rng: createRng(seed).next,
+		interiorGrid: { cols: 7, rows: 19 },
+		seats: [{ displayName: "Stand-in", factionId: factionId(factions[0]), controller: { kind: "ai", difficulty: "normal", standIn: true } }, { displayName: "AI", factionId: factionId(factions[1]), controller: { kind: "ai", difficulty } }],
+		config: { ...DEFAULT_CONFIG }
+	}),
+	step: (m) => runSeason(m, REALM),
+	REALM,
+	DIFFICULTY
+};
 function checkVictory(match) {
 	if (match.winner) return match;
 	/**
@@ -18865,17 +18988,12 @@ function scoreTarget(match, ix, countyId) {
 * advantage, cautious ones only strike at overwhelming odds.
 */
 var AI_MAX_LEVY_SHARE = .12;
-var AI_OVERWHELMING_ODDS = 3;
 var AI_MIN_EXPEDITION = 5;
 var AI_MIN_LEVY_POPULATION = 150;
 var AI_MIN_LEVY_HAPPINESS = 45;
 var aiHomeGuard = (weighting) => Math.round(8 + weighting.turtling * 12);
 /** A castleless county (usually freshly taken) keeps only a token watch, so it can still send its stack onward. */
 var AI_OUTPOST_GUARD = 5;
-/** Counties this populous raise a strike force even without a castle — a grown conquest shouldn't sit idle. */
-var AI_STRIKE_POPULATION = 300;
-var aiGuardFor = (county, weighting) => county && county.castleTier !== "none" ? aiHomeGuard(weighting) : AI_OUTPOST_GUARD;
-var aiTroopsAt = (match, playerId, countyId) => Object.values(match.armies).filter((a) => a.owner === playerId && a.location.county === countyId && (a.location.kind === "garrison" || a.location.kind === "field")).reduce((sum, a) => sum + troopCount(a.troops), 0);
 /** Clamp a desired levy to the weapons actually in the treasury; whatever can't be armed is raised as militia instead. */
 function equipLevy(levy, treasury) {
 	const out = {};
@@ -18928,6 +19046,89 @@ function splitArmy(match, armyId, count) {
 		newId
 	};
 }
+/**
+* Oct 19 rewrite (Chris: "AI should be challenging… standard strategy game
+* difficulty"). The Oct 5 version kept a fixed ~20-40 troops per county and
+* fed them into fights a few at a time — a 100-turn game ended with the AI
+* banking 92,000 gold and never taking a defended county. Now:
+*   1. the standing army scales with the AI's population (and difficulty);
+*   2. it picks ONE campaign target a season, counting what really defends
+*      it — garrison x castle, or the town's own levy when empty;
+*   3. troops gather in the county that borders the target and strike only
+*      when the gathered force beats the defence by the faction's odds;
+*   4. counties facing an enemy army keep a guard sized to that threat;
+*   5. spare gold hires mercenary bands instead of piling up.
+* Difficulty (DIFFICULTY) scales the army, the odds it needs, how long it
+* leaves the human alone at the start, and how much it prefers the human.
+*/
+var unitPower = (kind) => {
+	const u = UNITS[kind];
+	return u ? (u.attack + u.defence) / 2 * u.hardiness / 4.5 : 1;
+};
+var powerOf = (troops) => Object.entries(troops).reduce((s, [k, n]) => s + (n ?? 0) * unitPower(k), 0);
+var isHumanSide = (p) => !!p && (p.controller.kind === "human" || !!p.controller.standIn);
+var AI_ARMY_SHARE = .1;
+/** Share of a nearby enemy army a county guards against (it can't all come at once). */
+var AI_THREAT_GUARD = .6;
+/** Share of ALL enemy power the seat (best castle) holds against. */
+var AI_SEAT_GUARD = .6;
+/** Never keep more than this share of the people under arms (before the difficulty multiplier). */
+var AI_ARMY_CAP_SHARE = .3;
+var AI_CAMPAIGN_MIN_ODDS = 1.3;
+var AI_MERC_BANDS_PER_SEASON = 3;
+var AI_GOLD_FLOOR = 150;
+var standingArmies = (match, owner, countyId) => Object.values(match.armies).filter((a) => a.owner === owner && a.location.county === countyId && (a.location.kind === "garrison" || a.location.kind === "field"));
+/** What the attacker must beat: the owner's garrison behind its walls, or the town's levy in the street. */
+function defenceEstimate(match, countyId) {
+	const st = match.counties[countyId];
+	if (!st) return Infinity;
+	const armies = st.owner === null ? [] : standingArmies(match, st.owner, countyId);
+	const walled = armies.filter((a) => a.location.kind === "garrison").reduce((s, a) => s + powerOf(a.troops), 0);
+	const inOpen = armies.filter((a) => a.location.kind === "field").reduce((s, a) => s + powerOf(a.troops), 0);
+	if (walled + inOpen === 0) return townLevy(st.population) * unitPower("militia");
+	return walled * (isCastleBreached(st) ? 1 : CASTLES[st.castleTier].defence) + inOpen;
+}
+/** Hostile power standing in or next to a county — what its guard must answer. */
+function threatTo(match, ix, playerId, countyId) {
+	const near = new Set([countyId, ...neighboursOf(ix, countyId)]);
+	let p = 0;
+	for (const a of Object.values(match.armies)) {
+		if (a.owner === playerId) continue;
+		const at = a.location.kind === "inTransit" ? a.location.to : a.location.county;
+		if (near.has(at)) p += powerOf(a.troops);
+	}
+	return p;
+}
+/** Next county on the shortest path through our own land (or null). */
+function stepToward(ix, owned, from, to) {
+	if (from === to) return null;
+	const prev = new Map([[from, null]]);
+	const queue = [from];
+	while (queue.length) {
+		const c = queue.shift();
+		if (c === to) break;
+		for (const n of neighboursOf(ix, c)) if (!prev.has(n) && (owned.has(n) || n === to)) {
+			prev.set(n, c);
+			queue.push(n);
+		}
+	}
+	if (!prev.has(to)) return null;
+	let c = to;
+	while (prev.get(c) !== from) c = prev.get(c);
+	return c;
+}
+/**
+* Opening peace between the human and an AI: the AI leaves the human alone
+* for its level's grace turns. The simulator's stand-in keeps the same
+* peace (a new player builds before attacking), so sims measure the war,
+* not who rushes first.
+*/
+function inGrace(me, them, turn) {
+	if (!them || !isAi(me) && !isAi(them)) return false;
+	const ai = isHumanSide(me) ? them : isHumanSide(them) ? me : null;
+	if (!ai || !isAi(ai) || isHumanSide(ai)) return false;
+	return turn < difficultyOf(ai).graceTurns;
+}
 function takeMilitaryTurn(match, ix, playerId) {
 	const player = match.players.find((p) => p.id === playerId);
 	if (!player || !isAi(player) || player.status !== "active") return {
@@ -18935,36 +19136,96 @@ function takeMilitaryTurn(match, ix, playerId) {
 		decisions: []
 	};
 	const weighting = aiWeightingOf(getFaction(player.factionId));
+	const level = difficultyOf(player);
 	const decisions = [];
 	let current = match;
-	const guard = aiHomeGuard(weighting);
 	for (const army of Object.values(current.armies)) {
 		if (army.owner !== playerId || army.location.kind !== "field") continue;
 		if (current.counties[army.location.county]?.owner !== playerId) continue;
 		const folded = garrisonArmy(current, army.id);
 		if (folded.ok) current = folded.match;
 	}
-	for (const countyId of countiesOwnedBy(current, playerId)) {
-		const county = current.counties[countyId];
-		if (!county?.interior) continue;
-		const here = aiTroopsAt(current, playerId, countyId);
+	const ownedList = countiesOwnedBy(current, playerId).filter((c) => current.counties[c]?.interior);
+	if (ownedList.length === 0) return {
+		match: current,
+		decisions
+	};
+	const owned = new Set(ownedList);
+	/**
+	* One field stack per county. A full garrison leaves each new levy as
+	* its own band beside the town; once those fill the town-adjacent
+	* tiles, recruiting silently fails (Oct 19 sim: Marlbrook stuck at 257
+	* troops for 45 seasons with 3,000 gold).
+	*/
+	const byCounty = new Map();
+	for (const a of Object.values(current.armies)) if (a.owner === playerId && a.location.kind === "field") byCounty.set(a.location.county, [...byCounty.get(a.location.county) ?? [], a.id]);
+	for (const ids of byCounty.values()) for (let i = ids.length - 1; i > 0; i--) for (let j = 0; j < i; j++) {
+		if (!current.armies[ids[i]] || !current.armies[ids[j]]) continue;
+		const merged = mergeFieldArmies(current, ids[i], ids[j]);
+		if (merged.ok) current = merged.match;
+	}
+	/**
+	* Stragglers: a band left standing in a county that is not ours (it was
+	* raised there before the county fell, or its attack stalled) walks
+	* back to the nearest county we hold instead of standing there forever.
+	*/
+	for (const a of Object.values(current.armies)) {
+		if (a.owner !== playerId || a.location.kind !== "field" || owned.has(a.location.county) || a.movementRemaining <= 0) continue;
+		const home = neighboursOf(ix, a.location.county).find((n) => owned.has(n));
+		if (!home) continue;
+		const moved = moveArmy(current, ix, a.id, home);
+		if (moved.ok) current = moved.match;
+	}
+	const turn = current.turn?.number ?? 0;
+	const odds = Math.max(AI_CAMPAIGN_MIN_ODDS, requiredAdvantage(weighting) + level.advantage);
+	/** 1. The campaign target. */
+	const ownerOf = (c) => current.players.find((p) => p.id === current.counties[c]?.owner);
+	const candidates = [...new Set(ownedList.flatMap((c) => neighboursOf(ix, c)))].filter((n) => current.counties[n]?.interior && !owned.has(n)).filter((n) => !inGrace(player, ownerOf(n), turn)).map((n) => {
+		const need = defenceEstimate(current, n) * odds;
+		const human = isHumanSide(ownerOf(n));
+		const score = scoreTarget(current, ix, n) + (human ? level.playerFocus * 30 : 0) + (current.counties[n].owner === null ? 8 : 0) - need * .15;
+		return { id: n, need, human, score };
+	}).filter((t) => Number.isFinite(t.score)).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+	const target = candidates[0] ?? null;
+	const powerAt = (c) => standingArmies(current, playerId, c).reduce((s, a) => s + powerOf(a.troops), 0);
+	const staging = target ? neighboursOf(ix, target.id).filter((n) => owned.has(n)).sort((a, b) => powerAt(b) - powerAt(a) || a.localeCompare(b))[0] : null;
+	/** 2. Guards: the base watch, or more when an enemy army is close. */
+	const castleRank = (c) => Object.keys(CASTLES).indexOf(current.counties[c].castleTier);
+	const seat = [...ownedList].sort((a, b) => castleRank(b) - castleRank(a) || current.counties[b].population - current.counties[a].population || a.localeCompare(b))[0];
+	const enemyPower = Object.values(current.armies).filter((a) => a.owner !== playerId).reduce((s, a) => s + powerOf(a.troops), 0);
+	const guardOf = new Map();
+	for (const c of ownedList) {
+		const county = current.counties[c];
+		const base = county.castleTier !== "none" ? aiHomeGuard(weighting) : AI_OUTPOST_GUARD;
+		const threat = threatTo(current, ix, playerId, c);
+		const castle = county.castleTier !== "none" ? CASTLES[county.castleTier].defence : 1;
 		/**
-		* Only a county with a castle raises the strike force on top of its
-		* guard — a freshly taken, castleless county just holds what it has.
-		* Without this, small conquered counties were bled down to a few
-		* dozen people (160 -> 20) by repeated levies they couldn't afford.
+		* The best castle is the seat: it holds against everything the
+		* enemies have anywhere, not just what stands next door — the sims
+		* lost the seat on turn 5 to a single march from two counties away.
 		*/
-		const hasCastle = county.castleTier !== "none";
-		const strike = hasCastle || county.population >= AI_STRIKE_POPULATION ? Math.round(10 + weighting.aggression * 30) : 0;
-		const want = aiGuardFor(county, weighting) + strike;
-		if (here >= want) continue;
+		const seatGuard = c === seat ? Math.ceil(enemyPower * AI_SEAT_GUARD / castle) : 0;
+		guardOf.set(c, Math.max(base, seatGuard, Math.ceil(threat * AI_THREAT_GUARD / castle)));
+	}
+	/** 3. Raise troops toward the army this realm can support. */
+	const totalPop = ownedList.reduce((s, c) => s + current.counties[c].population, 0);
+	const guardsTotal = [...guardOf.values()].reduce((s, g) => s + g, 0);
+	/** Mercenaries cost gold, not people, so they can top up past the levy cap. */
+	const wantForce = Math.max(guardsTotal + (target ? Math.ceil(target.need * 1.15) : 0), Math.round(totalPop * AI_ARMY_SHARE * (.8 + weighting.aggression * .6) * level.armyShare));
+	const wantTotal = Math.min(totalPop * AI_ARMY_CAP_SHARE * level.armyShare, wantForce);
+	const myPower = () => Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + powerOf(a.troops), 0);
+	const upkeepNow = () => Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + upkeepOf(a.troops), 0);
+	const recruitOrder = [...ownedList].sort((a, b) => (b === staging) - (a === staging) || current.counties[b].population - current.counties[a].population);
+	for (const countyId of recruitOrder) {
+		const short = wantTotal - myPower();
+		if (short < 3) break;
+		const county = current.counties[countyId];
 		if (county.population < AI_MIN_LEVY_POPULATION || county.happiness < AI_MIN_LEVY_HAPPINESS) continue;
 		const treasury = current.treasuries[playerId];
 		if (!treasury) continue;
-		const byPopulation = Math.min(Math.floor(county.population * AI_MAX_LEVY_SHARE), county.population - CONSCRIPTION_POPULATION_FLOOR);
-		const upkeepNow = Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + upkeepOf(a.troops), 0);
-		const byWages = Math.floor((treasury.gold / WAGE_RESERVE_SEASONS - upkeepNow) / UNIT_UPKEEP_PER_SEASON);
-		const size = Math.min(want - here, byPopulation, byWages);
+		const byPopulation = Math.min(Math.floor(county.population * AI_MAX_LEVY_SHARE * Math.max(1, level.armyShare)), county.population - AI_MIN_LEVY_POPULATION);
+		const byWages = Math.floor((treasury.gold / WAGE_RESERVE_SEASONS - upkeepNow()) / UNIT_UPKEEP_PER_SEASON);
+		const size = Math.min(Math.ceil(short), byPopulation, byWages);
 		if (size < 3) continue;
 		const batch = equipLevy(composeLevy(size, weighting), treasury);
 		let result = recruitArmy(current, countyId, batch);
@@ -18980,44 +19241,70 @@ function takeMilitaryTurn(match, ix, playerId) {
 			what: `raised ${troopCount(batch)} troops`
 		});
 	}
-	for (const army of Object.values(current.armies)) {
-		if (army.owner !== playerId) continue;
-		if (army.location.kind !== "garrison" && army.location.kind !== "field") continue;
-		if (army.movementRemaining <= 0) continue;
-		const from = army.location.county;
-		if (current.counties[from]?.owner !== playerId) continue;
-		/**
-		* The guard is per county, not per army: in a castleless county the
-		* troops stand in the field, possibly as several stacks, so leave
-		* the guard with whichever stack is largest and let the rest march.
-		*/
-		const stacksHere = Object.values(current.armies).filter((a) => a.owner === playerId && a.location.county === from && (a.location.kind === "garrison" || a.location.kind === "field")).sort((a, b) => troopCount(b.troops) - troopCount(a.troops) || a.id.localeCompare(b.id));
-		const keepsGuard = stacksHere[0]?.id === army.id;
-		const surplus = troopCount(army.troops) - (keepsGuard ? aiGuardFor(current.counties[from], weighting) : 0);
-		if (surplus < AI_MIN_EXPEDITION) continue;
-		const held = new Set(countiesOwnedBy(current, playerId));
-		const connects = (target) => held.size === 0 || neighboursOf(ix, target).some((n) => held.has(n));
-		const options = neighboursOf(ix, from).filter((n) => current.counties[n] && current.counties[n].owner !== playerId).filter(connects).map((n) => {
-			const defenders = garrisonOf(current, n).filter((a) => a.owner !== playerId).reduce((sum, a) => sum + troopCount(a.troops), 0);
-			const allowed = defenders === 0 || (weighting.aggression >= .4 && surplus >= defenders * requiredAdvantage(weighting)) || surplus >= defenders * AI_OVERWHELMING_ODDS;
-			return {
-				id: n,
-				defenders,
-				ok: allowed,
-				score: scoreTarget(current, ix, n) + (defenders === 0 ? 50 : 0)
-			};
-		}).filter((t) => t.ok && Number.isFinite(t.score)).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
-		const best = options[0];
-		if (!best) continue;
-		const split = splitArmy(current, army.id, surplus);
-		const sendId = split ? split.newId : army.id;
-		const base = split ? split.match : current;
-		const result = moveArmy(base, ix, sendId, best.id);
-		if (result.ok) {
-			current = result.match;
-			decisions.push({
-				county: best.id,
-				what: best.defenders === 0 ? `marched on undefended ${best.id}` : `attacked ${best.id}`
+	/** Spare gold buys mercenaries: at the seat if its guard is short, else where the army gathers. */
+	const seatShort = () => guardOf.get(seat) - standingArmies(current, playerId, seat).reduce((s, a) => s + troopCount(a.troops), 0);
+	const bands = Math.max(AI_MERC_BANDS_PER_SEASON, Math.min(15, Math.floor((current.treasuries[playerId]?.gold ?? 0) / 1e3)));
+	for (let k = 0; k < bands; k++) {
+		const hireAt = seatShort() > 0 || !staging ? seat : staging;
+		if (wantForce - myPower() < MERCENARY_BAND_SIZE / 2) break;
+		const gold = current.treasuries[playerId]?.gold ?? 0;
+		const reserve = AI_GOLD_FLOOR + (upkeepNow() + MERCENARY_BAND_SALARY) * WAGE_RESERVE_SEASONS * 2;
+		if (gold - MERCENARY_BAND_HIRE_COST < reserve) break;
+		const hired = hireMercenaries(current, hireAt);
+		if (!hired.ok) break;
+		current = hired.match;
+		const folded = garrisonArmy(current, hired.armyId);
+		if (folded.ok) current = folded.match;
+		/** Fold the band into a camped stack so the next hire has a free tile beside the town. */
+		const band = current.armies[hired.armyId];
+		const camp = band?.location.kind === "field" && Object.values(current.armies).find((a) => a.id !== band.id && a.owner === playerId && a.location.kind === "field" && a.location.county === hireAt && troopCount(a.troops) + troopCount(band.troops) <= MAX_FIELD_ARMY_SIZE);
+		if (camp) {
+			const merged = mergeFieldArmies(current, band.id, camp.id);
+			if (merged.ok) current = merged.match;
+		}
+		decisions.push({
+			county: hireAt,
+			what: `hired ${MERCENARY_BAND_SIZE} mercenaries`
+		});
+	}
+	/** 4. Gather on the staging county, then strike. */
+	const send = (army, count, to) => {
+		const split = count < troopCount(army.troops) ? splitArmy(current, army.id, count) : null;
+		const id = split ? split.newId : army.id;
+		const result = moveArmy(split ? split.match : current, ix, id, to);
+		if (result.ok) current = result.match;
+		return result.ok;
+	};
+	/** Stacks able to move, largest first; the guard stays with the largest. */
+	const surplusStacks = (c) => {
+		let keep = guardOf.get(c) ?? 0;
+		const out = [];
+		for (const a of standingArmies(current, playerId, c).sort((x, y) => troopCount(y.troops) - troopCount(x.troops) || x.id.localeCompare(y.id))) {
+			const n = troopCount(a.troops);
+			const stay = Math.min(n, keep);
+			keep -= stay;
+			if (n - stay > 0 && a.movementRemaining > 0) out.push({ army: a, count: n - stay });
+		}
+		return out;
+	};
+	if (target && staging) {
+		const ready = surplusStacks(staging);
+		const readyPower = ready.reduce((s, { army, count }) => s + powerOf(army.troops) * count / troopCount(army.troops), 0);
+		if (readyPower >= target.need && readyPower >= AI_MIN_EXPEDITION) {
+			let sent = 0;
+			for (const { army, count } of ready) if (send(army, count, target.id)) sent += count;
+			if (sent > 0) decisions.push({
+				county: target.id,
+				what: target.need === 0 ? `marched on undefended ${target.id}` : `attacked ${target.id} with ${sent}`
+			});
+		}
+		for (const c of ownedList) {
+			if (c === staging) continue;
+			const next = stepToward(ix, owned, c, staging);
+			if (!next) continue;
+			for (const { army, count } of surplusStacks(c)) if (count >= AI_MIN_EXPEDITION && send(army, count, next)) decisions.push({
+				county: next,
+				what: `gathered ${count} toward ${staging}`
 			});
 		}
 	}
@@ -19836,22 +20123,14 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 		*/
 		const priorOwners = {};
 		for (const [id, county] of Object.entries(match.counties)) priorOwners[id] = county.owner;
-		const marched = takeAllMilitaryTurns(takeAllAiTurns(match).match, indexMap(map));
-		const withMerchant = moveMerchantAI(marched.match);
+		const { match: withVictoryRun, events } = runSeason(match, map);
 		/**
 		* `.events` was being silently discarded here — only `.match` was
 		* ever read off `advanceSeason`'s return value, so every plague,
 		* starvation, castle completion, storm, and revolt this whole build
 		* has ever computed happened with zero player-facing notification.
 		*/
-		const { match: seasonResult, events } = advanceSeason(withMerchant, map);
-		/**
-		* Checked here, after AI turns, military movement, and production
-		* have all settled — an army wiped out in combat this turn, or a
-		* county lost to conquest this turn, means that player's elimination
-		* is caught immediately rather than lagging a turn behind.
-		*/
-		const withVictory = checkVictory(seasonResult);
+		const withVictory = withVictoryRun;
 		/**
 		* An event is "yours" if you held the county before this turn, hold
 		* it after, OR you were the attacker (see `attacker` on battle/
@@ -20290,7 +20569,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				const defenders = garrisonOf(working, target.plot.county.id).filter((a) => a.owner !== selectedArmy.owner);
 				const defenderCount = defenders.reduce((sum, a) => sum + troopCount(a.troops), 0);
 				const place = onEnemyCastle ? "castle" : "town";
-				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${targetCounty.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})`) : await confirmAsync(`${targetCounty.name}'s ${place} is undefended — march in and take it?`);
+				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?`);
 				if (!proceed) return setSelectedMover(null);
 				result = assaultTown(working, selectedArmy.id, target.plot.county.id, cost);
 			} else result = moveArmyFieldTo(working, selectedArmy.id, target.local.col, target.local.row, target.plot.county.id, cost);
@@ -20412,7 +20691,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 			const defenders = garrisonOf(match, targetCountyId).filter((a) => a.owner !== selectedArmy.owner);
 			const defenderCount = defenders.reduce((sum, a) => sum + troopCount(a.troops), 0);
 			const place = onEnemyCastle ? "castle" : "town";
-			const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${targetCounty.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})`) : await confirmAsync(`${targetCounty.name}'s ${place} is undefended — march in and take it?`);
+			const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?`);
 			if (proceed) {
 				const result = assaultTown(match, selectedArmy.id, targetCountyId, cost);
 				if (result.ok) onChange(result.match);
@@ -24012,14 +24291,57 @@ function SettingsScreen({ onClose }) {
 * nothing about the match itself; `onNewGame`/`onContinue` are simple
 * callbacks up to `Standalone`, which still holds the one live match.
 */
+/** One line per level for the New Game picker (Chris, Oct 19: selectable levels). */
+var DIFFICULTY_BLURB = {
+	easy: "A patient rival. Long peace at the start, small armies.",
+	normal: "A fair fight \u2014 same rules as you, no bonuses.",
+	hard: "Richer, faster-growing, bolder. Comes for you early.",
+	veryHard: "Twice your output and relentless. For veterans."
+};
+var DIFFICULTY_PREF_KEY = "aldermarch.difficulty";
+var lastDifficulty = () => {
+	try {
+		const v = localStorage.getItem(DIFFICULTY_PREF_KEY);
+		return DIFFICULTY[v] ? v : "normal";
+	} catch {
+		return "normal";
+	}
+};
+function DifficultyPicker({ onPick, onBack }) {
+	const h = import_react.createElement;
+	const [choice, setChoice] = import_react.useState(lastDifficulty);
+	return h("div", { className: "ov-diff" }, [
+		h("div", { className: "ov-diff-title", key: "t" }, "Choose your rival"),
+		...DIFFICULTY_ORDER.map((k) => h("button", {
+			key: k,
+			className: `ov-diff-opt${choice === k ? " on" : ""}`,
+			"aria-pressed": choice === k,
+			onClick: () => setChoice(k)
+		}, [h("span", { className: "ov-diff-name", key: "n" }, DIFFICULTY[k].label), h("span", { className: "ov-diff-blurb", key: "b" }, DIFFICULTY_BLURB[k])])),
+		h("div", { className: "ov-diff-row", key: "row" }, [
+			h("button", { className: "ov-title-btn", key: "back", onClick: onBack }, "Back"),
+			h("button", { className: "ov-title-btn primary", key: "go", onClick: () => {
+				try {
+					localStorage.setItem(DIFFICULTY_PREF_KEY, choice);
+				} catch {}
+				onPick(choice);
+			} }, "Begin")
+		])
+	]);
+}
 function TitleScreen({ hasAutosave, onNewGame, onContinue, onLoadGame, onSettings }) {
 	const h = import_react.createElement;
+	const [picking, setPicking] = import_react.useState(false);
+	if (picking) return h("div", { className: "ov-title-screen" }, [
+		h("h1", { className: "ov-title-logo", key: "logo" }, "\u{1F3F0} Aldermarch"),
+		h(DifficultyPicker, { key: "pick", onPick: (d) => { setPicking(false); onNewGame(d); }, onBack: () => setPicking(false) })
+	]);
 	return h("div", { className: "ov-title-screen" }, [
 		h("h1", { className: "ov-title-logo", key: "logo" }, "\u{1F3F0} Aldermarch"),
 		h("div", { className: "ov-title-tagline", key: "tag" }, "A county-management chronicle"),
 		h("div", { className: "ov-title-menu", key: "menu" }, [
 			h("button", { className: "ov-title-btn primary", key: "continue", disabled: !hasAutosave, onClick: onContinue }, "Continue"),
-			h("button", { className: "ov-title-btn", key: "new", onClick: onNewGame }, "New Game"),
+			h("button", { className: "ov-title-btn", key: "new", onClick: () => setPicking(true) }, "New Game"),
 			h("button", { className: "ov-title-btn", key: "load", onClick: onLoadGame }, "Load Game"),
 			h("button", { className: "ov-title-btn", key: "settings", onClick: onSettings }, "Settings"),
 		]),
@@ -25363,7 +25685,7 @@ var useDemoMatch = () => (0, import_react.useMemo)(() => createMatch({
 		factionId: factionId("warden"),
 		controller: {
 			kind: "ai",
-			difficulty: "steady"
+			difficulty: "normal"
 		}
 	}]
 }), []);
@@ -25560,7 +25882,7 @@ function Standalone() {
 		document.addEventListener("pointerdown", startOnce, { once: true });
 		return () => document.removeEventListener("pointerdown", startOnce);
 	}, []);
-	const startNewGame = async () => {
+	const startNewGame = async (difficulty = "normal") => {
 		if (hasAutosave && !(await confirmAsync("Starting a New Game will eventually overwrite your autosave once you play a turn. Continue?"))) return;
 		const settings = loadSettings();
 		const fresh = createMatch({
@@ -25570,7 +25892,7 @@ function Standalone() {
 			seats: demoMatch.players.map((p) => ({
 				displayName: p.displayName,
 				factionId: p.factionId,
-				controller: p.controller
+				controller: p.controller.kind === "ai" ? { ...p.controller, difficulty } : p.controller
 			})),
 			config: { ...DEFAULT_CONFIG, randomEventsEnabled: settings.randomEventsEnabled }
 		});
