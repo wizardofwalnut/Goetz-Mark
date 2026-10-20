@@ -129,5 +129,7 @@ walls with road gaps, shadows, labor screen variants.
 - Oct 20: **GitHub Pages** set-up like The Overland Trail (`pages/`, `tools/deploy_pages.py`, branch `gh-pages`); waiting on Chris to switch Pages on.
 - Oct 20 `0dc0c51`: **Tutorial reworked** on LOTR2's Getting Started order across the first year (19 steps, one season per chapter, army in year 2) and **steward's notes** (LOTR2 tip screens) on first opening each screen, with a Settings switch.
 
+- Oct 20 `9d75504`: as winter ends, every ripe grain field is now reaped before any is sown (was field by field, so the first field could go unsown with the harvest still in the other fields).
+
 **Later (Chris, Oct 20):** a Civ-style advisor in normal games ("what I'd do next", New/Experienced levels) — LOTR2 "sort of had an advisor"; and **voiced explanations** like LOTR2's narrated screens, once the note texts settle.
 
