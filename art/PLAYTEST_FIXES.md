@@ -119,4 +119,7 @@ walls with road gaps, shadows, labor screen variants.
 - Oct 19 `2954de0`: **Diplomacy** (B11): truce (8 seasons, optional tribute), gift, demand, break truce; AI offers truces when losing and demands gold when far stronger; truces enforced for both sides; Diplomacy panel rebuilt; 🤝 chip shows the relation or "!" for a waiting offer. Alliance shown as needing a third lord.
 
 **Open from this pass (for Chris):** mercenaries are 20 elite troops for 60 gold, so late games turn into merc stalemates (both sides 3,000+ troops, the last county never falls) — price/upkeep is a balance call; the AI doesn't build rams yet. Capture/loss announcements (A8) still read from the attacker's side ("Hollowmere stormed — 6 lost taking it" when you lose it).
+- Oct 19 `23ce1e6`: **Tutorial** (a1): Title → Tutorial runs the 4-county map against an Easy rival with an 11-step steward (staff grain, a field, tax, End Turn, levy, take a county, diplomacy, castle). Steps complete from game state; the control glows; the card docks over panels, minimises, and can be left. Labor stepper now stops at the limit instead of refusing (b5).
+
+**Decisions Oct 19 (late):** no snow art for now, revisit later (d7); the 4-county map is the free tutorial (d8, rest of the money plan still open); phone orientation explained with real captures and a landscape mock-up, recommendation portrait-lock, Chris to choose (d6).
 
