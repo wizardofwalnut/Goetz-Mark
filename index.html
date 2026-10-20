@@ -16491,8 +16491,8 @@ function projectProduction(input) {
 	* design (every cattle field shares the same number).
 	*
 	* Grain itself no longer has a line here at all — it's a discrete
-	* seasonal plant/harvest cycle now (spring plant, autumn harvest, winter
-	* release), not a continuous per-season rate, and that whole cycle
+	* seasonal cycle now (reap last year's crop and sow the next, both as
+	* Winter ends — see `advanceSeason`), not a continuous per-season rate, and that whole cycle
 	* lives in `advanceSeason` where it can mutate the wheat stock directly
 	* at the moment planting consumes seed or a harvest lands. This
 	* function still reports a "grainProduced" number for the UI preview
@@ -18389,6 +18389,24 @@ function advanceSeason(match, map) {
 			kind: grainWeatherFavorable ? "favorableGrainWeather" : "poorGrainWeather",
 			detail: grainWeatherFavorable ? "Favorable weather boosts grain sowing by 20%" : "Poor weather cuts grain sowing by 20%"
 		});
+		/**
+		* Reap EVERY ripe grain field before sowing any (Chris, Oct 20: "reap
+		* before we sow, so we have the grain to sow"). This used to happen
+		* field by field inside the loop below, so the first field was sown
+		* before the others were reaped and couldn't use their grain as seed.
+		*/
+		if (season === "winter") for (const field of county.interior.fields) {
+			if (field.status !== "grain" || damagedFieldIds.has(field.id)) continue;
+			if (field.seasonsGrown >= 3 && field.plantedSacks > 0) {
+				const harvested = field.plantedSacks * GRAIN_YIELD_RATIO;
+				wheat += harvested;
+				events.push({
+					county: id,
+					kind: "harvest",
+					detail: `Field ${field.id} harvested ${harvested} sacks of grain`
+				});
+			}
+		}
 		const fields = county.interior.fields.map((field) => {
 			if (damagedFieldIds.has(field.id)) return {
 				...field,
@@ -18431,15 +18449,7 @@ function advanceSeason(match, map) {
 					* sown, still at its initial 0) simply skips harvest
 					* and goes straight to its first sowing.
 					*/
-					if (field.seasonsGrown >= 3 && field.plantedSacks > 0) {
-						const harvested = field.plantedSacks * GRAIN_YIELD_RATIO;
-						wheat += harvested;
-						events.push({
-							county: id,
-							kind: "harvest",
-							detail: `Field ${field.id} harvested ${harvested} sacks of grain`
-						});
-					}
+					/** Reaped above, before any field is sown. */
 					const grainFieldCount = county.interior.fields.filter((f) => f.status === "grain").length;
 					/**
 					* No baseline crew subtracted — see `LABORERS_PER_SACK`'s comment
