@@ -17896,7 +17896,7 @@ function resolveConquest(match, ix) {
 				county: countyId,
 				kind: "battle",
 				attacker: lead.owner,
-				detail: `${nameOfCounty(ix, countyId)} stormed — ${troopCount(result.attackerLosses)} lost taking it`
+				detail: `${nameOfCounty(ix, countyId)} stormed — the attackers lost ${troopCount(result.attackerLosses)}`
 			});
 		} else events.push({
 			county: countyId,
@@ -18682,7 +18682,8 @@ function advanceSeason(match, map) {
 		* happiness at that rate and is fully consumed; buying more next
 		* season is the only way to sustain the bonus.
 		*/
-		const aleHappiness = Math.floor((county.food.ale ?? 0) / county.population * 10);
+		/** `population > 0`: an emptied county divided by zero here, and the NaN spread to happiness and emigration ("NaN residents left", found Oct 20). */
+		const aleHappiness = county.population > 0 ? Math.floor((county.food.ale ?? 0) / county.population * 10) : 0;
 		/**
 		* Each term kept separate, not just summed — the Happiness Report
 		* reads these directly rather than reverse-engineering a total back
@@ -20480,7 +20481,7 @@ var VIEW_COLS = 4;
 */
 var TUTORIAL_HOME = () => REALM.starts[0].county;
 var tutTroops = (match, id) => Object.values(match.armies).filter((a) => a.owner === id).reduce((s, a) => s + troopCount(a.troops), 0);
-var tutGrainNeed = (c) => c.interior.fields.filter((f) => f.status === "grain").length * MAX_SACKS_PER_FIELD * LABORERS_PER_SACK;
+var tutGrainNeed = (c) => grainFeedNeed(c).workers;
 var tutByTitle = (sel, re) => [...document.querySelectorAll(sel)].filter((e) => re.test(e.getAttribute("title") || e.querySelector("title")?.textContent || ""));
 var TUTORIAL_STEPS = [
 	{ id: "welcome", goal: "Meet your steward", done: null,
@@ -20519,6 +20520,20 @@ function tutorialCtx(match, seen) {
 /** Start state for a tutorial game. */
 function withTutorial(match) {
 	const you = match.players.find((p) => p.controller.kind === "human");
+	/**
+	* A new county now starts with its grain properly staffed (g3), which
+	* left the "staff the grain" lesson with nothing to fix. The tutorial
+	* starts 40 farmers short, moved to the mine/quarry, so the red number
+	* the steward talks about is really there.
+	*/
+	const homeId = TUTORIAL_HOME();
+	const home = match.counties[homeId];
+	if (home?.interior) {
+		const target = Math.max(0, grainFeedNeed(home).workers - 40);
+		const moved = Math.max(0, home.farmWorkers - target);
+		const site = home.interior.industry.find((x) => x.active && x.kind !== "blacksmith");
+		if (moved > 0 && site) match = { ...match, counties: { ...match.counties, [homeId]: { ...home, farmWorkers: home.farmWorkers - moved, interior: { ...home.interior, industry: home.interior.industry.map((x) => x === site ? { ...x, workers: (x.workers ?? 0) + moved } : x) } } } };
+	}
 	return { ...match, tutorial: { step: 0, seen: {}, start: { turn: match.turn.number, troops: tutTroops(match, you.id) } } };
 }
 function TutorialCard({ match, onChange, docked }) {
@@ -20674,7 +20689,24 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 		* to see.
 		*/
 		const you = withVictory.players.find((p) => p.controller.kind === "human");
-		const yourEvents = you ? events.filter((e) => e.to !== void 0 ? e.to === you.id : priorOwners[e.county] === you.id || withVictory.counties[e.county]?.owner === you.id || e.attacker === you.id) : events;
+		const filtered = you ? events.filter((e) => e.to !== void 0 ? e.to === you.id : priorOwners[e.county] === you.id || withVictory.counties[e.county]?.owner === you.id || e.attacker === you.id) : events;
+		/**
+		* Say plainly what changed hands, from YOUR side, first in the list
+		* (fix list b10, Oct 20). The battle lines are written for whoever
+		* attacked ("Hollowmere stormed"), so a lost county used to read like
+		* a win and a won one wasn't announced at all.
+		*/
+		const handover = [];
+		if (you) for (const [id, county] of Object.entries(withVictory.counties)) {
+			const was = priorOwners[id];
+			const now = county.owner;
+			if (was === now || !county.interior) continue;
+			const name = map.counties.find((c) => c.id === id)?.name ?? id;
+			const holder = (pid) => withVictory.players.find((p) => p.id === pid)?.displayName ?? "a rival";
+			if (now === you.id) handover.push({ county: id, kind: "conquered", detail: `${name} is yours` });
+			else if (was === you.id) handover.push({ county: id, kind: "lost", detail: now ? `${name} has fallen to ${holder(now)}` : `${name} has thrown off your rule` });
+		}
+		const yourEvents = [...handover, ...filtered];
 		/**
 		* Persisted, not just shown-and-discarded — capped at the most
 		* recent 100 so the Event History screen has something to show
@@ -21114,6 +21146,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				if (!proceed) return setSelectedMover(null);
 				if (truceWith) working = breakTruce(working, selectedArmy.owner, truceWith);
 				result = assaultTown(working, selectedArmy.id, target.plot.county.id, cost);
+				announceAssault(result, selectedArmy.owner, target.plot.county.id, target.plot.county.name);
 			} else result = moveArmyFieldTo(working, selectedArmy.id, target.local.col, target.local.row, target.plot.county.id, cost);
 			if (result.ok) onChange(result.match);
 		}
@@ -21238,6 +21271,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})${truceNote}`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?${truceNote}`);
 			if (proceed) {
 				const result = assaultTown(truceWith ? breakTruce(match, selectedArmy.owner, truceWith) : match, selectedArmy.id, targetCountyId, cost);
+				announceAssault(result, selectedArmy.owner, targetCountyId, target.plot.county.name);
 				if (result.ok) onChange(result.match);
 			}
 		}
@@ -21706,6 +21740,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 				row: at.row,
 				col: at.col,
 				shadow: { k: .35, r: .55, dx: .2 },
+				xray: isYours ? "tap" : "see",
 				el: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 					...clusterOffsets.map((off, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapSprite, {
 						cell: at,
@@ -21787,7 +21822,19 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", { offset: "1", stopColor: "rgb(14,24,8)", stopOpacity: 0 })
 		] }) }, "defs"),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { style: { pointerEvents: "none" }, children: shadows }, "shadows"),
-		...sprites.map((s) => s.el)
+		...sprites.map((s) => s.el),
+		/**
+		* X-ray (fix list b8, Oct 20). Armies sit in the depth sort, so one
+		* standing behind a town (1.9 tiles tall) or castle vanished — the
+		* old spawn-direction fix only kept NEW levies out from behind the
+		* town. Every army is drawn a second time on top at 70% opacity:
+		* where nothing covers it the copy lands on itself and changes
+		* nothing visible; where a building covers it, a see-through
+		* silhouette shows through, as in most strategy games. Your own
+		* armies stay tappable through it; others' let taps fall through
+		* to the building underneath.
+		*/
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { className: "ov-xray", opacity: .7, children: sprites.filter((s) => s.xray).map((s, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { style: s.xray === "tap" ? void 0 : { pointerEvents: "none" }, children: s.el }, `xr${i}`)) }, "xray")
 	] });
 }
 /**
@@ -22349,6 +22396,27 @@ var MERCHANT_EQUIPMENT_SECTION = ["bows", "swords", "maces", "pikes", "crossbows
 * `MAX_SACKS_PER_FIELD`/`LABORERS_PER_SACK`) rather than inventing a
 * second definition of "at risk."
 */
+/**
+* Grain the county actually needs (fix list g3, Oct 20). The Grain plate
+* used to count every grain field at full capacity as "required", so a new
+* county showed "Grain 108 (\u221272)" in red on turn one while its farmers
+* already grew a year's food with room to spare — and once people really
+* did go short, nothing said so. Now "required" is the farmers it takes to
+* sow a year of food at the current ration (capped at what the planted
+* fields can take); `fieldsShort` says when even full fields aren't enough.
+*/
+function grainFeedNeed(county) {
+	const fields = county.interior.fields.filter((f) => f.status === "grain").length;
+	const sacksNeeded = Math.ceil(county.population * GRAIN_PER_HEAD * 4 * (county.rationLevel ?? 1) / GRAIN_YIELD_RATIO);
+	const sacksCapacity = fields * MAX_SACKS_PER_FIELD;
+	return { workers: Math.min(sacksNeeded, sacksCapacity) * LABORERS_PER_SACK, sacksNeeded, sacksCapacity, fieldsShort: sacksNeeded > sacksCapacity, fieldsWanted: Math.ceil(sacksNeeded / MAX_SACKS_PER_FIELD) };
+}
+/** Seasons the grain in store lasts at the current ration, after dairy (Infinity when dairy covers it). */
+function seasonsOfGrain(county, match) {
+	const bonus = getFaction(factionOf(match, county.owner))?.bonuses?.foodYield ?? 1;
+	const eat = county.population * GRAIN_PER_HEAD * (county.rationLevel ?? 1) - calculateDairyProduced(county.herd ?? 0, bonus, county.cattleEfficiency ?? 1);
+	return eat <= 0 ? Infinity : (county.food?.wheat ?? 0) / eat;
+}
 function getAdvisorAlert(match) {
 	const you = match.players.find((p) => p.controller.kind === "human");
 	if (!you) return null;
@@ -22360,13 +22428,25 @@ function getAdvisorAlert(match) {
 	for (const [id, c] of owned) {
 		if (c.plagueTurns > 0) return { icon: "\u{1F912}", text: `Plague is ravaging ${nameOf(id)}`, countyId: id };
 	}
+	/** Food (g3): already hungry, then about to be, then fields too few to keep up. */
+	for (const [id, c] of owned) {
+		if (c.achievedRation != null && c.achievedRation < c.rationLevel) return { icon: "\u{1F35E}", text: `${nameOf(id)} is going hungry \u2014 buy grain from the merchant, plant more grain fields, or lower the ration`, countyId: id };
+	}
+	for (const [id, c] of owned) {
+		const left = seasonsOfGrain(c, match);
+		if (left < 2) return { icon: "\u{1F35E}", text: `${nameOf(id)}'s grain runs out ${left < 1 ? "this season" : "next season"} \u2014 buy grain or plant more fields`, countyId: id };
+	}
+	for (const [id, c] of owned) {
+		const need = grainFeedNeed(c);
+		if (need.fieldsShort && seasonsOfGrain(c, match) < 8) return { icon: "\u{1F33E}", text: `${nameOf(id)} has outgrown its grain fields \u2014 it needs ${need.fieldsWanted} planted, has ${need.sacksCapacity / MAX_SACKS_PER_FIELD}`, countyId: id };
+	}
 	for (const [id, c] of owned) {
 		if (c.building && (c.castleWorkers ?? 0) <= 0) return { icon: "\u{1F3F0}", text: `Construction has stalled in ${nameOf(id)} \u2014 no builders assigned`, countyId: id };
 	}
 	for (const [id, c] of owned) {
 		const grainFields = c.interior.fields.filter((f) => f.status === "grain");
 		const ripe = grainFields.some((f) => grainStage(f.seasonsGrown) === "mature");
-		const grainRequired = grainFields.length * MAX_SACKS_PER_FIELD * LABORERS_PER_SACK;
+		const grainRequired = grainFeedNeed(c).workers;
 		if (ripe && c.farmWorkers < grainRequired) return { icon: "\u{1F33E}", text: `Grain stands ripe and undermanned in ${nameOf(id)}`, countyId: id };
 	}
 	for (const [id, c] of owned) {
@@ -24290,7 +24370,7 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
 	const grainFields = county.interior.fields.filter((f) => f.status === "grain");
 	const cattleFields = county.interior.fields.filter((f) => f.status === "cattle");
 	const totalHerd = county.herd ?? 0;
-	const grainRequired = grainFields.length * MAX_SACKS_PER_FIELD * LABORERS_PER_SACK;
+	const grainRequired = grainFeedNeed(county).workers;
 	const cattleRequired = Math.ceil(totalHerd / 2);
 	const unemployed = unemployedWorkersOf(county);
 	const quarryOrMine = county.interior.industry.find((s) => s.kind === "quarry" || s.kind === "mine");
@@ -25128,6 +25208,8 @@ var EVENT_KIND_ICON = {
 	annexed: "\u{1F3F3}\uFE0F",
 	severed: "\u2702\uFE0F",
 	diplomacy: "\u{1F91D}",
+	conquered: "\u{1F451}",
+	lost: "\u{1F3F4}",
 	mercenaries: "\u{1F4B0}",
 	inTransit: "\u{1F69A}"
 };
@@ -25333,6 +25415,15 @@ function GrainReportScreen({ match, countyId, countyName, onClose }) {
 * between PLAYERS, not tied to any one county — so this doesn't take a
 * `countyId` the way Battle/Population/Happiness do.
 */
+/**
+* A defended town is fought for on the spot, during your turn, so the
+* season report never sees it change hands (b10). Say how it went now.
+*/
+function announceAssault(result, owner, countyId, name) {
+	if (!result?.ok || !result.outcome) return;
+	if (result.match.counties[countyId]?.owner === owner) noticeAsync(`\u{1F451} ${name} is yours.`);
+	else noticeAsync(result.outcome === "mutualDestruction" ? `Both sides fell at ${name}. It stays in its owner's hands.` : `The assault on ${name} was thrown back.`);
+}
 function DiplomacyScreen({ match, onChange, onClose }) {
 	const h = import_react.createElement;
 	const you = match.players.find((p) => p.controller.kind === "human") ?? match.players[0];

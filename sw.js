@@ -2,7 +2,7 @@
 // The page is network-first (you always get the newest build when online,
 // the cached one offline); icons and the manifest are cache-first.
 // CACHE_NAME is stamped with the build's commit by tools/deploy_pages.py.
-const CACHE_NAME = "aldermarch-8a9b053";
+const CACHE_NAME = "aldermarch-bdd64f1";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
