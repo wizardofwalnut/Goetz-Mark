@@ -2850,8 +2850,9 @@ image.ov-tut-glow { animation: ov-tut-pulse-img 1.2s ease-in-out infinite; }
   font-size: 16px;
   line-height: 1;
 }
-.ov-figbar-card-delta.pos { color: #0c4872; }
-.ov-figbar-card-delta.neg { color: #642c0b; }
+/* Light tones on the navy strip (fix list u4: dark blue/red were unreadable on the phone). */
+.ov-figbar-card-delta.pos { color: #9fdc7c; }
+.ov-figbar-card-delta.neg { color: #ff8f78; }
 .ov-figbar-card-total {
   font-weight: 400;
   font-size: 11px;
@@ -2876,6 +2877,7 @@ image.ov-tut-glow { animation: ov-tut-pulse-img 1.2s ease-in-out infinite; }
   cursor: default;
 }
 .ov-figbar-status-chip.clickable { cursor: pointer; }
+.ov-figbar-status-chip.clickable:focus-visible, .ov-figbar-card.clickable:focus-visible { outline: 2px solid #e3bf4a; outline-offset: 2px; }
 .ov-figbar-status-emoji { font-size: 13px; }
 .ov-figbar-status-val {
   font-weight: 700;
@@ -3416,7 +3418,7 @@ body.ov-labor-full .ov-figbar-card { width: auto; flex-direction: row; align-ite
 body.ov-labor-full .ov-figbar-card-icon { width: 30px; height: 30px; border-radius: 5px 0 0 5px; }
 body.ov-labor-full .ov-figbar-card-numbers { width: auto; min-width: 40px; padding: 2px 7px; border-top: 1px solid #3a3527; border-left: none; border-radius: 0 5px 5px 0; }
 body.ov-labor-full .ov-figbar-card-delta { font-size: 15px; }
-body.ov-labor-full .ov-figbar-card-delta.pos { color: #8cc4ff; }
+body.ov-labor-full .ov-figbar-card-delta.pos { color: #9fdc7c; }
 body.ov-labor-full .ov-figbar-card-delta.neg { color: #ff8f78; }
 body.ov-labor-full .ov-labor-painted .ov-labor-header { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
 /* Steward's panel — the field chooser (Oct 19, mockup A). */
@@ -12839,6 +12841,20 @@ function conscriptionHappinessLoss(draftedPercent) {
 	if (draftedPercent <= 20) return draftedPercent / 2;
 	return 10 + .1 * (draftedPercent - 20) ** 2;
 }
+/** Unrest starts at this happiness (3 seasons at or below it and the county revolts). */
+var UNREST_HAPPINESS = 25;
+/**
+* The most people a levy can take while leaving the county above the unrest
+* line with a few points to spare — the inverse of `conscriptionHappinessLoss`.
+* Fix list g4/r3: "Max" took half the county, happiness went to 0 and the
+* county revolted; the Levy's quick button is now this "Safe max".
+*/
+function safeLevyHeadcount(population, happiness, margin = 5) {
+	const allowed = happiness - UNREST_HAPPINESS - margin;
+	if (allowed <= 0 || population <= 0) return 0;
+	const pct = allowed <= 10 ? allowed * 2 : 20 + Math.sqrt((allowed - 10) / .1);
+	return Math.max(0, Math.floor(pct / 100 * population));
+}
 /** Materials needed to equip a regiment. */
 function equipmentCost(troops) {
 	const total = {};
@@ -16863,6 +16879,8 @@ function birthRate(happiness, population, rng) {
 * shape, not a sourced rate.
 */
 var EMIGRATION_HAPPINESS_CEILING = 85;
+/** Seasons at the start of a game with no plague, storm or drought. */
+var DISASTER_GRACE_TURNS = 4;
 var EMIGRATION_RATE_AT_73 = .0199;
 var EMIGRATION_SLOPE_PER_HAPPINESS = .00143;
 function emigrationRate(happiness) {
@@ -18276,6 +18294,8 @@ function advanceSeason(match, map) {
 	const events = [];
 	let working = match;
 	const eventsOn = working.config.randomEventsEnabled !== false;
+	/** No plague, storms or drought in the first year (fix list g13: plague struck on turn 2). Mild grain weather still rolls. */
+	const inGraceYear = working.turn.number <= DISASTER_GRACE_TURNS;
 	if (map) {
 		const conquest = resolveConquest(match, indexMap(map));
 		working = conquest.match;
@@ -18373,7 +18393,7 @@ function advanceSeason(match, map) {
 		/** Reported once, above, as the eaten ration (it always falls short when stores run dry). */
 		const starving = wheat < 0;
 		wheat = Math.max(0, wheat);
-		const stormOrDrought = eventsOn && (season === "spring" || season === "summer") ? createRng(seedFrom(working.id, working.turn.number, id, "weather")).next() < (season === "spring" ? STORM_CHANCE : DROUGHT_CHANCE) : false;
+		const stormOrDrought = eventsOn && !inGraceYear && (season === "spring" || season === "summer") ? createRng(seedFrom(working.id, working.turn.number, id, "weather")).next() < (season === "spring" ? STORM_CHANCE : DROUGHT_CHANCE) : false;
 		const damagedFieldIds = /* @__PURE__ */ new Set();
 		if (stormOrDrought) {
 			/**
@@ -18440,18 +18460,22 @@ function advanceSeason(match, map) {
 		* field by field inside the loop below, so the first field was sown
 		* before the others were reaped and couldn't use their grain as seed.
 		*/
+		/** One line per county, not per field (fix list g9/r5: "Field f_0_8 harvested 84 sacks" x every field). */
+		let reapedFields = 0, reapedSacks = 0;
 		if (season === "winter") for (const field of county.interior.fields) {
 			if (field.status !== "grain" || damagedFieldIds.has(field.id)) continue;
 			if (field.seasonsGrown >= 3 && field.plantedSacks > 0) {
 				const harvested = field.plantedSacks * GRAIN_YIELD_RATIO;
 				wheat += harvested;
-				events.push({
-					county: id,
-					kind: "harvest",
-					detail: `Field ${field.id} harvested ${harvested} sacks of grain`
-				});
+				reapedFields++;
+				reapedSacks += harvested;
 			}
 		}
+		if (reapedFields > 0) events.push({
+			county: id,
+			kind: "harvest",
+			detail: `${reapedFields} field${reapedFields === 1 ? "" : "s"} harvested ${Math.round(reapedSacks).toLocaleString("en-US")} sacks of grain`
+		});
 		const fields = county.interior.fields.map((field) => {
 			if (damagedFieldIds.has(field.id)) return {
 				...field,
@@ -18714,7 +18738,7 @@ function advanceSeason(match, map) {
 		* `county.plagueTurns > 0` blocks a second strike while already sick.
 		*/
 		const priorPlague = county.plagueTurns > 0;
-		const newPlague = eventsOn && !priorPlague && createRng(seedFrom(working.id, working.turn.number, id, "plague")).next() < PLAGUE_BASE_CHANCE * PLAGUE_HEALTH_MODIFIER[health];
+		const newPlague = eventsOn && !inGraceYear && !priorPlague && createRng(seedFrom(working.id, working.turn.number, id, "plague")).next() < PLAGUE_BASE_CHANCE * PLAGUE_HEALTH_MODIFIER[health];
 		if (newPlague) events.push({
 			county: id,
 			kind: "plague",
@@ -18950,9 +18974,21 @@ function advanceSeason(match, map) {
 	if (map) {
 		const mapIndex = indexMap(map);
 		for (const [id, planned] of Object.entries(emigrantsPlannedByCounty)) {
-			if (planned <= 0) continue;
+			if (planned <= 0) {
+				if (counties[id]?.emigrationNoted) counties[id] = { ...counties[id], emigrationNoted: false };
+				continue;
+			}
 			const source = counties[id];
 			if (!source || !source.owner) continue;
+			/**
+			* Say it once (fix list g7/r7). LOTR2's own data has people leaving
+			* at 73-80% happiness, so a trickle every season is the sourced rule
+			* and stays; what changes is the report: one line when a county
+			* starts losing people, then quiet until it stops. (A size bar
+			* doesn't work: the rate tops out at 2% a season.) The Population
+			* report still counts every leaver.
+			*/
+			const notable = !source.emigrationNoted;
 			let destId = null;
 			let destHappiness = source.happiness;
 			for (const neighborId of neighboursOf(mapIndex, id)) {
@@ -18966,7 +19002,8 @@ function advanceSeason(match, map) {
 			counties[id] = {
 				...counties[id],
 				population: Math.max(20, counties[id].population - planned),
-				populationCauses: { ...counties[id].populationCauses, emigrants: planned }
+				populationCauses: { ...counties[id].populationCauses, emigrants: planned },
+				emigrationNoted: true
 			};
 			/**
 			* Bug found while verifying the Population Report live: this pass
@@ -18999,15 +19036,15 @@ function advanceSeason(match, map) {
 					...counties[destId],
 					populationHistory: [...counties[destId].populationHistory.slice(0, -1), counties[destId].population]
 				};
-				events.push({
+				if (notable) events.push({
 					county: id,
 					kind: "emigration",
-					detail: `${planned} residents left for ${destName}`
+					detail: `${planned} residents left for ${destName} \u2014 people will keep leaving while it's happier there`
 				});
-			} else events.push({
+			} else if (notable) events.push({
 				county: id,
 				kind: "emigration",
-				detail: `${planned} residents left in search of a happier county`
+				detail: `${planned} residents left in search of a happier county \u2014 people will keep leaving until happiness rises`
 			});
 		}
 	}
@@ -22314,6 +22351,8 @@ function LevyPanel({ match, countyId, onChange, onClose }) {
 	* in isolation.
 	*/
 	const populationCapTotal = Math.floor(Math.max(0, Math.min(county.population - CONSCRIPTION_POPULATION_FLOOR, county.population * CONSCRIPTION_MAX_SHARE)));
+	/** "Safe max" for one kind: the hard cap, further limited so the whole order stays clear of unrest. */
+	const safeCapForKind = (kind) => Math.max(0, Math.min(capForKind(kind), safeLevyHeadcount(county.population, county.happiness) - (totalTroops - (counts[kind] ?? 0))));
 	const capForKind = (kind) => {
 		const unit = UNITS[kind];
 		const otherTroops = totalTroops - (counts[kind] ?? 0);
@@ -22397,7 +22436,7 @@ function LevyPanel({ match, countyId, onChange, onClose }) {
 				children: recruitableKinds.map((kind) => {
 					const unit = UNITS[kind];
 					const count = counts[kind] ?? 0;
-					const tiers = [1, 5, 10, 25, "Max"].map((t) => ({ label: String(t), qty: t === "Max" ? capForKind(kind) : Math.min(t, capForKind(kind)) }));
+					const tiers = [1, 5, 10, 25, "Safe max"].map((t) => ({ label: String(t), qty: t === "Safe max" ? safeCapForKind(kind) : Math.min(t, capForKind(kind)) }));
 					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "ov-labor-cell",
 						style: {
@@ -22525,8 +22564,13 @@ function LevyPanel({ match, countyId, onChange, onClose }) {
 					totalTroops > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						style: { color: "#ff8a70" },
 						children: [
-							"\u{1F60A} \u2212", Math.round(conscriptionHappinessLoss(populationShare * 100)), " happiness this season"
+							"\u{1F60A} \u2212", Math.round(conscriptionHappinessLoss(populationShare * 100)), " happiness: ", Math.round(county.happiness), "% \u2192 ", Math.max(0, Math.round(county.happiness - conscriptionHappinessLoss(populationShare * 100))), "%"
 						]
+					}) : null,
+					totalTroops > 0 && county.happiness - conscriptionHappinessLoss(populationShare * 100) <= UNREST_HAPPINESS ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "ov-labor-shortage",
+						style: { fontWeight: 700 },
+						children: `\u26A0\uFE0F Unrest: below ${UNREST_HAPPINESS}% for 3 seasons and the county revolts. Safe levy here: ${safeLevyHeadcount(county.population, county.happiness)}.`
 					}) : null,
 					costEntries.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						children: "No materials required."
@@ -23710,6 +23754,25 @@ var figbarResourceArt = (resource) => resolveAsset([`figma.resource.${resource}`
 * just laid out to match `.ov-figbar-card` (icon box + numbers box, each with
 * their own border) instead of a single flat chip.
 */
+/**
+* Button semantics for the strip's tappable divs (fix list u13): screen
+* readers announce them and a keyboard can reach and press them. Kept as
+* divs so their look doesn't change.
+*/
+function tapProps(onClick, label) {
+	if (!onClick) return {};
+	return {
+		role: "button",
+		tabIndex: 0,
+		"aria-label": label,
+		onKeyDown: (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				onClick(e);
+			}
+		}
+	};
+}
 function FigbarCard({ resource, delta, total, onClick, title }) {
 	const art = figbarResourceArt(resource);
 	const roundedDelta = Math.round(delta);
@@ -23719,6 +23782,7 @@ function FigbarCard({ resource, delta, total, onClick, title }) {
 		className: `ov-figbar-card${onClick ? " clickable" : ""}`,
 		title: title ?? resource,
 		onClick,
+		...tapProps(onClick, title ?? resource),
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "ov-figbar-card-icon",
@@ -23759,6 +23823,7 @@ function FigbarStatusChip({ emoji, value, onClick, title }) {
 		className: `ov-figbar-status-chip${onClick ? " clickable" : ""}`,
 		title,
 		onClick,
+		...tapProps(onClick, title),
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 				className: "ov-figbar-status-emoji",
@@ -24067,7 +24132,13 @@ function planPlots(county, ctx) {
 		* "uncapped" the moment the treasury runs dry.
 		*/
 		let blacksmithRequired = 0;
-		if (blacksmith.weapon && match) {
+		/**
+		* An unstaffed forge is a choice, not a shortage (fix list g6): every
+		* forge starts set to swords, so the material ceiling used to paint it
+		* red from turn one for players who never wanted weapons. It only
+		* measures against materials once someone is working it.
+		*/
+		if (blacksmith.weapon && match && (blacksmith.workers ?? 0) > 0) {
 			const cost = WEAPON_COSTS[blacksmith.weapon];
 			if (cost) {
 				const treasury = match.treasuries[county.owner] ?? {};
@@ -26097,6 +26168,11 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLa
 				h("span", { className: "ov-ration-row-label", key: "l" }, "Defence \u00D7 / Tax + / Garrison"),
 				h("span", { className: "ov-ration-row-val neutral", key: "v" }, `\u00D7${current.defence.toFixed(2)}  +${Math.round(current.taxBonus * 100)}%  +${current.garrisonBonus}`),
 			]),
+			/** The townsfolk fight when no soldiers defend; it was invisible (fix list g14). */
+			h("div", { className: "ov-ration-row", key: "militia" }, [
+				h("span", { className: "ov-ration-row-label", key: "l" }, "Town militia"),
+				h("span", { className: "ov-ration-row-val neutral", key: "v" }, `~${townLevy(county.population)} if no soldiers defend`),
+			]),
 			county.castleTier !== "none" ? h("div", { className: "ov-ration-row", key: "durability" }, [
 				h("span", { className: "ov-ration-row-label", key: "l" }, "Wall durability"),
 				h("span", { className: `ov-ration-row-val ${breached ? "neg" : durabilityNow < durabilityMax ? "neutral" : "pos"}`, key: "v" }, breached ? `BREACHED \u2014 0 / ${durabilityMax}` : `${durabilityNow} / ${durabilityMax}`),
@@ -26398,7 +26474,15 @@ function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpen
 	const rationIndex = rationNames.findIndex((name) => RATION_LEVELS[name] === state.rationLevel);
 	const adjustTax = (delta) => {
 		if (!onChange) return;
-		const result = setTaxRate(match, county.id, state.taxRate + delta);
+		/**
+		* 5% steps (fix list g10: 20 taps to reach 20%). Snaps to the 5% grid
+		* rather than adding 5, so an off-grid rate (an old save at 3%) still
+		* lands on 5% / 0% instead of being stuck between steps.
+		*/
+		const STEP = 5;
+		const rate = state.taxRate ?? 0;
+		const next = delta > 0 ? Math.floor(rate / STEP) * STEP + STEP : Math.ceil(rate / STEP) * STEP - STEP;
+		const result = setTaxRate(match, county.id, next);
 		if (result.ok) onChange(result.match);
 	};
 	/**
