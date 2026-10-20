@@ -1632,6 +1632,40 @@ full standalone screen, not a panel over gameplay. */
 .ov-diff-row { display: flex; gap: 10px; margin-top: 4px; }
 .ov-diff-row .ov-title-btn { flex: 1; }
 
+/* Diplomacy panel (Oct 19). */
+.ov-dip-card { margin: 12px 16px; background: #1a1512; border: 1.5px solid #5b4a1e; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; font-family: Arial, sans-serif; }
+.ov-dip-name { font: 700 18px Georgia, serif; color: #e3bf4a; }
+.ov-dip-sub { font-size: 12px; color: #a8a096; margin-top: 2px; }
+.ov-dip-rel-top { display: flex; justify-content: space-between; font-size: 13px; color: #cfc3a6; margin-bottom: 6px; }
+.ov-dip-rel-val { font-weight: 700; color: #e8dcc0; }
+.ov-dip-rel-val.pos { color: #8fd694; }
+.ov-dip-rel-val.neg { color: #f0a08a; }
+.ov-dip-bar { position: relative; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #8a2b1f, #3a352e 50%, #2f6b3a); }
+.ov-dip-bar-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: #a8a096; }
+.ov-dip-bar-pin { position: absolute; top: -4px; width: 4px; height: 16px; margin-left: -2px; border-radius: 2px; background: #e8dcc0; box-shadow: 0 0 0 1.5px #0a0806; }
+.ov-dip-status { font-size: 13.5px; color: #e8dcc0; background: #2a231c; border-radius: 6px; padding: 8px 10px; }
+.ov-dip-status.peace { border-left: 3px solid #6fbf73; }
+.ov-dip-line { font-size: 13px; color: #cfc3a6; }
+.ov-dip-offer { border: 1.5px solid #e3bf4a; background: rgb(201 162 39 / 0.12); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ov-dip-offer-text { font-size: 14px; color: #f2e6c8; line-height: 1.35; }
+.ov-dip-reply { font-size: 13.5px; font-style: italic; padding: 8px 10px; border-radius: 6px; background: #2a231c; }
+.ov-dip-reply.pos { color: #8fd694; }
+.ov-dip-reply.neg { color: #f0a08a; }
+.ov-dip-action { border-top: 1px solid #2a231c; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.ov-dip-action.disabled { opacity: 0.55; }
+.ov-dip-action-label { font-weight: 700; font-size: 14px; color: #e8dcc0; }
+.ov-dip-hint { font-size: 12px; color: #a8a096; line-height: 1.3; }
+.ov-dip-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ov-dip-chip { min-height: 36px; padding: 6px 12px; border-radius: 18px; border: 1.5px solid #5b4a1e; background: transparent; color: #cfc3a6; font: 600 13px Arial, sans-serif; }
+.ov-dip-chip.on { border-color: #e3bf4a; color: #1a1611; background: #e3bf4a; }
+.ov-dip-row { display: flex; gap: 8px; }
+.ov-dip-row .ov-dip-btn { flex: 1; }
+.ov-dip-btn { min-height: 44px; border-radius: 8px; border: 1.5px solid #c9a227; background: rgb(201 162 39 / 0.12); color: #e3bf4a; font: 700 14px Arial, sans-serif; padding: 0 14px; }
+.ov-dip-btn.primary { background: #c9a227; color: #1a1611; }
+.ov-dip-btn.danger { border-color: #b5492f; color: #f0a08a; background: rgb(181 73 47 / 0.12); }
+.ov-dip-btn:disabled { opacity: 0.4; }
+.ov-dip-foot { margin: 4px 16px 24px; max-width: none; }
+
 .ov-title-btn.primary {
   background: #c9a227;
   color: #1a1611;
@@ -13291,6 +13325,209 @@ function adjustRelation(match, a, b, delta) {
 		}
 	};
 }
+/**
+* Diplomacy actions (Chris, Oct 19: "Build out the diplomacy").
+*
+* Treaties sit beside the relation value: `match.treaties[pairKey]` holds
+* the one active agreement between two lords, `match.diplomacyOffers` the
+* proposals waiting for an answer, `match.distrust[aiId]` the season until
+* which an AI that was betrayed refuses everything.
+*
+*   Truce      neither side may attack the other's counties or armies for
+*              TRUCE_SEASONS. Can carry a tribute: gold per season from one
+*              side to the other. Breaking it costs heavy relation and trust.
+*   Gift       gold now, relation up.
+*   Demand     gold now from the other side, or they refuse (relation down).
+*   Alliance   kept in the model for maps with three or more lords; the
+*              Aldermarch has two, so the panel shows it as not available.
+*
+* An AI weighs a proposal on relative strength, relation, its faction's
+* aggression, the tribute on the table and its difficulty (a Very Hard
+* rival rarely makes peace). The AI also makes its own offers: a truce
+* when it is losing, a demand for gold when it is far stronger.
+*/
+var TRUCE_SEASONS = 8;
+var TRUCE_DRIFT = 2;
+var BREAK_TRUCE_RELATION = 40;
+var DISTRUST_SEASONS = 12;
+var AI_OFFER_COOLDOWN = 6;
+var DIFFICULTY_PEACE_PENALTY = { easy: -15, normal: 0, hard: 15, veryHard: 30 };
+var ALLIANCE_MIN_PLAYERS = 3;
+var turnOf = (match) => match.turn?.number ?? 0;
+var playerById = (match, id) => match.players.find((p) => p.id === id);
+var nameOfPlayer = (match, id) => playerById(match, id)?.displayName ?? id;
+function treatyBetween(match, a, b) {
+	const t = match.treaties?.[relationKey(a, b)];
+	return t && (t.until === void 0 || t.until > turnOf(match)) ? t : null;
+}
+var atPeace = (match, a, b) => !!a && !!b && a !== b && treatyBetween(match, a, b)?.kind === "truce";
+var armyPowerOf = (match, id) => Object.values(match.armies).filter((a) => a.owner === id).reduce((s, a) => s + powerOf(a.troops), 0);
+/** AI strength over the other side's: >1 means the AI is stronger. Counts the town levies so an army-less lord isn't "zero". */
+function strengthRatio(match, aiId, otherId) {
+	const levy = (id) => Object.values(match.counties).filter((c) => c.owner === id).reduce((s, c) => s + townLevy(c.population), 0);
+	return (armyPowerOf(match, aiId) + levy(aiId) + 1) / (armyPowerOf(match, otherId) + levy(otherId) + 1);
+}
+function setTreaty(match, a, b, treaty) {
+	const treaties = { ...match.treaties ?? {} };
+	if (treaty) treaties[relationKey(a, b)] = treaty;
+	else delete treaties[relationKey(a, b)];
+	return { ...match, treaties };
+}
+var distrusts = (match, aiId) => (match.distrust?.[aiId] ?? -1) > turnOf(match);
+function transferGold(match, from, to, gold) {
+	const a = match.treasuries[from], b = match.treasuries[to];
+	if (!a || !b || (a.gold ?? 0) < gold) return null;
+	return { ...match, treasuries: { ...match.treasuries, [from]: { ...a, gold: (a.gold ?? 0) - gold }, [to]: { ...b, gold: (b.gold ?? 0) + gold } } };
+}
+/** How much an AI wants peace with `otherId` right now; tribute is gold per season TO the AI (negative = the AI pays). */
+function aiPeaceScore(match, aiId, otherId, tribute = 0) {
+	const ai = playerById(match, aiId);
+	const w = aiWeightingOf(getFaction(ai.factionId));
+	const ratio = Math.max(.2, Math.min(5, strengthRatio(match, aiId, otherId)));
+	return 30 * (1 / ratio - 1) + relationValue(match, aiId, otherId) * .6 + tribute * .8 - w.aggression * 25 - (DIFFICULTY_PEACE_PENALTY[difficultyKeyOf(ai)] ?? 0) + 5;
+}
+function makeTruce(match, a, b, tribute) {
+	let m = setTreaty(match, a, b, { kind: "truce", since: turnOf(match), until: turnOf(match) + TRUCE_SEASONS, tribute: tribute && tribute.gold > 0 ? tribute : null });
+	return adjustRelation(m, a, b, 10);
+}
+/** Ask for a truce. `tribute` is gold per season you OFFER to pay (0 for none). Returns { ok, match, accepted, reply }. */
+function proposeTruce(match, from, to, tribute = 0) {
+	const them = playerById(match, to);
+	if (!them) return fail$1("No such lord");
+	if (atPeace(match, from, to)) return fail$1("You already have a truce");
+	if (tribute > 0 && (match.treasuries[from]?.gold ?? 0) < tribute) return fail$1("You can't afford the first payment");
+	if (!isAi(them)) return { ok: true, match, accepted: false, reply: "Waiting for their answer." };
+	if (distrusts(match, to)) return { ok: true, match: adjustRelation(match, from, to, -2), accepted: false, reply: `"You broke your word once. Not again."` };
+	const score = aiPeaceScore(match, to, from, tribute);
+	if (score < 0) return { ok: true, match: adjustRelation(match, from, to, -2), accepted: false, reply: score < -25 ? `"Peace? I will have your castle first."` : tribute > 0 ? `"Not for so little."` : `"Not yet. Make it worth my while."` };
+	return { ok: true, match: makeTruce(match, from, to, tribute > 0 ? { from, to, gold: tribute } : null), accepted: true, reply: `"Agreed. ${TRUCE_SEASONS} seasons of peace${tribute > 0 ? ` for ${tribute} gold a season` : ""}."` };
+}
+var giftRelation = (gold) => Math.min(30, Math.round(Math.sqrt(gold) * 1.6));
+function sendGift(match, from, to, gold) {
+	const moved = transferGold(match, from, to, gold);
+	if (!moved) return fail$1("Not enough gold");
+	const gain = giftRelation(gold);
+	return { ok: true, match: adjustRelation(moved, from, to, gain), accepted: true, reply: `"A generous gesture." Relations +${gain}.` };
+}
+/** Demand a lump of gold. An AI pays only if it is clearly weaker and can spare it. */
+function demandGold(match, from, to, gold) {
+	const them = playerById(match, to);
+	if (!them) return fail$1("No such lord");
+	if (!isAi(them)) return { ok: true, match, accepted: false, reply: "Waiting for their answer." };
+	const theirGold = match.treasuries[to]?.gold ?? 0;
+	const ratio = strengthRatio(match, to, from);
+	if (ratio < .7 && gold <= theirGold * .4) {
+		const paid = transferGold(match, to, from, gold);
+		return { ok: true, match: adjustRelation(paid, from, to, -15), accepted: true, reply: `"Take it, and be gone." +${gold} gold.` };
+	}
+	return { ok: true, match: adjustRelation(match, from, to, -10), accepted: false, reply: ratio >= 1 ? `"Come and take it."` : `"I would sooner burn it."` };
+}
+/** End a truce early. The breaker loses relation and, against an AI, its trust for a long while. */
+function breakTruce(match, by, other) {
+	if (!atPeace(match, by, other)) return match;
+	let m = setTreaty(match, by, other, null);
+	m = adjustRelation(m, by, other, -BREAK_TRUCE_RELATION);
+	if (isAi(playerById(m, other))) m = { ...m, distrust: { ...m.distrust ?? {}, [other]: turnOf(m) + DISTRUST_SEASONS } };
+	return m;
+}
+/** Answer an offer an AI made you. */
+function answerOffer(match, offerId, accept) {
+	const offer = (match.diplomacyOffers ?? []).find((o) => o.id === offerId);
+	if (!offer) return fail$1("That offer has lapsed");
+	let m = { ...match, diplomacyOffers: match.diplomacyOffers.filter((o) => o.id !== offerId) };
+	if (!accept) return { ok: true, match: adjustRelation(m, offer.from, offer.to, offer.kind === "demand" ? -10 : -3), reply: offer.kind === "demand" ? `${nameOfPlayer(m, offer.from)} will remember this.` : "Declined." };
+	if (offer.kind === "truce") {
+		const tribute = offer.tribute > 0 ? { from: offer.from, to: offer.to, gold: offer.tribute } : null;
+		return { ok: true, match: makeTruce(m, offer.from, offer.to, tribute), reply: `Truce for ${TRUCE_SEASONS} seasons.` };
+	}
+	const paid = transferGold(m, offer.to, offer.from, offer.gold);
+	if (!paid) return fail$1("You don't have that much gold");
+	m = setTreaty(paid, offer.from, offer.to, { kind: "truce", since: turnOf(paid), until: turnOf(paid) + Math.round(TRUCE_SEASONS / 2), tribute: null });
+	return { ok: true, match: m, reply: `Paid ${offer.gold} gold. Truce for ${Math.round(TRUCE_SEASONS / 2)} seasons.` };
+}
+/**
+* Marching into the other lord's county while at peace breaks the truce.
+* Checked before the season resolves, while the attacker still stands in
+* the county it is attacking.
+*/
+function checkTruceBreaches(match) {
+	let m = match;
+	const events = [];
+	for (const key of Object.keys(m.treaties ?? {})) {
+		const [a, b] = key.split("|");
+		if (!atPeace(m, a, b)) continue;
+		const breaker = [a, b].find((x) => {
+			const y = x === a ? b : a;
+			return Object.values(m.armies).some((ar) => ar.owner === x && ar.location.kind === "garrison" && m.counties[ar.location.county]?.owner === y);
+		});
+		if (!breaker) continue;
+		const other = breaker === a ? b : a;
+		m = breakTruce(m, breaker, other);
+		events.push({ county: null, kind: "diplomacy", to: breaker, detail: `You broke the truce with ${nameOfPlayer(m, other)} — relations −${BREAK_TRUCE_RELATION}` });
+		events.push({ county: null, kind: "diplomacy", to: other, detail: `${nameOfPlayer(m, breaker)} broke the truce and attacked` });
+	}
+	return { match: m, events };
+}
+/**
+* The diplomatic half of a season: tribute, truces ending, drift,
+* and the AI's own offers. Returns events addressed `to` the lord they
+* concern (End Turn shows a player only events addressed to them).
+*/
+function runDiplomacy(match, ix) {
+	let m = match;
+	const events = [];
+	const turn = turnOf(m);
+	const ev = (to, detail) => events.push({ county: null, kind: "diplomacy", to, detail });
+	for (const [key, t] of Object.entries(m.treaties ?? {})) {
+		const [a, b] = key.split("|");
+		if (t.until !== void 0 && t.until <= turn) {
+			m = setTreaty(m, a, b, null);
+			ev(a, `Your truce with ${nameOfPlayer(m, b)} has ended`);
+			ev(b, `Your truce with ${nameOfPlayer(m, a)} has ended`);
+			continue;
+		}
+		if (t.tribute) {
+			const paid = transferGold(m, t.tribute.from, t.tribute.to, t.tribute.gold);
+			if (paid) {
+				m = paid;
+				ev(t.tribute.from, `Paid ${t.tribute.gold} gold tribute to ${nameOfPlayer(m, t.tribute.to)}`);
+				ev(t.tribute.to, `Received ${t.tribute.gold} gold tribute from ${nameOfPlayer(m, t.tribute.from)}`);
+			} else {
+				m = adjustRelation(setTreaty(m, a, b, null), a, b, -20);
+				ev(t.tribute.from, `You could not pay your tribute — the truce with ${nameOfPlayer(m, t.tribute.to)} is over`);
+				ev(t.tribute.to, `${nameOfPlayer(m, t.tribute.from)} missed a tribute payment — the truce is over`);
+				continue;
+			}
+		}
+		m = adjustRelation(m, a, b, TRUCE_DRIFT);
+	}
+	/** Offers last one season. */
+	m = { ...m, diplomacyOffers: (m.diplomacyOffers ?? []).filter((o) => o.expires > turn) };
+	/** The AI's own offers, at most one per pair every AI_OFFER_COOLDOWN seasons. */
+	for (const ai of m.players) {
+		if (!isAi(ai) || isHumanSide(ai) || ai.status !== "active") continue;
+		for (const other of m.players) {
+			if (other.id === ai.id || !isHumanSide(other) || other.status !== "active") continue;
+			if (atPeace(m, ai.id, other.id) || inGrace(ai, other, turn) || distrusts(m, ai.id)) continue;
+			const last = m.lastOffer?.[relationKey(ai.id, other.id)] ?? -99;
+			if (turn - last < AI_OFFER_COOLDOWN || (m.diplomacyOffers ?? []).some((o) => o.from === ai.id && o.to === other.id)) continue;
+			const ratio = strengthRatio(m, ai.id, other.id);
+			const w = aiWeightingOf(getFaction(ai.factionId));
+			let offer = null;
+			if (ratio < .6 && aiPeaceScore(m, ai.id, other.id, 0) > -10) {
+				const pay = Math.min(60, Math.round((m.treasuries[ai.id]?.gold ?? 0) * .03 / 5) * 5);
+				offer = { kind: "truce", tribute: pay, text: pay > 0 ? `${ai.displayName} offers a truce of ${TRUCE_SEASONS} seasons and ${pay} gold a season.` : `${ai.displayName} offers a truce of ${TRUCE_SEASONS} seasons.` };
+			} else if (ratio > 2.2 + Math.max(0, .5 - w.aggression) * 2 && relationValue(m, ai.id, other.id) < 10) {
+				const gold = Math.max(25, Math.round(Math.min((m.treasuries[other.id]?.gold ?? 0) * .3, 50 + turn * 5) / 5) * 5);
+				offer = { kind: "demand", gold, text: `${ai.displayName} demands ${gold} gold — pay, and there is peace for ${Math.round(TRUCE_SEASONS / 2)} seasons.` };
+			}
+			if (!offer) continue;
+			m = { ...m, diplomacyOffers: [...m.diplomacyOffers ?? [], { id: `o${turn}_${ai.id}`, from: ai.id, to: other.id, expires: turn + 1, ...offer }], lastOffer: { ...m.lastOffer ?? {}, [relationKey(ai.id, other.id)]: turn } };
+			ev(other.id, `${offer.text} Answer in Diplomacy before the season ends.`);
+		}
+	}
+	return { match: m, events };
+}
 function resolveFieldEncounter(match, attackerId, defenderId) {
 	const attacker = match.armies[attackerId];
 	const defender = match.armies[defenderId];
@@ -17819,8 +18056,8 @@ function applyDifficultyBonuses(before, after) {
 }
 /**
 * One full season, exactly as End Turn runs it: AI economy, AI armies, the
-* merchant, the season itself (production, food, combat, conquest), then the
-* difficulty bonuses and the victory check. Shared by End Turn and the
+* merchant, truce breaches, the season itself (production, food, combat,
+* conquest), the difficulty bonuses, diplomacy, then the victory check. Shared by End Turn and the
 * headless simulator (`window.__ALDERMARCH_SIM__`), so tuning runs the real
 * rules.
 */
@@ -17828,9 +18065,11 @@ function runSeason(match, map) {
 	const ix = indexMap(map);
 	const marched = takeAllMilitaryTurns(takeAllAiTurns(match).match, ix);
 	const withMerchant = moveMerchantAI(marched.match);
-	const { match: seasonResult, events } = advanceSeason(withMerchant, map);
-	const boosted = applyDifficultyBonuses(withMerchant, seasonResult);
-	return { match: checkVictory(boosted), events, aiDecisions: marched.decisions };
+	const breaches = checkTruceBreaches(withMerchant);
+	const { match: seasonResult, events } = advanceSeason(breaches.match, map);
+	const boosted = applyDifficultyBonuses(breaches.match, seasonResult);
+	const diplomacy = runDiplomacy(boosted, ix);
+	return { match: checkVictory(diplomacy.match), events: [...breaches.events, ...events, ...diplomacy.events], aiDecisions: marched.decisions };
 }
 /**
 * Headless simulator for tuning the AI (not used by the game itself).
@@ -19180,7 +19419,7 @@ function takeMilitaryTurn(match, ix, playerId) {
 	const odds = Math.max(AI_CAMPAIGN_MIN_ODDS, requiredAdvantage(weighting) + level.advantage);
 	/** 1. The campaign target. */
 	const ownerOf = (c) => current.players.find((p) => p.id === current.counties[c]?.owner);
-	const candidates = [...new Set(ownedList.flatMap((c) => neighboursOf(ix, c)))].filter((n) => current.counties[n]?.interior && !owned.has(n)).filter((n) => !inGrace(player, ownerOf(n), turn)).map((n) => {
+	const candidates = [...new Set(ownedList.flatMap((c) => neighboursOf(ix, c)))].filter((n) => current.counties[n]?.interior && !owned.has(n)).filter((n) => !inGrace(player, ownerOf(n), turn) && !atPeace(current, playerId, current.counties[n].owner)).map((n) => {
 		const need = defenceEstimate(current, n) * odds;
 		const human = isHumanSide(ownerOf(n));
 		const score = scoreTarget(current, ix, n) + (human ? level.playerFocus * 30 : 0) + (current.counties[n].owner === null ? 8 : 0) - need * .15;
@@ -20141,7 +20380,7 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 		* to see.
 		*/
 		const you = withVictory.players.find((p) => p.controller.kind === "human");
-		const yourEvents = you ? events.filter((e) => priorOwners[e.county] === you.id || withVictory.counties[e.county]?.owner === you.id || e.attacker === you.id) : events;
+		const yourEvents = you ? events.filter((e) => e.kind === "diplomacy" ? e.to === you.id : priorOwners[e.county] === you.id || withVictory.counties[e.county]?.owner === you.id || e.attacker === you.id) : events;
 		/**
 		* Persisted, not just shown-and-discarded — capped at the most
 		* recent 100 so the Event History screen has something to show
@@ -20265,6 +20504,7 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 			}),
 			diplomacyOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DiplomacyScreen, {
 				match,
+				onChange,
 				onClose: () => setDiplomacyOpen(false)
 			}),
 			match.winner && !gameOverDismissed && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(GameOverScreen, {
@@ -20569,8 +20809,11 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				const defenders = garrisonOf(working, target.plot.county.id).filter((a) => a.owner !== selectedArmy.owner);
 				const defenderCount = defenders.reduce((sum, a) => sum + troopCount(a.troops), 0);
 				const place = onEnemyCastle ? "castle" : "town";
-				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?`);
+				const truceWith = atPeace(match, selectedArmy.owner, targetCounty?.owner) ? targetCounty.owner : null;
+				const truceNote = truceWith ? ` This BREAKS your truce with ${nameOfPlayer(match, truceWith)} (relations −${BREAK_TRUCE_RELATION}, and they won't trust you for ${DISTRUST_SEASONS} seasons).` : "";
+				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})${truceNote}`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?${truceNote}`);
 				if (!proceed) return setSelectedMover(null);
+				if (truceWith) working = breakTruce(working, selectedArmy.owner, truceWith);
 				result = assaultTown(working, selectedArmy.id, target.plot.county.id, cost);
 			} else result = moveArmyFieldTo(working, selectedArmy.id, target.local.col, target.local.row, target.plot.county.id, cost);
 			if (result.ok) onChange(result.match);
@@ -20691,9 +20934,11 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 			const defenders = garrisonOf(match, targetCountyId).filter((a) => a.owner !== selectedArmy.owner);
 			const defenderCount = defenders.reduce((sum, a) => sum + troopCount(a.troops), 0);
 			const place = onEnemyCastle ? "castle" : "town";
-			const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?`);
+			const truceWith = atPeace(match, selectedArmy.owner, targetCounty?.owner) ? targetCounty.owner : null;
+				const truceNote = truceWith ? ` This BREAKS your truce with ${nameOfPlayer(match, truceWith)} (relations −${BREAK_TRUCE_RELATION}, and they won't trust you for ${DISTRUST_SEASONS} seasons).` : "";
+				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})${truceNote}`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?${truceNote}`);
 			if (proceed) {
-				const result = assaultTown(match, selectedArmy.id, targetCountyId, cost);
+				const result = assaultTown(truceWith ? breakTruce(match, selectedArmy.owner, truceWith) : match, selectedArmy.id, targetCountyId, cost);
 				if (result.ok) onChange(result.match);
 			}
 		}
@@ -24544,6 +24789,7 @@ var EVENT_KIND_ICON = {
 	garrison: "\u{1F6E1}\uFE0F",
 	annexed: "\u{1F3F3}\uFE0F",
 	severed: "\u2702\uFE0F",
+	diplomacy: "\u{1F91D}",
 	inTransit: "\u{1F69A}"
 };
 /**
@@ -24748,26 +24994,92 @@ function GrainReportScreen({ match, countyId, countyName, onClose }) {
 * between PLAYERS, not tied to any one county — so this doesn't take a
 * `countyId` the way Battle/Population/Happiness do.
 */
-function DiplomacyScreen({ match, onClose }) {
+function DiplomacyScreen({ match, onChange, onClose }) {
 	const h = import_react.createElement;
-	const you = match.players[0];
+	const you = match.players.find((p) => p.controller.kind === "human") ?? match.players[0];
+	const [reply, setReply] = (0, import_react.useState)(null);
+	const [tribute, setTribute] = (0, import_react.useState)(0);
+	const [gift, setGift] = (0, import_react.useState)(100);
+	const [demand, setDemand] = (0, import_react.useState)(100);
 	if (!you) return null;
-	const rivals = match.players.filter((p) => p.id !== you.id);
-	const toneFor = (label) => label === "War" || label === "Hostile" ? "neg" : label === "Friendly" || label === "Allied" ? "pos" : "neutral";
+	const rivals = match.players.filter((p) => p.id !== you.id && p.status === "active");
+	const turn = turnOf(match);
+	const gold = Math.floor(match.treasuries[you.id]?.gold ?? 0);
+	const act = (result, rivalId) => {
+		if (!result.ok) return setReply({ rivalId, text: result.reason ?? "That can't be done.", tone: "neg" });
+		onChange?.(result.match);
+		setReply({ rivalId, text: result.reply, tone: result.accepted === false ? "neg" : "pos" });
+	};
+	const chips = (values, value, set, fmt) => h("div", { className: "ov-dip-chips" }, values.map((v) => h("button", { key: v, className: `ov-dip-chip${v === value ? " on" : ""}`, "aria-pressed": v === value, onClick: () => set(v) }, fmt(v))));
+	const strengthWords = (r) => r >= 2 ? "far stronger than you" : r >= 1.25 ? "stronger than you" : r > .8 ? "about your equal" : r > .5 ? "weaker than you" : "far weaker than you";
+	const card = (rival) => {
+		const value = relationValue(match, you.id, rival.id);
+		const label = relationLabel(value);
+		const tone = label === "War" || label === "Hostile" ? "neg" : label === "Friendly" || label === "Allied" ? "pos" : "neutral";
+		const truce = atPeace(match, you.id, rival.id) ? treatyBetween(match, you.id, rival.id) : null;
+		const grace = isAi(rival) ? Math.max(0, difficultyOf(rival).graceTurns - turn) : 0;
+		const ratio = strengthRatio(match, rival.id, you.id);
+		const offers = (match.diplomacyOffers ?? []).filter((o) => o.from === rival.id && o.to === you.id);
+		const wary = isAi(rival) && distrusts(match, rival.id);
+		const status = truce ? `Truce — ${truce.until - turn} season${truce.until - turn === 1 ? "" : "s"} left${truce.tribute ? ` · ${truce.tribute.from === you.id ? "you pay" : "you receive"} ${truce.tribute.gold} gold a season` : ""}` : grace > 0 ? `Opening peace — no attack from ${rival.displayName} for ${grace} more season${grace === 1 ? "" : "s"}` : "No treaty — either of you may attack";
+		const mine = reply?.rivalId === rival.id ? reply : null;
+		return h("div", { className: "ov-dip-card", key: rival.id }, [
+			h("div", { className: "ov-dip-who", key: "who" }, [
+				h("div", { className: "ov-dip-name", key: "n" }, rival.displayName ?? rival.id),
+				h("div", { className: "ov-dip-sub", key: "s" }, `${getFaction(rival.factionId)?.name ?? ""}${isAi(rival) ? ` · ${difficultyOf(rival).label}` : ""}`)
+			]),
+			h("div", { className: "ov-dip-rel", key: "rel" }, [
+				h("div", { className: "ov-dip-rel-top", key: "t" }, [h("span", { key: "a" }, "Relations"), h("span", { key: "b", className: `ov-dip-rel-val ${tone}` }, `${label} (${value > 0 ? "+" : ""}${value})`)]),
+				h("div", { className: "ov-dip-bar", key: "bar" }, [h("div", { className: "ov-dip-bar-mid", key: "m" }), h("div", { className: `ov-dip-bar-pin ${tone}`, key: "p", style: { left: `${(value + 100) / 2}%` } })])
+			]),
+			h("div", { className: `ov-dip-status${truce ? " peace" : ""}`, key: "st" }, status),
+			h("div", { className: "ov-dip-line", key: "str" }, `Her armies are ${strengthWords(ratio)}.${wary ? " She does not trust you after the broken truce." : ""}`),
+			...offers.map((o) => h("div", { className: "ov-dip-offer", key: o.id }, [
+				h("div", { className: "ov-dip-offer-text", key: "t" }, o.text),
+				h("div", { className: "ov-dip-row", key: "r" }, [
+					h("button", { className: "ov-dip-btn", key: "no", onClick: () => act(answerOffer(match, o.id, false), rival.id) }, "Decline"),
+					h("button", { className: "ov-dip-btn primary", key: "yes", disabled: o.kind === "demand" && gold < o.gold, onClick: () => act({ ...answerOffer(match, o.id, true), accepted: true }, rival.id) }, o.kind === "demand" ? `Pay ${o.gold}` : "Accept")
+				])
+			])),
+			mine && h("div", { className: `ov-dip-reply ${mine.tone}`, key: "reply", role: "status" }, mine.text),
+			truce ? h("div", { className: "ov-dip-action", key: "brk" }, [
+				h("div", { className: "ov-dip-action-label", key: "l" }, "Break the truce"),
+				h("div", { className: "ov-dip-hint", key: "h" }, `Relations −${BREAK_TRUCE_RELATION}; she won't deal with you for ${DISTRUST_SEASONS} seasons.`),
+				h("button", { className: "ov-dip-btn danger", key: "b", onClick: async () => {
+					if (!(await confirmAsync(`Break your truce with ${rival.displayName}? Relations −${BREAK_TRUCE_RELATION}, and she won't trust you for ${DISTRUST_SEASONS} seasons.`))) return;
+					act({ ok: true, match: breakTruce(match, you.id, rival.id), reply: "The truce is broken.", accepted: false }, rival.id);
+				} }, "Break truce")
+			]) : h("div", { className: "ov-dip-action", key: "truce" }, [
+				h("div", { className: "ov-dip-action-label", key: "l" }, `Propose a truce (${TRUCE_SEASONS} seasons)`),
+				h("div", { className: "ov-dip-hint", key: "h" }, "Offer tribute to sweeten it — gold each season."),
+				chips([0, 25, 50, 100], tribute, setTribute, (v) => v === 0 ? "No tribute" : `${v}/season`),
+				h("button", { className: "ov-dip-btn primary", key: "b", disabled: wary || tribute > gold, onClick: () => act(proposeTruce(match, you.id, rival.id, tribute), rival.id) }, "Propose truce")
+			]),
+			h("div", { className: "ov-dip-action", key: "gift" }, [
+				h("div", { className: "ov-dip-action-label", key: "l" }, "Send a gift"),
+				h("div", { className: "ov-dip-hint", key: "h" }, `Relations +${giftRelation(gift)}. You have ${gold} gold.`),
+				chips([50, 100, 250], gift, setGift, (v) => `${v} gold`),
+				h("button", { className: "ov-dip-btn", key: "b", disabled: gift > gold, onClick: () => act(sendGift(match, you.id, rival.id, gift), rival.id) }, "Send gift")
+			]),
+			!truce && h("div", { className: "ov-dip-action", key: "dem" }, [
+				h("div", { className: "ov-dip-action-label", key: "l" }, "Demand gold"),
+				h("div", { className: "ov-dip-hint", key: "h" }, "She pays only if she fears you. Refusal sours relations."),
+				chips([50, 100, 250], demand, setDemand, (v) => `${v} gold`),
+				h("button", { className: "ov-dip-btn", key: "b", onClick: () => act(demandGold(match, you.id, rival.id, demand), rival.id) }, "Demand")
+			]),
+			h("div", { className: "ov-dip-action disabled", key: "ally" }, [
+				h("div", { className: "ov-dip-action-label", key: "l" }, "Alliance"),
+				h("div", { className: "ov-dip-hint", key: "h" }, match.players.length < ALLIANCE_MIN_PLAYERS ? "Needs a third lord to stand against — comes with larger maps." : "Not available yet.")
+			])
+		]);
+	};
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, "\u{1F91D} Diplomacy"),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "✕"),
 		]),
-		rivals.length === 0 ? h("div", { className: "ov-health-zone", key: "empty" }, "No other lords in this match.") : h("div", { className: "ov-ration-zone", key: "z1" }, rivals.map((rival) => {
-			const value = relationValue(match, you.id, rival.id);
-			const label = relationLabel(value);
-			return h("div", { className: "ov-ration-row", key: rival.id }, [
-				h("span", { className: "ov-ration-row-label", key: "l" }, rival.displayName ?? rival.id),
-				h("span", { className: `ov-ration-row-val ${toneFor(label)}`, key: "v" }, `${label} (${value > 0 ? "+" : ""}${value})`)
-			]);
-		})),
-		h("div", { className: "ov-title-footnote", key: "hint" }, "Attacking armies, sieges, and capturing caravans all cost relation."),
+		rivals.length === 0 ? h("div", { className: "ov-health-zone", key: "empty" }, "No other lords in this match.") : rivals.map(card),
+		h("div", { className: "ov-title-footnote ov-dip-foot", key: "hint" }, "Attacks, sieges and seized caravans cost relations; gifts and seasons of peace mend them."),
 	]);
 }
 /**
@@ -25568,8 +25880,8 @@ function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpen
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FigbarStatusChip, {
 										emoji: "\u{1F91D}",
-										value: null,
-										title: rival ? `Relations with ${rival.displayName ?? rival.id}: ${relationLbl} (${relationVal > 0 ? "+" : ""}${relationVal}) \u2014 tap for details` : "Relations",
+										value: you && (match.diplomacyOffers ?? []).some((o) => o.to === you.id) ? "!" : relationVal === null ? null : `${relationVal > 0 ? "+" : relationVal < 0 ? "\u2212" : ""}${Math.abs(relationVal)}`,
+										title: rival ? `Relations with ${rival.displayName ?? rival.id}: ${relationLbl} (${relationVal > 0 ? "+" : ""}${relationVal})${you && (match.diplomacyOffers ?? []).some((o) => o.to === you.id) ? " \u2014 an offer is waiting" : ""} \u2014 tap for diplomacy` : "Relations",
 										onClick: onOpenDiplomacy ? () => onOpenDiplomacy() : void 0
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FigbarStatusChip, {
