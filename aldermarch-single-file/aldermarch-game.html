@@ -12698,7 +12698,8 @@ var COUNTER_BONUS = {
 	macemen: {},
 	pikemen: { knights: 1.4 },
 	knights: { archers: 1.4 },
-	mercenaries: {}
+	mercenaries: {},
+	rams: {}
 };
 //#endregion
 //#region src/domain/map/mapTypes.ts
@@ -13036,71 +13037,125 @@ function recruitArmy(match, countyId, troops) {
 		}
 	};
 }
-/**
-* Mercenary hiring — the "hired, not raised" other half of `recruitArmy`.
-* Redesigned per explicit instruction to match the source: a fixed-size
-* band, yes-or-no, no per-head stepper — you hire the whole company or
-* you don't. What used to be a per-head price is now a flat upfront
-* price for the band, and ongoing upkeep is a flat CONTRACT for the
-* whole company rather than a per-head wage — see `upkeepOf`'s own
-* comment for why that matters: losses don't reduce the bill, they
-* concentrate it onto whoever's left, which is the actual point (danger
-* pay, not a discount for having fewer mouths to feed).
-*
-* None of these three numbers are sourced from LOTR2 — no documented
-* value covered mercenary pricing this session, unlike the population/
-* death-rate constants elsewhere. First-pass estimates, sized so the
-* band feels like a meaningful, real purchase (roughly a small army's
-* worth of militia-equivalent cost) rather than a trivial one.
-*/
-var MERCENARY_BAND_SIZE = 20;
-var MERCENARY_BAND_HIRE_COST = 60;
+/** Legacy: armies hired before Oct 20 hold the old generic `mercenaries` troop kind, paid as a flat 10-gold contract. */
 var MERCENARY_BAND_SALARY = 10;
+/**
+* Mercenary companies (Chris, Oct 20 — "LOTR2 functioned well"). Replaces
+* the old 20-man band for 60 gold, which let gold turn into elite troops
+* without limit and stalemated late games (Oct 19 sims).
+*
+* As in LOTR2: a named company of one troop type visits a county town now
+* and then; that county's lord may hire it for a lump sum; wages come out
+* of the treasury every season (double a citizen soldier's); miss one
+* payment and the company leaves at once; a company always marches as its
+* own army (LOTR2: two armies that both hold mercenaries can't combine).
+* Sizes and prices are LOTR2's (fan-guide figures; our merchant weapon
+* prices already match LOTR2's, so they drop straight into our economy).
+* Knights are left out — players rated LOTR2's mercenary knights poor value.
+* One company in the realm at a time: it waits MERC_STAY seasons, then
+* moves on; the next arrives MERC_GAP_MIN..MAX seasons later.
+*/
+var MERC_COMPANIES = {
+	saxonMacemen: { name: "Saxon Macemen", kind: "macemen", size: 150, price: 1900 },
+	burgundyMacemen: { name: "Burgundy Macemen", kind: "macemen", size: 250, price: 3100 },
+	scottishPikemen: { name: "Scottish Pikemen", kind: "pikemen", size: 100, price: 1800 },
+	irishPikemen: { name: "Irish Pikemen", kind: "pikemen", size: 200, price: 3500 },
+	moorishArchers: { name: "Moorish Archers", kind: "archers", size: 150, price: 3e3 },
+	welshArchers: { name: "Welsh Archers", kind: "archers", size: 200, price: 4e3 },
+	swedishSwordsmen: { name: "Swedish Swordsmen", kind: "swordsmen", size: 100, price: 2700 },
+	danishSwordsmen: { name: "Danish Swordsmen", kind: "swordsmen", size: 200, price: 5500 },
+	flemishCrossbowmen: { name: "Flemish Crossbowmen", kind: "crossbowmen", size: 100, price: 3e3 },
+	normanCrossbowmen: { name: "Norman Crossbowmen", kind: "crossbowmen", size: 200, price: 6e3 }
+};
+var MERC_WAGE_PER_HEAD = UNIT_UPKEEP_PER_SEASON * 2;
+var MERC_STAY = 3;
+var MERC_GAP_MIN = 6;
+var MERC_GAP_MAX = 8;
+var MERC_FIRST_VISIT = 5;
+var mercPrice = (match, owner, company) => Math.round(company.price * (getFaction(factionOf(match, owner))?.bonuses?.mercenaryCost ?? 1));
+var mercWage = (company) => Math.round(company.size * MERC_WAGE_PER_HEAD);
+/** Wages for one army: a hired company costs double per head; anything else follows `upkeepOf`. */
+var armyUpkeep = (army) => army.mercenary ? troopCount(army.troops) * MERC_WAGE_PER_HEAD : upkeepOf(army.troops);
+/** The company visiting the realm right now, if any (and whether it is still here). */
+function mercenaryOffer(match) {
+	const o = match.mercenaryOffer;
+	return o && o.until > (match.turn?.number ?? 0) ? o : null;
+}
+/** Hire the company waiting in `countyId`. */
 function hireMercenaries(match, countyId) {
 	const county = match.counties[countyId];
 	if (!county) return fail$1("No such county");
 	if (!county.owner) return fail$1("County is unclaimed");
+	const offer = mercenaryOffer(match);
+	if (!offer || offer.county !== countyId) return fail$1("No mercenaries are waiting here");
+	const company = MERC_COMPANIES[offer.company];
 	const owner = county.owner;
 	const treasury = match.treasuries[owner];
 	if (!treasury) return fail$1("Player has no treasury");
-	const mercenaryCostFactor = getFaction(factionOf(match, owner))?.bonuses?.mercenaryCost ?? 1;
-	const goldCost = Math.round(MERCENARY_BAND_HIRE_COST * mercenaryCostFactor);
+	const goldCost = mercPrice(match, owner, company);
 	if ((treasury.gold ?? 0) < goldCost) return fail$1(`Not enough Gold to hire them (need ${goldCost})`);
 	const at = freeTownAdjacentTile(match, countyId, county.interior);
 	if (!at) return fail$1("Every tile next to the town is occupied — move an army or caravan out of the way first");
 	const id = freeArmyId(match, owner);
-	const troops = { mercenaries: MERCENARY_BAND_SIZE };
-	const army = {
-		id,
-		owner,
-		troops,
-		location: {
-			kind: "field",
-			county: countyId,
-			col: at.col,
-			row: at.row
-		},
-		movementRemaining: armySpeed(troops),
-		unpaidUpkeepTurns: 0
-	};
+	const troops = { [company.kind]: company.size };
+	const turn = match.turn?.number ?? 0;
 	return {
 		ok: true,
 		armyId: id,
 		match: {
 			...match,
+			mercenaryOffer: null,
+			nextMercenaryTurn: turn + MERC_GAP_MIN + Math.floor(createRng(seedFrom(match.id, turn, "merc-gap")).next() * (MERC_GAP_MAX - MERC_GAP_MIN + 1)),
 			armies: {
 				...match.armies,
-				[id]: army
+				[id]: {
+					id,
+					owner,
+					troops,
+					mercenary: { company: offer.company },
+					location: { kind: "field", county: countyId, col: at.col, row: at.row },
+					movementRemaining: armySpeed(troops),
+					unpaidUpkeepTurns: 0
+				}
 			},
 			treasuries: {
 				...match.treasuries,
-				[owner]: {
-					...treasury,
-					gold: (treasury.gold ?? 0) - goldCost
-				}
+				[owner]: { ...treasury, gold: (treasury.gold ?? 0) - goldCost }
 			}
 		}
 	};
+}
+/**
+* The season's mercenary traffic: a waiting company leaves when its time
+* is up, and the next one arrives at a random held county when due.
+* Events go to the county's lord (`to`).
+*/
+function runMercenaries(match) {
+	const turn = match.turn?.number ?? 0;
+	const events = [];
+	let m = match;
+	const o = m.mercenaryOffer;
+	const nameOf = (c) => MERC_COMPANIES[c]?.name ?? "Mercenaries";
+	const gap = (salt) => MERC_GAP_MIN + Math.floor(createRng(seedFrom(m.id, turn, salt)).next() * (MERC_GAP_MAX - MERC_GAP_MIN + 1));
+	if (o && o.until <= turn) {
+		const owner = m.counties[o.county]?.owner;
+		if (owner) events.push({ county: o.county, kind: "mercenaries", to: owner, detail: `${nameOf(o.company)} grew tired of waiting and moved on` });
+		m = { ...m, mercenaryOffer: null, nextMercenaryTurn: turn + gap("merc-left") };
+	}
+	if (!m.mercenaryOffer && turn >= (m.nextMercenaryTurn ?? MERC_FIRST_VISIT)) {
+		const held = Object.keys(m.counties).filter((c) => m.counties[c].owner && m.counties[c].interior).sort();
+		if (held.length > 0) {
+			const rng = createRng(seedFrom(m.id, turn, "merc-arrive")).next;
+			const county = held[Math.floor(rng() * held.length)];
+			const ids = Object.keys(MERC_COMPANIES);
+			const company = ids[Math.floor(rng() * ids.length)];
+			const c = MERC_COMPANIES[company];
+			const owner = m.counties[county].owner;
+			m = { ...m, mercenaryOffer: { company, county, until: turn + MERC_STAY } };
+			events.push({ county, kind: "mercenaries", to: owner, detail: `${c.name} have arrived: ${c.size} ${UNITS[c.kind].name.toLowerCase()} for ${mercPrice(m, owner, c).toLocaleString("en-US")} gold and ${mercWage(c)} a season. They wait ${MERC_STAY} seasons — hire them from the Levy panel.` });
+		}
+	}
+	return { match: m, events };
 }
 /**
 * Move up to `cap` total troops out of `source` and into a target already
@@ -13204,7 +13259,8 @@ function garrisonArmy(match, armyId) {
 		...army,
 		troops: staying
 	};
-	const target = existingGarrison[0];
+	/** A hired company keeps its own army inside the walls too; others never join it. */
+	const target = army.mercenary ? null : existingGarrison.find((a) => !a.mercenary);
 	if (target) {
 		const merged = { ...target.troops };
 		for (const [kind, count] of Object.entries(moving)) merged[kind] = (merged[kind] ?? 0) + count;
@@ -13221,6 +13277,7 @@ function garrisonArmy(match, armyId) {
 			id: newId,
 			owner: army.owner,
 			troops: moving,
+			...army.mercenary ? { mercenary: army.mercenary } : {},
 			location: {
 				kind: "garrison",
 				county: countyId
@@ -13257,6 +13314,7 @@ function mergeFieldArmies(match, fromId, intoId) {
 	if (!from || !into) return fail$1("No such army");
 	if (from.location.kind !== "field" || into.location.kind !== "field") return fail$1("Both armies must be in the open");
 	if (from.owner !== into.owner) return fail$1("Armies must share an owner to merge");
+	if (from.mercenary || into.mercenary) return fail$1("A mercenary company marches as its own army");
 	const { moving, staying } = transferTroops(from.troops, troopCount(into.troops), MAX_FIELD_ARMY_SIZE);
 	if (troopCount(moving) === 0) return fail$1("That army is already full");
 	const merged = { ...into.troops };
@@ -14071,6 +14129,7 @@ function escortCaravan(match, armyId, caravanId) {
 	if (caravan.owner !== army.owner) return fail$2("You can only escort your own caravan");
 	if (army.location.county !== caravan.county || army.location.col !== caravan.at.col || army.location.row !== caravan.at.row) return fail$2("Army must stand on the caravan's tile to escort it");
 	const existing = caravan.escortArmyId ? match.armies[caravan.escortArmyId] : null;
+	if (existing && (existing.mercenary || army.mercenary)) return fail$2("A mercenary company marches as its own army");
 	const already = existing ? troopCount(existing.troops) : 0;
 	const { moving, staying } = transferTroops(army.troops, already, MAX_FIELD_ARMY_SIZE);
 	if (troopCount(moving) === 0) return fail$2("The escort is already at full strength");
@@ -14097,6 +14156,7 @@ function escortCaravan(match, armyId, caravanId) {
 			id: escortId,
 			owner: army.owner,
 			troops: moving,
+			...army.mercenary ? { mercenary: army.mercenary } : {},
 			location: {
 				kind: "escort",
 				caravanId
@@ -15847,7 +15907,8 @@ function counterModifiers(own, enemy) {
 	const mods = [];
 	for (const kind of KINDS$1) {
 		if (ownShare[kind] === 0) continue;
-		const against = COUNTER_BONUS[kind];
+		/** `?? {}`: rams had no entry, so the first battle with a crewed ram threw (found Oct 20). */
+		const against = COUNTER_BONUS[kind] ?? {};
 		for (const [enemyKind, factor] of Object.entries(against)) {
 			if (enemyShare[enemyKind] < .4) continue;
 			const weighted = 1 + (factor - 1) * ownShare[kind];
@@ -15890,7 +15951,9 @@ function factionModifier(factionId, attacking) {
 * pushes archers further down that order.
 */
 function applyCasualties$1(troops, damage, archerProtection, rng) {
+	/** Ram crews die first. They were missing from both lists, so rams could never be killed and a county with a crewed ram could never fall (found Oct 20). */
 	const order = archerProtection > 0 ? [
+		"rams",
 		"militia",
 		"mercenaries",
 		"crossbowmen",
@@ -15900,6 +15963,7 @@ function applyCasualties$1(troops, damage, archerProtection, rng) {
 		"knights",
 		"archers"
 	] : [
+		"rams",
 		"militia",
 		"mercenaries",
 		"archers",
@@ -17069,8 +17133,9 @@ var MERCHANT_BUY_PRICE = {
 	wood: 2,
 	ore: 2,
 	stone: 4,
-	wheat: 24,
-	cows: 8,
+	/** Swapped Oct 20 (Chris): was wheat 24 / cows 8, the reverse of LOTR2's wheat 4 / cows 24. */
+	wheat: 4,
+	cows: 24,
 	ale: 1,
 	bows: 32,
 	crossbows: 48,
@@ -17956,7 +18021,7 @@ function payUpkeep(match) {
 	const treasuries = { ...match.treasuries };
 	const armies = { ...match.armies };
 	for (const player of match.players) {
-		const owed = Object.values(match.armies).filter((a) => a.owner === player.id).reduce((sum, a) => sum + upkeepOf(a.troops), 0);
+		const owed = Object.values(match.armies).filter((a) => a.owner === player.id).reduce((sum, a) => sum + armyUpkeep(a), 0);
 		if (owed === 0) continue;
 		const pool = treasuries[player.id];
 		if (!pool) continue;
@@ -17978,6 +18043,16 @@ function payUpkeep(match) {
 		for (const army of Object.values(match.armies)) {
 			if (army.owner !== player.id) continue;
 			const unpaid = army.unpaidUpkeepTurns + 1;
+			/** A hired company leaves the moment it goes unpaid (LOTR2). */
+			if (army.mercenary) {
+				delete armies[army.id];
+				events.push({
+					county: army.location.kind === "inTransit" ? army.location.to : army.location.county,
+					kind: "deserted",
+					detail: `${MERC_COMPANIES[army.mercenary.company]?.name ?? "Your mercenaries"} went unpaid and marched away`
+				});
+				continue;
+			}
 			if (unpaid >= 2 && (army.troops.mercenaries ?? 0) > 0) {
 				const troops = { ...army.troops };
 				delete troops.mercenaries;
@@ -18045,9 +18120,9 @@ var clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 */
 var DIFFICULTY = {
 	easy: { label: "Easy", production: .7, armyShare: .55, advantage: 1.2, graceTurns: 24, playerFocus: 0 },
-	normal: { label: "Normal", production: 1, armyShare: 1, advantage: .2, graceTurns: 8, playerFocus: .15 },
-	hard: { label: "Hard", production: 1.45, armyShare: 1.45, advantage: -.4, graceTurns: 4, playerFocus: .6 },
-	veryHard: { label: "Very Hard", production: 2, armyShare: 1.9, advantage: -.6, graceTurns: 2, playerFocus: 1 }
+	normal: { label: "Normal", production: 1, armyShare: 1, advantage: 0, graceTurns: 8, playerFocus: .3 },
+	hard: { label: "Hard", production: 1.28, armyShare: 1.3, advantage: -.3, graceTurns: 4, playerFocus: .6 },
+	veryHard: { label: "Very Hard", production: 1.47, armyShare: 1.5, advantage: -.4, graceTurns: 2, playerFocus: 1 }
 };
 var DIFFICULTY_ORDER = ["easy", "normal", "hard", "veryHard"];
 var difficultyKeyOf = (player) => DIFFICULTY[player?.controller?.difficulty] ? player.controller.difficulty : "normal";
@@ -18081,7 +18156,7 @@ function applyDifficultyBonuses(before, after) {
 			if (gain > 0) next.food = { ...c.food, wheat: Math.max(0, Math.round(was.food.wheat + gain * k)) };
 			/** Growth too, but only upward: a harder AI out-breeds you; an easier one isn't starved. */
 			const born = c.population - was.population;
-			if (k > 1 && born > 0) next.population = Math.round(was.population + born * k);
+			if (k > 1 && born > 0) next.population = Math.round(was.population + born * (1 + (k - 1) / 2));
 			out = { ...out, counties: { ...out.counties, [id]: next } };
 		}
 	}
@@ -18102,7 +18177,8 @@ function runSeason(match, map) {
 	const { match: seasonResult, events } = advanceSeason(breaches.match, map);
 	const boosted = applyDifficultyBonuses(breaches.match, seasonResult);
 	const diplomacy = runDiplomacy(boosted, ix);
-	return { match: checkVictory(diplomacy.match), events: [...breaches.events, ...events, ...diplomacy.events], aiDecisions: marched.decisions };
+	const mercs = runMercenaries(diplomacy.match);
+	return { match: checkVictory(mercs.match), events: [...breaches.events, ...events, ...diplomacy.events, ...mercs.events], aiDecisions: marched.decisions };
 }
 /**
 * Headless simulator for tuning the AI (not used by the game itself).
@@ -19347,18 +19423,19 @@ var AI_SEAT_GUARD = .6;
 /** Never keep more than this share of the people under arms (before the difficulty multiplier). */
 var AI_ARMY_CAP_SHARE = .3;
 var AI_CAMPAIGN_MIN_ODDS = 1.3;
-var AI_MERC_BANDS_PER_SEASON = 3;
 var AI_GOLD_FLOOR = 150;
+var AI_RAM_CREW = 20;
+var AI_RAM_BUILDERS = 40;
 var standingArmies = (match, owner, countyId) => Object.values(match.armies).filter((a) => a.owner === owner && a.location.county === countyId && (a.location.kind === "garrison" || a.location.kind === "field"));
 /** What the attacker must beat: the owner's garrison behind its walls, or the town's levy in the street. */
-function defenceEstimate(match, countyId) {
+function defenceEstimate(match, countyId, assumeBreached = false) {
 	const st = match.counties[countyId];
 	if (!st) return Infinity;
 	const armies = st.owner === null ? [] : standingArmies(match, st.owner, countyId);
 	const walled = armies.filter((a) => a.location.kind === "garrison").reduce((s, a) => s + powerOf(a.troops), 0);
 	const inOpen = armies.filter((a) => a.location.kind === "field").reduce((s, a) => s + powerOf(a.troops), 0);
 	if (walled + inOpen === 0) return townLevy(st.population) * unitPower("militia");
-	return walled * (isCastleBreached(st) ? 1 : CASTLES[st.castleTier].defence) + inOpen;
+	return walled * (assumeBreached || isCastleBreached(st) ? 1 : CASTLES[st.castleTier].defence) + inOpen;
 }
 /** Hostile power standing in or next to a county — what its guard must answer. */
 function threatTo(match, ix, playerId, countyId) {
@@ -19414,6 +19491,7 @@ function takeMilitaryTurn(match, ix, playerId) {
 	for (const army of Object.values(current.armies)) {
 		if (army.owner !== playerId || army.location.kind !== "field") continue;
 		if (current.counties[army.location.county]?.owner !== playerId) continue;
+		if ((army.troops.rams ?? 0) > 0) continue;
 		const folded = garrisonArmy(current, army.id);
 		if (folded.ok) current = folded.match;
 	}
@@ -19454,9 +19532,10 @@ function takeMilitaryTurn(match, ix, playerId) {
 	const ownerOf = (c) => current.players.find((p) => p.id === current.counties[c]?.owner);
 	const candidates = [...new Set(ownedList.flatMap((c) => neighboursOf(ix, c)))].filter((n) => current.counties[n]?.interior && !owned.has(n)).filter((n) => !inGrace(player, ownerOf(n), turn) && !atPeace(current, playerId, current.counties[n].owner)).map((n) => {
 		const need = defenceEstimate(current, n) * odds;
+		const needBreached = defenceEstimate(current, n, true) * odds;
 		const human = isHumanSide(ownerOf(n));
 		const score = scoreTarget(current, ix, n) + (human ? level.playerFocus * 30 : 0) + (current.counties[n].owner === null ? 8 : 0) - need * .15;
-		return { id: n, need, human, score };
+		return { id: n, need, needBreached, walled: needBreached < need, human, score };
 	}).filter((t) => Number.isFinite(t.score)).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
 	const target = candidates[0] ?? null;
 	const powerAt = (c) => standingArmies(current, playerId, c).reduce((s, a) => s + powerOf(a.troops), 0);
@@ -19483,10 +19562,13 @@ function takeMilitaryTurn(match, ix, playerId) {
 	const totalPop = ownedList.reduce((s, c) => s + current.counties[c].population, 0);
 	const guardsTotal = [...guardOf.values()].reduce((s, g) => s + g, 0);
 	/** Mercenaries cost gold, not people, so they can top up past the levy cap. */
-	const wantForce = Math.max(guardsTotal + (target ? Math.ceil(target.need * 1.15) : 0), Math.round(totalPop * AI_ARMY_SHARE * (.8 + weighting.aggression * .6) * level.armyShare));
+	/** Guards are headcounts, the campaign need is power: convert at this army's own power per head (Oct 20 — mixing the two stalled a 1,300-power army short of a 780 need). */
+	const myArmies = Object.values(current.armies).filter((a) => a.owner === playerId);
+	const perHead = Math.max(1, myArmies.reduce((s, a) => s + powerOf(a.troops), 0) / Math.max(1, myArmies.reduce((s, a) => s + troopCount(a.troops), 0)));
+	const wantForce = Math.max(Math.ceil(guardsTotal * perHead) + (target ? Math.ceil(target.need * 1.15) : 0), Math.round(totalPop * AI_ARMY_SHARE * (.8 + weighting.aggression * .6) * level.armyShare));
 	const wantTotal = Math.min(totalPop * AI_ARMY_CAP_SHARE * level.armyShare, wantForce);
 	const myPower = () => Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + powerOf(a.troops), 0);
-	const upkeepNow = () => Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + upkeepOf(a.troops), 0);
+	const upkeepNow = () => Object.values(current.armies).filter((a) => a.owner === playerId).reduce((s, a) => s + armyUpkeep(a), 0);
 	const recruitOrder = [...ownedList].sort((a, b) => (b === staging) - (a === staging) || current.counties[b].population - current.counties[a].population);
 	for (const countyId of recruitOrder) {
 		const short = wantTotal - myPower();
@@ -19513,31 +19595,66 @@ function takeMilitaryTurn(match, ix, playerId) {
 			what: `raised ${troopCount(batch)} troops`
 		});
 	}
-	/** Spare gold buys mercenaries: at the seat if its guard is short, else where the army gathers. */
-	const seatShort = () => guardOf.get(seat) - standingArmies(current, playerId, seat).reduce((s, a) => s + troopCount(a.troops), 0);
-	const bands = Math.max(AI_MERC_BANDS_PER_SEASON, Math.min(15, Math.floor((current.treasuries[playerId]?.gold ?? 0) / 1e3)));
-	for (let k = 0; k < bands; k++) {
-		const hireAt = seatShort() > 0 || !staging ? seat : staging;
-		if (wantForce - myPower() < MERCENARY_BAND_SIZE / 2) break;
+	/**
+	* A visiting mercenary company in one of our counties: hire it when the
+	* army is short of what the campaign (or the guard) needs and the
+	* treasury can carry its wages for a good while.
+	*/
+	const offer = mercenaryOffer(current);
+	if (offer && owned.has(offer.county) && wantForce - myPower() > 0) {
+		const company = MERC_COMPANIES[offer.company];
 		const gold = current.treasuries[playerId]?.gold ?? 0;
-		const reserve = AI_GOLD_FLOOR + (upkeepNow() + MERCENARY_BAND_SALARY) * WAGE_RESERVE_SEASONS * 2;
-		if (gold - MERCENARY_BAND_HIRE_COST < reserve) break;
-		const hired = hireMercenaries(current, hireAt);
-		if (!hired.ok) break;
-		current = hired.match;
-		const folded = garrisonArmy(current, hired.armyId);
-		if (folded.ok) current = folded.match;
-		/** Fold the band into a camped stack so the next hire has a free tile beside the town. */
-		const band = current.armies[hired.armyId];
-		const camp = band?.location.kind === "field" && Object.values(current.armies).find((a) => a.id !== band.id && a.owner === playerId && a.location.kind === "field" && a.location.county === hireAt && troopCount(a.troops) + troopCount(band.troops) <= MAX_FIELD_ARMY_SIZE);
-		if (camp) {
-			const merged = mergeFieldArmies(current, band.id, camp.id);
-			if (merged.ok) current = merged.match;
+		const reserve = AI_GOLD_FLOOR + (upkeepNow() + mercWage(company)) * WAGE_RESERVE_SEASONS * 2;
+		if (gold - mercPrice(current, playerId, company) >= reserve) {
+			const hired = hireMercenaries(current, offer.county);
+			if (hired.ok) {
+				current = hired.match;
+				const folded = garrisonArmy(current, hired.armyId);
+				if (folded.ok) current = folded.match;
+				decisions.push({ county: offer.county, what: `hired ${company.name}` });
+			}
 		}
-		decisions.push({
-			county: hireAt,
-			what: `hired ${MERCENARY_BAND_SIZE} mercenaries`
-		});
+	}
+	/**
+	* Rams. When a castle stands between the campaign and its target and the
+	* gathered force can't beat the walls, build a ram in the staging county
+	* (the economy AI keeps `ramWorkers` reserved) and crew it once built; the
+	* crew marches with the next assault and wears the walls down each
+	* season. Without this, a well-held castle never fell (Oct 19 sims).
+	*/
+	const ramArmyAt = (c) => standingArmies(current, playerId, c).find((a) => (a.troops.rams ?? 0) > 0);
+	if (target && staging && target.walled) {
+		const st = current.counties[staging];
+		const hasRamArmy = Object.values(current.armies).some((a) => a.owner === playerId && (a.troops.rams ?? 0) > 0);
+		if (!hasRamArmy && (st.ramsAvailable ?? 0) > 0) {
+			const crewed = manRam(current, staging, AI_RAM_CREW);
+			if (crewed.ok) {
+				current = crewed.match;
+				decisions.push({ county: staging, what: "crewed a ram" });
+			}
+		} else if (!hasRamArmy && !st.ramBuilding && (st.ramsAvailable ?? 0) === 0) {
+			/**
+			* The forge eats the AI's ore, so it buys any shortfall at the
+			* merchant's price (the player can do the same at the merchant).
+			*/
+			const t = current.treasuries[playerId];
+			const short = Object.entries(RAM_BUILD_COST).map(([res, n]) => [res, Math.max(0, n - (t[res] ?? 0))]).filter(([, n]) => n > 0);
+			const bill = short.reduce((g, [res, n]) => g + n * MERCHANT_BUY_PRICE[res], 0);
+			if (bill > 0 && (t.gold ?? 0) - bill >= AI_GOLD_FLOOR) {
+				const bought = { ...t, gold: t.gold - bill };
+				for (const [res, n] of short) bought[res] = (bought[res] ?? 0) + n;
+				current = { ...current, treasuries: { ...current.treasuries, [playerId]: bought } };
+			}
+			const started = startRamBuild(current, staging, playerId);
+			if (started.ok) {
+				current = { ...started.match, counties: { ...started.match.counties, [staging]: { ...started.match.counties[staging], ramWorkers: Math.min(AI_RAM_BUILDERS, Math.floor(st.population * .15)) } } };
+				decisions.push({ county: staging, what: "started a ram" });
+			}
+		}
+	}
+	for (const c of ownedList) {
+		const cs = current.counties[c];
+		if (!cs.ramBuilding && (cs.ramWorkers ?? 0) > 0) current = { ...current, counties: { ...current.counties, [c]: { ...cs, ramWorkers: 0 } } };
 	}
 	/** 4. Gather on the staging county, then strike. */
 	const send = (army, count, to) => {
@@ -19551,7 +19668,7 @@ function takeMilitaryTurn(match, ix, playerId) {
 	const surplusStacks = (c) => {
 		let keep = guardOf.get(c) ?? 0;
 		const out = [];
-		for (const a of standingArmies(current, playerId, c).sort((x, y) => troopCount(y.troops) - troopCount(x.troops) || x.id.localeCompare(y.id))) {
+		for (const a of standingArmies(current, playerId, c).filter((x) => !(x.troops.rams > 0)).sort((x, y) => troopCount(y.troops) - troopCount(x.troops) || x.id.localeCompare(y.id))) {
 			const n = troopCount(a.troops);
 			const stay = Math.min(n, keep);
 			keep -= stay;
@@ -19562,9 +19679,13 @@ function takeMilitaryTurn(match, ix, playerId) {
 	if (target && staging) {
 		const ready = surplusStacks(staging);
 		const readyPower = ready.reduce((s, { army, count }) => s + powerOf(army.troops) * count / troopCount(army.troops), 0);
-		if (readyPower >= target.need && readyPower >= AI_MIN_EXPEDITION) {
+		/** With a ram along, the walls come down during the siege: aim between the walled and breached estimates. */
+		const ram = target.walled ? ramArmyAt(staging) : null;
+		const bar = ram && ram.movementRemaining > 0 ? (target.need + target.needBreached) / 2 : target.need;
+		if (readyPower >= bar && readyPower >= AI_MIN_EXPEDITION) {
 			let sent = 0;
 			for (const { army, count } of ready) if (send(army, count, target.id)) sent += count;
+			if (sent > 0 && ram && ram.movementRemaining > 0) send(ram, troopCount(ram.troops), target.id);
 			if (sent > 0) decisions.push({
 				county: target.id,
 				what: target.need === 0 ? `marched on undefended ${target.id}` : `attacked ${target.id} with ${sent}`
@@ -20532,7 +20653,7 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 		* to see.
 		*/
 		const you = withVictory.players.find((p) => p.controller.kind === "human");
-		const yourEvents = you ? events.filter((e) => e.kind === "diplomacy" ? e.to === you.id : priorOwners[e.county] === you.id || withVictory.counties[e.county]?.owner === you.id || e.attacker === you.id) : events;
+		const yourEvents = you ? events.filter((e) => e.to !== void 0 ? e.to === you.id : priorOwners[e.county] === you.id || withVictory.counties[e.county]?.owner === you.id || e.attacker === you.id) : events;
 		/**
 		* Persisted, not just shown-and-discarded — capped at the most
 		* recent 100 so the Event History screen has something to show
@@ -21428,6 +21549,27 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 				}
 			}, `${plot.county.id}-town`)
 		});
+		/** LOTR2's coin-and-sword sign over a town where a mercenary company waits. */
+		const merc = mercenaryOffer(match);
+		if (merc && merc.county === plot.county.id) {
+			const c = cellCentre(town.col, town.row);
+			const y = c.y - TILE_W * 1.35;
+			sprites.push({
+				row: town.row + .5,
+				col: town.col + .5,
+				z: 9,
+				el: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+					className: "ov-merc-sign",
+					onClick: () => onFocus?.(plot.county.id),
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("title", { children: `${MERC_COMPANIES[merc.company]?.name ?? "Mercenaries"} wait here${owned ? " \u2014 hire them from the Levy panel" : ""}` }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", { cx: c.x, cy: y, r: 15, fill: "#1a1512", stroke: "#e3bf4a", strokeWidth: 2.5 }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", { x: c.x, y: y + 6, textAnchor: "middle", fontSize: 17, children: "\u2694\uFE0F" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", { cx: c.x + 12, cy: y + 11, r: 7, fill: "#e3bf4a", stroke: "#1a1512", strokeWidth: 1.5 })
+					]
+				}, `${plot.county.id}-merc`)
+			});
+		}
 		if (state.castleTier !== "none") {
 			const keep = toWorld(origin, interior.castle);
 			sprites.push({
@@ -21895,9 +22037,13 @@ function LevyPanel({ match, countyId, onChange, onClose }) {
 	const costEntries = Object.entries(cost).filter(([, amount]) => amount > 0);
 	const shortfall = costEntries.filter(([res, amount]) => (treasury[res] ?? 0) < amount);
 	const overPopulation = populationShare > CONSCRIPTION_MAX_SHARE;
-	const mercenaryCostFactor = getFaction(factionOf(match, you.id))?.bonuses?.mercenaryCost ?? 1;
-	const mercenaryBandCost = Math.round(MERCENARY_BAND_HIRE_COST * mercenaryCostFactor);
-	const canAffordMercenaries = (treasury.gold ?? 0) >= mercenaryBandCost;
+	const mercOffer = mercenaryOffer(match);
+	const mercCompany = mercOffer ? MERC_COMPANIES[mercOffer.company] : null;
+	const mercHere = !!mercOffer && mercOffer.county === countyId;
+	const mercenaryBandCost = mercCompany ? mercPrice(match, you.id, mercCompany) : 0;
+	const canAffordMercenaries = mercHere && (treasury.gold ?? 0) >= mercenaryBandCost;
+	const mercWhere = mercOffer ? REALM.counties.find((c) => c.id === mercOffer.county)?.name ?? mercOffer.county : null;
+	const mercLeft = mercOffer ? mercOffer.until - match.turn.number : 0;
 	const adjust = (kind, delta) => setCounts((c) => ({
 		...c,
 		[kind]: Math.max(0, (c[kind] ?? 0) + delta)
@@ -22086,26 +22232,23 @@ function LevyPanel({ match, countyId, onChange, onClose }) {
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							style: { fontWeight: 600 },
-							children: `${UNITS.mercenaries.name} \u2014 Hired, not raised`
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							children: mercHere ? `\u{1F4B0} ${mercCompany.name} \u2014 mercenaries for hire` : "\u{1F4B0} Mercenaries"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "ov-labor-efficiency",
-							children: [
-								"Atk ", UNITS.mercenaries.attack, " / Def ", UNITS.mercenaries.defence, " \u2014 a band of ",
-								MERCENARY_BAND_SIZE, ", ready-equipped"
-							]
+							children: mercHere ? `${mercCompany.size} ${UNITS[mercCompany.kind].name.toLowerCase()}, ready-equipped \u2014 Atk ${UNITS[mercCompany.kind].attack} / Def ${UNITS[mercCompany.kind].defence}. No one leaves your fields to join them.` : mercOffer ? `${mercCompany.name} are camped at ${mercWhere} for ${mercLeft} more season${mercLeft === 1 ? "" : "s"}. Only that county's lord can hire them.` : "No company is in the realm. One visits a town now and then and waits 3 seasons."
 						})]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					mercHere && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						style: { fontSize: 13, color: palette.parchment },
 						className: canAffordMercenaries ? void 0 : "ov-labor-shortage",
-						children: [`${mercenaryBandCost} Gold to hire \u2014 then ${MERCENARY_BAND_SALARY} Gold/season flat, for the whole band regardless of losses`]
+						children: `${mercenaryBandCost.toLocaleString("en-US")} Gold to hire, then ${mercWage(mercCompany)} Gold a season. They leave the moment a wage goes unpaid, and march as their own army. Waiting ${mercLeft} more season${mercLeft === 1 ? "" : "s"}.`
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					mercHere && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 						className: "chip",
 						style: { marginTop: 2, alignSelf: "flex-start" },
 						disabled: !canAffordMercenaries,
 						onClick: confirmMercenaries,
-						children: `Hire this band (${mercenaryBandCost} Gold)`
+						children: `Hire the company (${mercenaryBandCost.toLocaleString("en-US")} Gold)`
 					})
 				]
 			}),
@@ -24948,6 +25091,7 @@ var EVENT_KIND_ICON = {
 	annexed: "\u{1F3F3}\uFE0F",
 	severed: "\u2702\uFE0F",
 	diplomacy: "\u{1F91D}",
+	mercenaries: "\u{1F4B0}",
 	inTransit: "\u{1F69A}"
 };
 /**
@@ -25359,7 +25503,7 @@ function KingdomResourcesPanel({ match, layout, playerId, onClose, onOpenGrain, 
 	const of = (resource) => countyNets.reduce((sum, { net }) => sum + (net.lines.find((l) => l.key === resource)?.net ?? 0), 0);
 	const totalOf = (resource) => treasury[resource] ?? 0;
 
-	const totalWages = Object.values(match.armies).filter((a) => a.owner === playerId).reduce((sum, a) => sum + upkeepOf(a.troops), 0);
+	const totalWages = Object.values(match.armies).filter((a) => a.owner === playerId).reduce((sum, a) => sum + armyUpkeep(a), 0);
 	const totalTax = countyNets.reduce((sum, { state }) => {
 		if (!(state.taxRate > 0)) return sum;
 		return sum + state.population * (state.taxRate / 100) * WEALTH_PER_CAPITA * (1 + CASTLES[state.castleTier].taxBonus);
