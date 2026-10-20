@@ -24078,9 +24078,14 @@ function planPlots(county, ctx) {
 	});
 	out.push({
 		key: "castle", slot: "castle",
-		label: county.building
-			? `Building (${Math.max(0, Math.ceil((CASTLES[county.building.tier].buildersNeeded - county.building.workDone) / Math.max(1, county.castleWorkers)))})`
-			: "Castle",
+		/** Fix list b11 (Chris, Oct 20): the bracket was seasons left, and read 800 with no builders. */
+		label: "Castle",
+		/** Shown in the plate's bracket: "Castle 0 (stalled)" in red, "Castle 40 (20 seasons)". */
+		note: !county.building ? null : (county.castleWorkers ?? 0) <= 0 ? "stalled" : (() => {
+			const n = Math.max(1, Math.ceil((CASTLES[county.building.tier].buildersNeeded - county.building.workDone) / county.castleWorkers));
+			return `${n} season${n === 1 ? "" : "s"}`;
+		})(),
+		noteBad: !!county.building && (county.castleWorkers ?? 0) <= 0,
 		// No mason sprite exists yet, so the farmer stands in rather than the
 		// blacksmith doing double duty across two plots — reusing the forge's
 		// own figure on the castle would read as the smith having moved.
@@ -24508,9 +24513,9 @@ function LaborBackdrop({ county, zones, idle, selected, onSelect }) {
 				h("image", { key: "f", href: art.url, x: s.x - fh / 2, y: s.y - fh, width: fh, height: fh, preserveAspectRatio: "xMidYMax meet" })
 			]));
 		}
-		const label = info.absent ? info.absent : short ? `${info.label}  ${info.workers} (${short})`.replace("(-", "(−") : info.locked && !info.workers ? info.label : `${info.label}  ${info.workers}`;
+		const label = info.absent ? info.absent : short ? `${info.label}  ${info.workers} (${short})`.replace("(-", "(−") : info.note ? `${info.label}  ${info.workers} (${info.note})` : info.locked && !info.workers ? info.label : `${info.label}  ${info.workers}`;
 		const on = !info.absent && (info.workers > 0 || short);
-		const fill = short ? "rgb(120 22 18 / .92)" : isIdle ? "rgb(40 70 140 / .92)" : on ? "rgb(52 24 16 / .9)" : "rgb(30 26 22 / .84)";
+		const fill = short || info.noteBad ? "rgb(120 22 18 / .92)" : isIdle ? "rgb(40 70 140 / .92)" : on ? "rgb(52 24 16 / .9)" : "rgb(30 26 22 / .84)";
 		const tw = label.length * 21 + 40;
 		const px = (x0 + x1) / 2, py = y0 + 46;
 		kids.push(h("g", { key: "plate" }, [
@@ -24709,7 +24714,7 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose }) {
 		repair: zoneInfo(plotOf("repair")),
 		idle: { label: "Idle", workers: unemployed, required: 0, tappable: false },
 		castle: castleJobs.length
-			? { label: castleJobs.length === 1 ? castleJobs[0].label : "Building", workers: castleJobs.reduce((n, p) => n + p.workers, 0), required: 0, tappable: true }
+			? { label: castleJobs.length === 1 ? castleJobs[0].label : "Building", workers: castleJobs.reduce((n, p) => n + p.workers, 0), required: 0, tappable: true, note: castleJobs.length === 1 ? castleJobs[0].note : null, noteBad: castleJobs.some((p) => p.noteBad) }
 			: zoneInfo(plotOf("castle"), { label: "Castle" })
 	};
 	const slotForZone = (zone) => zone === "pit" ? pitPlot?.slot : zone === "castle" ? (castleJobs[0] ?? plotOf("castle"))?.slot : zone;
