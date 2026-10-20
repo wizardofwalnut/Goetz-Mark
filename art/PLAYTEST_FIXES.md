@@ -127,4 +127,7 @@ walls with road gaps, shadows, labor screen variants.
 - Oct 20 `6caff8c`: **Food (option A, LOTR2 achieved ration)** (g2, d9): people eat what's in store; the eaten ration drives health/happiness; Ration card shows "ate Half", panel forecasts next season. Idle people: no penalty.
 - Oct 20 `bdd64f1`: **g3** grain plate shows the farmers needed to feed the county (no red −72 on turn one); advisor warns when hungry, when grain runs out within 2 seasons, and when fields are too few; tutorial starts 40 short. **b10** season report opens with "Greyfen is yours" / "Greyfen has fallen to Lady Aubrey"; on-the-spot assaults announce the result. **b8** armies show through towns and castles (70% x-ray copy on top). Fixed NaN when a county is emptied.
 - Oct 20: **GitHub Pages** set-up like The Overland Trail (`pages/`, `tools/deploy_pages.py`, branch `gh-pages`); waiting on Chris to switch Pages on.
+- Oct 20 `0dc0c51`: **Tutorial reworked** on LOTR2's Getting Started order across the first year (19 steps, one season per chapter, army in year 2) and **steward's notes** (LOTR2 tip screens) on first opening each screen, with a Settings switch.
+
+**Later (Chris, Oct 20):** a Civ-style advisor in normal games ("what I'd do next", New/Experienced levels) — LOTR2 "sort of had an advisor"; and **voiced explanations** like LOTR2's narrated screens, once the note texts settle.
 
