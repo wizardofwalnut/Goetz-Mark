@@ -16053,8 +16053,9 @@ function resolveBattle(input) {
 		if (troopCount(attackerTroops) === 0 || troopCount(defenderTroops) === 0) break;
 		const atk = buildSide(attackerTroops, defenderTroops, attackerStance, input.attacker.factionId, true, 1);
 		const def = buildSide(defenderTroops, attackerTroops, defenderStance, input.defender.factionId, false, input.defenderOutputMultiplier);
-		const toDefender = atk.final * defenderStance.damageTaken;
-		const toAttacker = def.final * attackerStance.damageTaken;
+		/** `damageScale` < 1 makes an exchange wear rather than wipe (ranged volleys, Oct 20). */
+		const toDefender = atk.final * defenderStance.damageTaken * (input.damageScale ?? 1);
+		const toAttacker = def.final * attackerStance.damageTaken * (input.damageScale ?? 1);
 		const defHit = applyCasualties$1(defenderTroops, toDefender / 10, defenderStance.archerProtection, rng);
 		const atkHit = applyCasualties$1(attackerTroops, toAttacker / 10, attackerStance.archerProtection, rng);
 		rounds.push({
@@ -17650,8 +17651,19 @@ function erodeRamDurability(match) {
 */
 var RANGED_KINDS = ["archers", "crossbowmen"];
 var RANGED_VOLLEY_POWER = .7;
-/** Height advantage for archers shooting OUT from walls. Smaller than ARCHER_CASTLE_DEFENCE_BONUS (2.25, for meeting an assault): stacked on a volley that wiped 30 archers with 40 in one season. */
-var WALL_FIRE_BONUS = 1.5;
+/**
+* A volley wears a target down rather than wiping it (Chris, Oct 20: ROTK11
+* armies are huge and a volley takes a small slice). Before this, one volley
+* killed about as many men as there were archers (40 wiped 30). At 0.3 each
+* bowman kills roughly 0.15 a season before walls, matchups and woods.
+*/
+var VOLLEY_DAMAGE_SCALE = .3;
+/**
+* Walls are DEFENCE, not attack (Chris, Oct 20): bowmen shooting out from
+* the walls get no bonus; the walls' worth is cutting the garrison's own
+* losses. (Was x1.5.)
+*/
+var WALL_FIRE_BONUS = 1;
 var rangedOf = (troops) => {
 	const out = {};
 	for (const k of RANGED_KINDS) if ((troops[k] ?? 0) > 0) out[k] = troops[k];
@@ -17677,6 +17689,7 @@ function resolveArcherHarassment(match, ix) {
 				seed: seedFrom(current.id, current.turn.number, countyId, shooterIds[0], targetIds[0]),
 				maxRounds: 1,
 				rangedVolley: true,
+				damageScale: VOLLEY_DAMAGE_SCALE,
 				attackerOutputMultiplier: archerBonus,
 				defenderOutputMultiplier: 1
 			});
