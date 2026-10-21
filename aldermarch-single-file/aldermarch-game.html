@@ -2780,6 +2780,14 @@ image.ov-tut-glow { animation: ov-tut-pulse-img 1.2s ease-in-out infinite; }
 }
 .ov-figbar-corner:disabled { opacity: 0.35; }
 .ov-figbar-corner.next-unit { left: 10px; }
+/* End-turn warning strip (fix list a2): above the county-name band, over the map's edge. */
+.ov-figbar-warn { position: absolute; bottom: calc(100% + 34px); left: 10px; right: 10px; min-height: 30px; display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px; border-radius: 7px; border: 1.5px solid #c9a227; background: rgba(22, 18, 13, .88); color: #f3e7c8;
+  font: 700 13.5px Arial, sans-serif; text-align: left; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, .5); z-index: 3; }
+.ov-figbar-warn:focus-visible { outline: 2px solid #e3bf4a; outline-offset: 2px; }
+.ov-figbar-warn-icon { flex: none; font-size: 15px; }
+.ov-figbar-warn-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-figbar-warn-count { flex: none; font-weight: 400; font-size: 12px; color: #cfc6b0; }
 .ov-figbar-corner.next-county { right: 10px; }
 .ov-figbar-name {
   position: absolute;
@@ -12565,7 +12573,6 @@ var troopCount = (r) => Object.keys(UNITS).reduce((sum, kind) => sum + (r[kind] 
 * modernisation of the original's "always fight" rule.
 */
 var garrisonOf = (m, county) => Object.values(m.armies).filter((a) => a.location.kind === "garrison" && a.location.county === county);
-var isDefended = (m, county) => garrisonOf(m, county).some((a) => troopCount(a.troops) > 0);
 //#endregion
 //#region src/content/units.ts
 /**
@@ -21097,7 +21104,8 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				onNextUnit,
 				hasUnfinishedUnits,
 				onNextCounty,
-				hasOtherCounties
+				hasOtherCounties,
+				onFocusCounty: setFocus
 			}),
 			rationScreenCounty && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RationScreen, {
 				match,
@@ -21792,9 +21800,33 @@ function Land({ layout, baked }) {
 * keep as real elements, and being real elements is what will let them be
 * tapped once the map becomes interactive.
 */
+/**
+* Troop-count plate (fix list u6/a5, Chris Oct 21: "plate under the army",
+* like LOTR2's army numbers). Cream number on a dark plate edged in the
+* owner's colour; sable's own bright tone is too dark to read on the plate,
+* so it gets a lighter grey edge. Drawn in a top layer by `Movers`, so a
+* town or mountain never hides it, and it never takes a tap.
+*/
+var PLATE_EDGE = (seat) => (seat % 4 + 4) % 4 === 3 ? "#9a9aa8" : seatColor(seat).bright;
+var plateText = (n) => n >= 1e4 ? `${Math.round(n / 1e3)}k` : n.toLocaleString("en-US");
+function TroopPlate({ x, y, count, seat, label }) {
+	const text = plateText(count);
+	const w = 10 + text.length * 7.4;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+		className: "ov-troop-plate",
+		style: { transform: `translate(${x}px, ${y}px)`, transition: "transform 500ms ease-in-out", pointerEvents: "none" },
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("title", { children: label }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", { x: -w / 2, y: -8, width: w, height: 16, rx: 3, fill: "#16120d", fillOpacity: .88, stroke: PLATE_EDGE(seat), strokeWidth: 1.6 }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", { x: 0, y: 4.5, textAnchor: "middle", fontSize: 12.5, fontWeight: 700, fontFamily: "Arial, sans-serif", fill: "#f3e7c8", children: text })
+		]
+	});
+}
 function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, onOpenLabor, onOpenMerchant, onFocus }) {
 	const you = match.players.find((p) => p.controller.kind === "human");
 	const sprites = [];
+	/** Troop plates, drawn above everything (see `TroopPlate`). */
+	const plates = [];
 	for (const plot of layout.plots) {
 		const state = match.counties[plot.county.id];
 		if (!state) continue;
@@ -21860,21 +21892,43 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 					label: `${plot.county.name} castle`
 				}, `${plot.county.id}-keep`)
 			});
-			const holder = state.owner ? match.players.find((p) => p.id === state.owner) : null;
-			if (holder && isDefended(match, plot.county.id)) sprites.push({
-				row: keep.row,
-				col: keep.col,
+		}
+		/**
+		* Owner's flag over every held county (fix list u5/a4, Chris Oct 21:
+		* "flag on every town"). It used to fly only over a garrisoned castle,
+		* so an undefended county showed no owner at all. One flag per county:
+		* on the castle when there is one, otherwise over the town. Neutral
+		* counties fly none. The garrison is still shown — as a troop plate
+		* under the flag.
+		*/
+		const holder = state.owner ? match.players.find((p) => p.id === state.owner) : null;
+		if (holder) {
+			const onKeep = state.castleTier !== "none";
+			const anchor = onKeep ? toWorld(origin, interior.castle) : town;
+			const flagOffset = onKeep ? { x: .34, y: -1.15 } : { x: .12, y: -1.85 };
+			const garrison = garrisonOf(match, plot.county.id).reduce((n, a) => n + troopCount(a.troops), 0);
+			sprites.push({
+				row: anchor.row,
+				col: anchor.col,
+				z: 8,
 				el: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapSprite, {
-					cell: keep,
+					cell: anchor,
 					art: castleFlagArt(holder.seat),
 					size: .45,
-					offset: {
-						x: .34,
-						y: -1.15
-					},
-					label: `${plot.county.name} garrisoned`
+					offset: flagOffset,
+					label: `${plot.county.name} \u2014 held by ${holder.displayName ?? "a lord"}${garrison > 0 ? `, ${garrison} in garrison` : ""}`
 				}, `${plot.county.id}-flag`)
 			});
+			if (garrison > 0) {
+				const c = cellCentre(anchor.col, anchor.row);
+				plates.push(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TroopPlate, {
+					x: c.x + flagOffset.x * TILE_W,
+					y: c.y + TILE_H * .45 + flagOffset.y * TILE_H + 6,
+					count: garrison,
+					seat: holder.seat,
+					label: `${plot.county.name} garrison: ${garrison}`
+				}, `${plot.county.id}-gplate`));
+			}
 		}
 		if (match.merchant && match.merchant.county === plot.county.id) {
 			const at = toWorld(origin, match.merchant.at);
@@ -21985,6 +22039,16 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 					}, `${army.id}-bearer`)
 				] }, `${army.id}-group`)
 			});
+			if (owner && total > 0) {
+				const c = cellCentre(at.col, at.row);
+				plates.push(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TroopPlate, {
+					x: c.x + .1 * TILE_W,
+					y: c.y + TILE_H * .45 + 9,
+					count: total,
+					seat: owner.seat,
+					label: `${owner.displayName ?? "Someone"}'s army \u2014 ${total} troops`
+				}, `${army.id}-plate`));
+			}
 		}
 	}
 	/**
@@ -22055,7 +22119,8 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 		* armies stay tappable through it; others' let taps fall through
 		* to the building underneath.
 		*/
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { className: "ov-xray", opacity: .7, children: sprites.filter((s) => s.xray).map((s, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { style: s.xray === "tap" ? void 0 : { pointerEvents: "none" }, children: s.el }, `xr${i}`)) }, "xray")
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { className: "ov-xray", opacity: .7, children: sprites.filter((s) => s.xray).map((s, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { style: s.xray === "tap" ? void 0 : { pointerEvents: "none" }, children: s.el }, `xr${i}`)) }, "xray"),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", { className: "ov-troop-plates", style: { pointerEvents: "none" }, children: plates }, "plates")
 	] });
 }
 /**
@@ -22645,44 +22710,68 @@ function seasonsOfGrain(county, match) {
 	const eat = county.population * GRAIN_PER_HEAD * (county.rationLevel ?? 1) - calculateDairyProduced(county.herd ?? 0, bonus, county.cattleEfficiency ?? 1);
 	return eat <= 0 ? Infinity : (county.food?.wheat ?? 0) / eat;
 }
-function getAdvisorAlert(match) {
+/**
+* Every warning the steward has, most urgent first (fix list a2). The top-bar
+* advisor icon shows the first; the end-turn strip walks through them all.
+* Each has a full `text` and a `short` one-line form for the strip.
+*/
+function getAdvisorAlerts(match) {
+	const out = [];
 	const you = match.players.find((p) => p.controller.kind === "human");
 	if (!you) return null;
 	const owned = Object.entries(match.counties).filter(([, c]) => c.owner === you.id && c.interior);
 	const nameOf = (id) => REALM.counties.find((c) => c.id === id)?.name ?? id;
 	for (const [id, c] of owned) {
-		if (c.happiness <= 10) return { icon: "\u{1F525}", text: `${nameOf(id)} is on the brink of revolt`, countyId: id };
+		if (c.happiness <= 10) out.push({ icon: "\u{1F525}", text: `${nameOf(id)} is on the brink of revolt`, short: `${nameOf(id)}: about to revolt`, countyId: id });
 	}
 	for (const [id, c] of owned) {
-		if (c.plagueTurns > 0) return { icon: "\u{1F912}", text: `Plague is ravaging ${nameOf(id)}`, countyId: id };
+		const u = c.unrestTurns ?? 0;
+		if (c.happiness > 10 && c.happiness <= UNREST_HAPPINESS) {
+			const left = Math.max(1, 3 - u);
+			out.push({ icon: "\u{1F525}", text: `${nameOf(id)} is in unrest \u2014 it revolts in ${left} season${left === 1 ? "" : "s"} unless happiness rises above ${UNREST_HAPPINESS}%`, short: `${nameOf(id)}: revolts in ${left} season${left === 1 ? "" : "s"}`, countyId: id });
+		}
+	}
+	for (const [id, c] of owned) {
+		if (c.plagueTurns > 0) out.push({ icon: "\u{1F912}", text: `Plague is ravaging ${nameOf(id)}`, short: `${nameOf(id)}: plague`, countyId: id });
 	}
 	/** Food (g3): already hungry, then about to be, then fields too few to keep up. */
 	for (const [id, c] of owned) {
-		if (c.achievedRation != null && c.achievedRation < c.rationLevel) return { icon: "\u{1F35E}", text: `${nameOf(id)} is going hungry \u2014 buy grain from the merchant, plant more grain fields, or lower the ration`, countyId: id };
+		if (c.achievedRation != null && c.achievedRation < c.rationLevel) out.push({ icon: "\u{1F35E}", text: `${nameOf(id)} is going hungry \u2014 buy grain from the merchant, plant more grain fields, or lower the ration`, short: `${nameOf(id)}: going hungry`, countyId: id });
 	}
 	for (const [id, c] of owned) {
 		const left = seasonsOfGrain(c, match);
-		if (left < 2) return { icon: "\u{1F35E}", text: `${nameOf(id)}'s grain runs out ${left < 1 ? "this season" : "next season"} \u2014 buy grain or plant more fields`, countyId: id };
+		if (left < 2) out.push({ icon: "\u{1F35E}", text: `${nameOf(id)}'s grain runs out ${left < 1 ? "this season" : "next season"} \u2014 buy grain or plant more fields`, short: `${nameOf(id)}: grain out ${left < 1 ? "this season" : "next season"}`, countyId: id });
 	}
 	for (const [id, c] of owned) {
 		const need = grainFeedNeed(c);
-		if (need.fieldsShort && seasonsOfGrain(c, match) < 8) return { icon: "\u{1F33E}", text: `${nameOf(id)} has outgrown its grain fields \u2014 it needs ${need.fieldsWanted} planted, has ${need.sacksCapacity / MAX_SACKS_PER_FIELD}`, countyId: id };
+		if (need.fieldsShort && seasonsOfGrain(c, match) < 8) out.push({ icon: "\u{1F33E}", text: `${nameOf(id)} has outgrown its grain fields \u2014 it needs ${need.fieldsWanted} planted, has ${need.sacksCapacity / MAX_SACKS_PER_FIELD}`, short: `${nameOf(id)}: needs more grain fields`, countyId: id });
 	}
 	for (const [id, c] of owned) {
-		if (c.building && (c.castleWorkers ?? 0) <= 0) return { icon: "\u{1F3F0}", text: `Construction has stalled in ${nameOf(id)} \u2014 no builders assigned`, countyId: id };
+		if (c.building && (c.castleWorkers ?? 0) <= 0) out.push({ icon: "\u{1F3F0}", text: `Construction has stalled in ${nameOf(id)} \u2014 no builders assigned`, short: `${nameOf(id)}: castle stalled`, countyId: id });
 	}
 	for (const [id, c] of owned) {
 		const grainFields = c.interior.fields.filter((f) => f.status === "grain");
 		const ripe = grainFields.some((f) => grainStage(f.seasonsGrown) === "mature");
 		const grainRequired = grainFeedNeed(c).workers;
-		if (ripe && c.farmWorkers < grainRequired) return { icon: "\u{1F33E}", text: `Grain stands ripe and undermanned in ${nameOf(id)}`, countyId: id };
+		if (ripe && c.farmWorkers < grainRequired) out.push({ icon: "\u{1F33E}", text: `Grain stands ripe and undermanned in ${nameOf(id)}`, short: `${nameOf(id)}: ripe grain, too few farmers`, countyId: id });
 	}
 	for (const [id, c] of owned) {
 		const cattleFieldCount = c.interior.fields.filter((f) => f.status === "cattle").length;
 		const { net } = herdBirthsAndDeaths(c.herd ?? 0, c.cattleWorkers, cattleFieldCount);
-		if ((c.herd ?? 0) > 0 && net < 0) return { icon: "\u{1F404}", text: `The herd is shrinking in ${nameOf(id)}`, countyId: id };
+		if ((c.herd ?? 0) > 0 && net < 0) out.push({ icon: "\u{1F404}", text: `The herd is shrinking in ${nameOf(id)}`, short: `${nameOf(id)}: herd shrinking`, countyId: id });
 	}
-	return null;
+	for (const [id, c] of owned) {
+		if (c.castleRepair && (c.castleRepairWorkers ?? 0) <= 0) out.push({ icon: "\u{1F3F0}", text: `Wall repairs have stalled in ${nameOf(id)} \u2014 no builders assigned`, short: `${nameOf(id)}: repairs stalled`, countyId: id });
+		if (c.ramBuilding && (c.ramWorkers ?? 0) <= 0) out.push({ icon: "\u{1FAB5}", text: `The ram in ${nameOf(id)} has stalled \u2014 no builders assigned`, short: `${nameOf(id)}: ram stalled`, countyId: id });
+	}
+	for (const [id, c] of owned) {
+		const idle = unemployedWorkersOf(c);
+		if (idle >= Math.max(20, c.population * .1)) out.push({ icon: "\u{1F465}", text: `${idle} people stand idle in ${nameOf(id)} \u2014 put them to work from the town centre`, short: `${nameOf(id)}: ${idle} idle`, countyId: id });
+	}
+	return out;
+}
+function getAdvisorAlert(match) {
+	return getAdvisorAlerts(match)[0] ?? null;
 }
 /**
 * Manual cycling only, never automatic — a single tap jumps to the next
@@ -23718,7 +23807,7 @@ function Readout({ resource, value, signed = false }) {
 		})]
 	});
 }
-function FocusStrip({ layout, match, focus, onChange, onOpenLevy, onOpenRation, onOpenHappiness, onOpenHealth, onOpenCattle, onOpenGrain, onOpenCastle, onOpenBattleReport, onOpenPopulation, onOpenDiplomacy, onOpenBestNoble, onSendCaravan, onEndSeason, onNextUnit, hasUnfinishedUnits, onNextCounty, hasOtherCounties }) {
+function FocusStrip({ layout, match, focus, onChange, onOpenLevy, onOpenRation, onOpenHappiness, onOpenHealth, onOpenCattle, onOpenGrain, onOpenCastle, onOpenBattleReport, onOpenPopulation, onOpenDiplomacy, onOpenBestNoble, onSendCaravan, onEndSeason, onNextUnit, hasUnfinishedUnits, onNextCounty, hasOtherCounties, onFocusCounty }) {
 	const plot = layout.plots.find((p) => p.county.id === focus) ?? layout.plots[0];
 	if (!plot) return null;
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CountyStrip, {
@@ -23741,7 +23830,8 @@ function FocusStrip({ layout, match, focus, onChange, onOpenLevy, onOpenRation, 
 		onNextUnit,
 		hasUnfinishedUnits,
 		onNextCounty,
-		hasOtherCounties
+		hasOtherCounties,
+		onFocusCounty
 	});
 }
 /**
@@ -26459,7 +26549,9 @@ function industryStaff(county) {
 	return county.interior.industry.reduce((sum, s) => sum + Math.max(0, Math.round(s.workers ?? 0)), 0);
 }
 
-function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpenHappiness, onOpenHealth, onOpenCattle, onOpenGrain, onOpenCastle, onOpenBattleReport, onOpenPopulation, onOpenDiplomacy, onOpenBestNoble, onSendCaravan, onEndSeason, onNextUnit, hasUnfinishedUnits, onNextCounty, hasOtherCounties }) {
+function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpenHappiness, onOpenHealth, onOpenCattle, onOpenGrain, onOpenCastle, onOpenBattleReport, onOpenPopulation, onOpenDiplomacy, onOpenBestNoble, onSendCaravan, onEndSeason, onNextUnit, hasUnfinishedUnits, onNextCounty, hasOtherCounties, onFocusCounty }) {
+	const warnings = onEndSeason ? getAdvisorAlerts(match) : [];
+	const [warnAt, setWarnAt] = (0, import_react.useState)(0);
 	const state = match.counties[county.id];
 	const interior = state?.interior;
 	if (!state || !interior) return null;
@@ -26588,6 +26680,29 @@ function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpen
 				className: "ov-figbar-name",
 				children: county.name
 			}),
+			/**
+			* End-turn warnings (fix list a2, Chris Oct 21: "strip above End
+			* Turn"). One quiet line over the map's bottom edge; it never
+			* blocks End Turn. A tap jumps to that county, says the full
+			* warning, and moves the strip on to the next one.
+			*/
+			warnings.length > 0 && (() => {
+				const w = warnings[warnAt % warnings.length];
+				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					className: "ov-figbar-warn",
+					"aria-label": `Warning ${warnAt % warnings.length + 1} of ${warnings.length}: ${w.text}`,
+					onClick: () => {
+						onFocusCounty?.(w.countyId);
+						noticeAsync(w.text);
+						setWarnAt((n) => (n + 1) % warnings.length);
+					},
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "ov-figbar-warn-icon", "aria-hidden": true, children: "\u26A0\uFE0F" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "ov-figbar-warn-text", children: w.short }),
+						warnings.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "ov-figbar-warn-count", children: `${warnAt % warnings.length + 1}/${warnings.length}` })
+					]
+				});
+			})(),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "ov-figbar-main",
 				children: [
