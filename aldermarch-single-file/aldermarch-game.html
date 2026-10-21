@@ -26485,15 +26485,8 @@ function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpen
 	const rationIndex = rationNames.findIndex((name) => RATION_LEVELS[name] === state.rationLevel);
 	const adjustTax = (delta) => {
 		if (!onChange) return;
-		/**
-		* 5% steps (fix list g10: 20 taps to reach 20%). Snaps to the 5% grid
-		* rather than adding 5, so an off-grid rate (an old save at 3%) still
-		* lands on 5% / 0% instead of being stuck between steps.
-		*/
-		const STEP = 5;
-		const rate = state.taxRate ?? 0;
-		const next = delta > 0 ? Math.floor(rate / STEP) * STEP + STEP : Math.ceil(rate / STEP) * STEP - STEP;
-		const result = setTaxRate(match, county.id, next);
+		/** 1% steps (Chris, Oct 20 — the 5% steps suggested in fix list g10 were dropped). */
+		const result = setTaxRate(match, county.id, (state.taxRate ?? 0) + delta);
 		if (result.ok) onChange(result.match);
 	};
 	/**
