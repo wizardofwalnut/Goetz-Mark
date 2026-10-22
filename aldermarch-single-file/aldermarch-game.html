@@ -1088,6 +1088,15 @@ End Turn stays the visually dominant element between them. */
 }
 
 .ov-readout.up .ov-num { color: #8fc06a; }
+/* Top bar too wide for the phone: tighten before anything clips (see TopBar). */
+.ov-top--tight { gap: 6px; }
+.ov-top--tight .ov-top-turn { gap: 5px; }
+.ov-top--tight .ov-num { font-size: 13.5px; letter-spacing: -0.02em; }
+.ov-top--tight .ov-when { font-size: 11px; }
+.ov-top--tight .ov-res { gap: 2px; }
+.ov-top .ov-res .ov-readout { flex: none; }
+.ov-top--wrap { flex-wrap: wrap; row-gap: 4px; }
+.ov-top--wrap .ov-res { margin-left: auto; }
 .ov-readout.down .ov-num { color: #d47a5f; }
 
 /* Labor allocation screen — the fine-grained 8-slot grid. Full-screen
@@ -12978,7 +12987,13 @@ var CONSCRIPTION_MAX_SHARE = .5;
 * this fails the whole action with a clear reason — same philosophy as
 * every other "no free tile" failure in this codebase.
 */
-function recruitArmy(match, countyId, troops) {
+/** Levies and ram crews take idle people first; only past that are jobs trimmed (see `fitWorkforce`). */
+var withFittedWorkforce = (fn) => (...args) => {
+	const r = fn(...args);
+	return r && r.ok && r.match ? { ...r, match: fitAllWorkforces(r.match) } : r;
+};
+var recruitArmy = withFittedWorkforce(recruitArmyRaw);
+function recruitArmyRaw(match, countyId, troops) {
 	const county = match.counties[countyId];
 	if (!county) return fail$1("No such county");
 	if (!county.owner) return fail$1("County is unclaimed");
@@ -17058,7 +17073,8 @@ function startCastleRepair(match, countyId, playerId) {
 * share rules as any other levy so manning a ram can't itself empty a
 * county the ordinary levy cap wouldn't allow either.
 */
-function manRam(match, countyId, count) {
+var manRam = withFittedWorkforce(manRamRaw);
+function manRamRaw(match, countyId, count) {
 	const county = match.counties[countyId];
 	if (!county) return fail$1("No such county");
 	if (!county.owner) return fail$1("County is unclaimed");
@@ -18252,6 +18268,36 @@ function applyDifficultyBonuses(before, after) {
 * headless simulator (`window.__ALDERMARCH_SIM__`), so tuning runs the real
 * rules.
 */
+/**
+* Never more people at work than live in the county (audit, Oct 22). Deaths,
+* emigration, plague, levies and ram crews all cut `population`, but nothing
+* took the lost people off their jobs, so in every simulated game counties
+* ran with more workers than people (up to 443 at work of 398). Production
+* already scaled itself down when that happened (`overflowScale`), but the
+* labor screen showed the phantom workers and builders weren't scaled at
+* all. Trim every job by the same share, rounding down, so the total fits.
+*/
+var WORK_SLOTS = ["farmWorkers", "cattleWorkers", "repairWorkers", "castleWorkers", "ramWorkers", "castleRepairWorkers"];
+function fitWorkforce(county) {
+	if (!county?.interior) return county;
+	const pop = Math.max(0, Math.floor(county.population ?? 0));
+	const total = WORK_SLOTS.reduce((n, k) => n + Math.max(0, county[k] ?? 0), 0) + county.interior.industry.reduce((n, s) => n + Math.max(0, s.workers ?? 0), 0);
+	if (total <= pop) return county;
+	const share = total > 0 ? pop / total : 0;
+	const out = { ...county };
+	for (const k of WORK_SLOTS) if (county[k] != null) out[k] = Math.floor(Math.max(0, county[k]) * share);
+	out.interior = { ...county.interior, industry: county.interior.industry.map((site) => site.workers ? { ...site, workers: Math.floor(Math.max(0, site.workers) * share) } : site) };
+	return out;
+}
+function fitAllWorkforces(match) {
+	let changed = false;
+	const counties = {};
+	for (const [id, c] of Object.entries(match.counties)) {
+		counties[id] = fitWorkforce(c);
+		if (counties[id] !== c) changed = true;
+	}
+	return changed ? { ...match, counties } : match;
+}
 function runSeason(match, map) {
 	const ix = indexMap(map);
 	const marched = takeAllMilitaryTurns(takeAllAiTurns(match).match, ix);
@@ -18261,7 +18307,7 @@ function runSeason(match, map) {
 	const boosted = applyDifficultyBonuses(breaches.match, seasonResult);
 	const diplomacy = runDiplomacy(boosted, ix);
 	const mercs = runMercenaries(diplomacy.match);
-	return { match: checkVictory(mercs.match), events: [...breaches.events, ...events, ...diplomacy.events, ...mercs.events], aiDecisions: marched.decisions };
+	return { match: checkVictory(fitAllWorkforces(mercs.match)), events: [...breaches.events, ...events, ...diplomacy.events, ...mercs.events], aiDecisions: marched.decisions };
 }
 /**
 * Headless simulator for tuning the AI (not used by the game itself).
@@ -20322,6 +20368,28 @@ var GROUND_LAYERS = [
 * signature that changes every render silently re-bakes the whole world on
 * every frame and simply feels slow. A test asserts the static three never move.
 */
+/**
+* Everything `bakeCounty` paints for one county, as one string (overnight
+* audit, Oct 22). The bake used to re-run for all four counties on EVERY
+* state change — `layout` is rebuilt from the whole match — so one labor tap
+* cost a ~1.2 s freeze (970 ms of it toDataURL) on desktop Chrome, more on the
+* phone. Workers, gold, tax and armies aren't baked; only these are.
+*/
+function bakeKey(plot, season) {
+	const { interior } = plot;
+	const cells = (list) => list.map((c) => `${c.col},${c.row}`).join(";");
+	return [
+		season,
+		`${interior.cols}x${interior.rows}`,
+		interior.ground.map((g) => g.kind[0]).join(""),
+		interior.fields.map((f) => `${f.col},${f.row}:${f.status}:${stageOf(f) ?? "-"}:${f.status === "grain" ? Math.min(MAX_SACKS_PER_FIELD, Math.round(f.plantedSacks ?? 0)) : ""}`).join(";"),
+		cells(plot.road ?? interior.road),
+		cells(interior.road),
+		interior.industry.map((x) => `${x.kind}@${x.col},${x.row}`).join(";"),
+		interior.town ? cells([interior.town]) : "",
+		interior.castle ? cells([interior.castle]) : ""
+	].join("|");
+}
 function layerSignatures(interior, season) {
 	const terrain = `${interior.cols}x${interior.rows}:${interior.ground.map((g) => g.kind[0]).join("")}`;
 	const roads = interior.road.map((c) => `${c.col},${c.row}`).join(";");
@@ -21550,29 +21618,60 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 		height: 0
 	});
 	const { width, height } = worldSize(layout);
-	const masks = (0, import_react.useMemo)(() => worldRoad(layout), [layout]);
+	const roadKey = layout.plots.map((p) => p.road.map((c) => `${c.col},${c.row}`).join(";")).join("|");
+	const masks = (0, import_react.useMemo)(() => worldRoad(layout), [roadKey]);
 	const season = seasonOfTurn(match.turn.number);
+	/**
+	* Bake only what changed (see `bakeKey`). Each county's bake is cached
+	* with the key it was made from and reused until that key or the road
+	* masks change; a replaced bake is released only once its successor is
+	* in place, and everything is released when the map unmounts.
+	*/
+	const bakeCache = (0, import_react.useRef)(/* @__PURE__ */ new Map());
+	const bakeKeys = layout.plots.map((p) => `${p.county.id}#${bakeKey(p, season)}`).join("||");
 	(0, import_react.useEffect)(() => {
 		let live = true;
 		const made = [];
 		(async () => {
+			const cache = bakeCache.current;
 			const entries = /* @__PURE__ */ new Map();
 			for (const plot of layout.plots) {
+				const id = plot.county.id;
+				const key = bakeKey(plot, season);
+				const hit = cache.get(id);
+				if (hit && hit.key === key && hit.masks === masks) {
+					entries.set(id, hit.county);
+					continue;
+				}
 				const county = await bakeCounty(plot, masks, season);
-				made.push(county);
-				entries.set(plot.county.id, county);
+				if (!live) {
+					county.release();
+					for (const m of made) m.county.release();
+					return;
+				}
+				made.push({ id, key, county });
+				entries.set(id, county);
 			}
 			if (!live) {
-				for (const county of made) county.release();
+				for (const m of made) m.county.release();
 				return;
+			}
+			if (made.length === 0) return;
+			for (const m of made) {
+				const old = cache.get(m.id);
+				if (old && old.county !== m.county) old.county.release();
+				cache.set(m.id, { key: m.key, masks, county: m.county });
 			}
 			setBaked(entries);
 		})();
 		return () => {
 			live = false;
-			for (const county of made) county.release();
 		};
-	}, [layout, masks, season]);
+	}, [bakeKeys, masks]);
+	(0, import_react.useEffect)(() => () => {
+		for (const { county } of bakeCache.current.values()) county.release();
+		bakeCache.current.clear();
+	}, []);
 	(0, import_react.useEffect)(() => {
 		const el = stage.current;
 		if (!el) return;
@@ -23802,8 +23901,33 @@ function TopBar({ match, label, onOpenSave, onOpenHistory, onOpenSettings, onFoc
 	const you = match.players[0];
 	const purse = you ? match.treasuries[you.id] : void 0;
 	const alert = getAdvisorAlert(match);
+	/**
+	* Fit the bar to the phone (overnight audit, Oct 22): with the advisor icon
+	* showing and stocks in the hundreds, it needed 381 px of the S10e's 360 and
+	* the numbers were clipped ("74(" for 740). Only when it would overflow:
+	* step 1 tightens spacing, step 2 lets the readouts drop to a second row
+	* (whole numbers kept, Chris Oct 20 — no abbreviations). Re-measured from
+	* scratch whenever the digits or the icon change.
+	*/
+	const bar = (0, import_react.useRef)(null);
+	const [tight, setTight] = (0, import_react.useState)(0);
+	const fitKey = `${!!alert}|${label}|${POOLED_RESOURCES.map((r) => Math.round(purse?.[r] ?? 0)).join(",")}`;
+	const fitFor = (0, import_react.useRef)(fitKey);
+	(0, import_react.useLayoutEffect)(() => {
+		const el = bar.current;
+		if (!el) return;
+		if (fitFor.current !== fitKey) {
+			fitFor.current = fitKey;
+			if (tight !== 0) {
+				setTight(0);
+				return;
+			}
+		}
+		if (el.scrollWidth > el.clientWidth + 1 && tight < 2) setTight(tight + 1);
+	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", {
-		className: "ov-top",
+		className: `ov-top${tight ? " ov-top--tight" : ""}${tight >= 2 ? " ov-top--wrap" : ""}`,
+		ref: bar,
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "ov-top-turn",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TopBarMenu, {
@@ -24536,14 +24660,27 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose, initialSl
 	const startHold = (delta) => {
 		stopHold();
 		hold.current.repeated = false;
+		/**
+		* The hold keeps its own running target and sets that number outright,
+		* so a render that lands late can't make two ticks both apply "84 + 10"
+		* (seen in a headless test: the hold stuck at 94).
+		*/
+		hold.current.target = live.current?.chosen?.current ?? 0;
 		hold.current.timer = setTimeout(() => {
 			hold.current.timer = setInterval(() => {
 				const l = live.current;
 				if (!l?.chosen || !l.onChange) return stopHold();
-				const result = setWorkerAllocation(l.match, l.countyId, l.chosen.slot, Math.max(0, l.chosen.current + delta));
+				const want = Math.max(0, hold.current.target + delta);
+				const result = setWorkerAllocation(l.match, l.countyId, l.chosen.slot, want);
 				hold.current.repeated = true;
-				if (result.ok && result.match !== l.match) l.onChange(result.match);
-				else stopHold();
+				if (!result.ok) return stopHold();
+				const got = (() => {
+					const c = result.match.counties[l.countyId];
+					return LABOR_SLOT_FIELDS.includes(l.chosen.slot) ? c[`${l.chosen.slot}Workers`] ?? want : c.interior.industry.find((x) => x.kind === l.chosen.slot)?.workers ?? want;
+				})();
+				if (got === hold.current.target) return stopHold();
+				hold.current.target = got;
+				l.onChange(result.match);
 			}, 110);
 		}, 380);
 	};
@@ -24748,12 +24885,21 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose, initialSl
 					disabled: !owned || chosen.locked || unemployed <= 0,
 					...holdProps(STEP),
 					onClick: tapStep(STEP) }, "+"),
-				owned && !chosen.locked && chosen.required > 0 && chosen.current !== chosen.required && (chosen.current < chosen.required ? unemployed > 0 : true)
-					? h("button", { key: "need", className: "ov-town-btn ov-lb-need", "aria-label": `Set ${chosen.label} to what it needs: ${chosen.required}`, onClick: fillToNeed }, [
+				/**
+				* Space for the Need button is always kept for lots that have a need,
+				* hidden when it has nothing to do: it used to come and go, the header
+				* reflowed, + slid out from under the finger and a hold stopped after
+				* one step (overnight audit, Oct 22).
+				*/
+				owned && !chosen.locked && chosen.required > 0 ? (() => {
+					const useful = chosen.current !== chosen.required && (chosen.current < chosen.required ? unemployed > 0 : true);
+					return h("button", { key: "need", className: "ov-town-btn ov-lb-need", "aria-label": `Set ${chosen.label} to what it needs: ${chosen.required}`,
+						"aria-hidden": useful ? void 0 : true, tabIndex: useful ? void 0 : -1, disabled: !useful,
+						style: useful ? void 0 : { visibility: "hidden" }, onClick: fillToNeed }, [
 						h("span", { key: "a" }, "\u2192"),
 						h("span", { key: "n" }, chosen.required)
-					])
-					: null,
+					]);
+				})() : null,
 				proj ? h("span", { key: "p", className: "ov-lb-proj", title: proj.title }, [
 					proj.icon ? h("img", { key: "i", src: proj.icon, alt: "", width: 24, height: 24 }) : null,
 					h("span", { key: "t" }, proj.text)
