@@ -15553,7 +15553,7 @@ var overheadForestArt = () => resolveAsset(["overhead.sprite.forest"]);
 * supply wagon to be visually distinct from each other, which is a difference
 * between two vehicles rather than between loads.
 */
-var overheadWagonArt = () => resolveAsset(["overhead.sprite.wagon"]);
+var overheadWagonArt = (away = false) => resolveAsset(away ? ["overhead.sprite.wagon.away", "overhead.sprite.wagon"] : ["overhead.sprite.wagon"]);
 var overheadCastleArt = (tier) => resolveAsset([`overhead.castle.${tier}`]);
 /**
 * The pennant a MANNED keep flies, in its holder's seat colour.
@@ -15565,9 +15565,12 @@ var overheadCastleArt = (tier) => resolveAsset([`overhead.castle.${tier}`]);
 */
 var castleFlagArt = (seat) => resolveAsset([`overhead.castle.flag.${(seat % 4 + 4) % 4}`]);
 /** The seat-coloured banner-bearer figure that heads a field army. */
-var overheadArmyBearerArt = (seat) => resolveAsset([`overhead.army.bearer.${(seat % 4 + 4) % 4}`]);
+var overheadArmyBearerArt = (seat, away = false) => {
+	const k = `overhead.army.bearer.${(seat % 4 + 4) % 4}`;
+	return resolveAsset(away ? [`${k}.away`, k] : [k]);
+};
 /** Generic rank-and-file figure standing behind the bearer. */
-var overheadArmySoldierArt = () => resolveAsset(["overhead.army.soldier"]);
+var overheadArmySoldierArt = (away = false) => resolveAsset(away ? ["overhead.army.soldier.away", "overhead.army.soldier"] : ["overhead.army.soldier"]);
 var overheadIndustryArt = (kind) => resolveAsset([`overhead.industry.${kind}`]);
 /** A laborer figure by job. One accessor so no component names a file. */
 var laborerArt = (job) => resolveAsset([`overhead.sprite.laborer-${job}`]);
@@ -20254,8 +20257,40 @@ var townOf = (plot) => toWorld(plot.origin, plot.interior.town);
 * `scale` converts SVG user units to rendered pixels — the surface is drawn at
 * a fixed cell size and then scaled to whatever width the stage gives it.
 */
-function focusScroll(cell, scale, viewport, surface) {
-	const centre = cellCentre(cell.col, cell.row);
+function focusScroll(cell, scale, viewport, surface, grid, also) {
+	/** `also`: a second cell to frame with the town (its castle), so both are in view. */
+	const t0 = cellCentre(cell.col, cell.row);
+	const t1 = also ? cellCentre(also.col, also.row) : t0;
+	const town = { x: (t0.x + t1.x) / 2, y: (t0.y + t1.y) / 2 - (also ? TILE_H * .5 : 0) };
+	let centre = town;
+	/**
+	* Keep the view on land (fix list u9). The world is a diamond inside a
+	* rectangle, so centring on a town near the diamond's tip (Hollowmere)
+	* showed a wedge of black void. Slide the view toward the world's middle
+	* just far enough that all four screen corners are on ground — or as
+	* little void as possible — while the town stays near the middle (a first
+	* try allowed 70% and pushed Hollowmere under the top bar).
+	*/
+	if (grid && scale > 0) {
+		const hw = viewport.width / scale / 2;
+		const hh = viewport.height / scale / 2;
+		const mid = { x: ISO_X0 + (grid.cols - grid.rows) * TILE_W / 4, y: (grid.cols + grid.rows) * TILE_H / 4 };
+		const offLand = (x, y) => {
+			const u = (x - ISO_X0) / (TILE_W / 2);
+			const v = y / (TILE_H / 2);
+			const c = (u + v) / 2, r = (v - u) / 2;
+			return Math.max(0, -c) + Math.max(0, c - grid.cols) + Math.max(0, -r) + Math.max(0, r - grid.rows);
+		};
+		const voidAt = (p) => offLand(p.x - hw, p.y - hh) + offLand(p.x + hw, p.y - hh) + offLand(p.x - hw, p.y + hh) + offLand(p.x + hw, p.y + hh);
+		let best = { t: 0, v: voidAt(town) };
+		for (let t = .05; t <= 1.0001 && best.v > 0; t += .05) {
+			const p = { x: town.x + (mid.x - town.x) * t, y: town.y + (mid.y - town.y) * t };
+			if (Math.abs(p.x - town.x) > hw * .3 || Math.abs(p.y - town.y) > hh * .22) break;
+			const v = voidAt(p);
+			if (v < best.v - 1e-6) best = { t, v };
+		}
+		centre = { x: town.x + (mid.x - town.x) * best.t, y: town.y + (mid.y - town.y) * best.t };
+	}
 	const clamp = (value, extent, window) => Math.max(0, Math.min(value, Math.max(0, extent - window)));
 	return {
 		left: clamp(centre.x * scale - viewport.width / 2, surface.width, viewport.width),
@@ -21630,7 +21665,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 		}, {
 			width: svg.clientWidth,
 			height: svg.clientHeight
-		});
+		}, { cols: layout.cols, rows: layout.rows }, toWorld(plot.origin, plot.interior.castle));
 		el.scrollTo({
 			left,
 			top,
@@ -21809,6 +21844,29 @@ function Land({ layout, baked }) {
 * so it gets a lighter grey edge. Drawn in a top layer by `Movers`, so a
 * town or mountain never hides it, and it never takes a tap.
 */
+/**
+* Facing (fix list u12, Phase B plan step 6). Two drawings per mover: the
+* "toward" art heads down-left on screen, the "away" art up-left; mirroring
+* gives down-right and up-right. Facing is display only, so it lives here,
+* not in the match: the map remembers each mover's last cell and turns it to
+* its latest step (on load everything faces toward the viewer). A step
+* straight up or down the screen keeps the previous left/right.
+*/
+var moverFacing = /* @__PURE__ */ new Map();
+function facingOf(id, cell) {
+	const prev = moverFacing.get(id);
+	if (!prev) {
+		const f = { col: cell.col, row: cell.row, away: false, mirror: false };
+		moverFacing.set(id, f);
+		return f;
+	}
+	if (prev.col === cell.col && prev.row === cell.row) return prev;
+	const dc = cell.col - prev.col, dr = cell.row - prev.row;
+	const dx = dc - dr, dy = dc + dr;
+	const f = { col: cell.col, row: cell.row, away: dy < 0, mirror: dx > 0 ? true : dx < 0 ? false : prev.mirror };
+	moverFacing.set(id, f);
+	return f;
+}
 var PLATE_EDGE = (seat) => (seat % 4 + 4) % 4 === 3 ? "#9a9aa8" : seatColor(seat).bright;
 var plateText = (n) => n >= 1e4 ? `${Math.round(n / 1e3)}k` : n.toLocaleString("en-US");
 function TroopPlate({ x, y, count, seat, label }) {
@@ -21941,7 +21999,8 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 				shadow: { k: .35, r: .5 },
 				el: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapSprite, {
 					cell: at,
-					art: overheadWagonArt(),
+					art: overheadWagonArt(facingOf("merchant", at).away),
+					mirror: facingOf("merchant", at).mirror,
 					size: .55,
 					label: canTrade ? "Merchant caravan — tap to trade" : "Merchant caravan — travels its own fixed route",
 					onClick: canTrade ? () => onOpenMerchant?.(plot.county.id) : void 0
@@ -21966,6 +22025,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 			if (cargoTotal(caravan.cargo) <= 0) continue;
 			const at = toWorld(origin, caravan.at);
 			const owner = match.players.find((p) => p.id === caravan.owner);
+			const face = facingOf(caravan.id, at);
 			const selected = typeof selectedMover === "object" && selectedMover?.caravanId === caravan.id;
 			sprites.push({
 				row: at.row,
@@ -21973,7 +22033,8 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 				shadow: { k: .35, r: .5 },
 				el: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapSprite, {
 					cell: at,
-					art: overheadWagonArt(),
+					art: overheadWagonArt(face.away),
+					mirror: face.mirror,
 					size: .55,
 					label: `${owner?.displayName ?? "Someone"}'s transport caravan`,
 					selected,
@@ -21983,7 +22044,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 					art: castleFlagArt(owner.seat),
 					size: .32,
 					offset: {
-						x: .02,
+						x: face.mirror ? -.02 : .02,
 						y: -.62
 					},
 					label: "Owner's colours"
@@ -22012,6 +22073,9 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 			* 300-man army and a 301-man army must visibly differ by one
 			* whole figure, not by a fractional size bump.
 			*/
+			const face = facingOf(army.id, at);
+			/** Mirror the formation with the figures, so the bearer leads on the side the army faces (u12). */
+			const fx = (x) => face.mirror ? -x : x;
 			const clusterOffsets = figures === 1 ? [{ x: .28, y: 0 }] : figures === 2 ? [{ x: .2, y: -.12 }, { x: .36, y: .12 }] : [{ x: .18, y: -.18 }, { x: .36, y: 0 }, { x: .18, y: .18 }];
 			sprites.push({
 				row: at.row,
@@ -22021,19 +22085,21 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 				el: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 					...clusterOffsets.map((off, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapSprite, {
 						cell: at,
-						art: overheadArmySoldierArt(),
+						art: overheadArmySoldierArt(face.away),
+						mirror: face.mirror,
 						size: .48,
-						offset: off,
+						offset: { x: fx(off.x), y: off.y },
 						label: `${owner?.displayName ?? "Someone"}'s army — ${total} troops`,
 						selected,
 						onClick: isYours ? () => onSelectArmy?.(army.id) : void 0
 					}, `${army.id}-soldier-${i}`)),
 					owner && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapSprite, {
 						cell: at,
-						art: overheadArmyBearerArt(owner.seat),
+						art: overheadArmyBearerArt(owner.seat, face.away),
+						mirror: face.mirror,
 						size: .58,
 						offset: {
-							x: -.15,
+							x: fx(-.15),
 							y: 0
 						},
 						label: "Owner's colours",
@@ -22044,7 +22110,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 			if (owner && total > 0) {
 				const c = cellCentre(at.col, at.row);
 				plates.push(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TroopPlate, {
-					x: c.x + .1 * TILE_W,
+					x: c.x + fx(.1) * TILE_W,
 					y: c.y + TILE_H * .45 + 9,
 					count: total,
 					seat: owner.seat,
@@ -22133,7 +22199,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 * — which is what gives the overhead view its relief. `bakeCounty` follows the
 * same rule for baked props, so a wood and a castle stand the same way.
 */
-function MapSprite({ cell, art, size, label, offset, onClick, selected }) {
+function MapSprite({ cell, art, size, label, offset, onClick, selected, mirror }) {
 	if (art.missing || !art.url) return null;
 	const centre = cellCentre(cell.col, cell.row);
 	const w = TILE_W * size;
@@ -22149,7 +22215,8 @@ function MapSprite({ cell, art, size, label, offset, onClick, selected }) {
 			cursor: onClick ? "pointer" : void 0,
 			pointerEvents: onClick ? void 0 : "none",
 			filter: selected ? "drop-shadow(0 0 6px #ffdd78)" : void 0,
-			transition: "x 500ms ease-in-out, y 500ms ease-in-out"
+			transition: "x 500ms ease-in-out, y 500ms ease-in-out",
+			...mirror ? { transformBox: "fill-box", transformOrigin: "center", transform: "scaleX(-1)" } : null
 		},
 		onClick,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("title", { children: label })
