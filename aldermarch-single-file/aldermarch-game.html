@@ -2386,6 +2386,7 @@ image.ov-tut-glow { animation: ov-tut-pulse-img 1.2s ease-in-out infinite; }
 }
 
 .ov-merchant-icon img { width: 30px; height: 30px; }
+.ov-castle-steward { font-size: 14px; line-height: 1.4; color: #e8dcc0; background: #1d1711; border-left: 3px solid #c9a227; border-radius: 4px; padding: 7px 10px; margin: 6px 0; }
 .ov-merchant-glyph { display: flex; align-items: center; justify-content: center; font-size: 20px; background: none; }
 
 .ov-merchant-body-text { flex: 1; min-width: 0; }
@@ -3456,7 +3457,9 @@ body.ov-labor-full .ov-labor-painted .ov-labor-header { padding-top: calc(8px + 
 /* Painted labor screen (Phase B, Oct 18): header row doubles as the stepper,
    the painting fills whatever height is left, never scrolls. */
 .ov-labor-painted .ov-labor-header { padding: 8px 10px; min-height: 52px; gap: 8px; }
-.ov-lb-step { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
+.ov-lb-step { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; flex: 1 1 auto; }
+.ov-lb-need { width: auto; min-width: 56px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; font-size: 15px; font-weight: 700; }
+.ov-town-btn { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .ov-lb-name { color: #e3bf4a; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ov-lb-proj { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: #e8dcc0; white-space: nowrap; }
 .ov-lb-note { margin: 4px 10px 0 !important; }
@@ -12564,7 +12567,6 @@ var castleRank = (tier) => CASTLE_TIERS.indexOf(tier);
 */
 var CASTLE_RANK_ROMAN = ["\u2014", "I", "II", "III", "IV", "V"];
 var castleRankRoman = (tier) => CASTLE_RANK_ROMAN[castleRank(tier)] ?? "\u2014";
-var activePlayer = (m) => m.players.find((p) => p.seat === m.turn.activeSeat);
 var countiesOwnedBy = (m, id) => Object.keys(m.counties).filter((c) => m.counties[c]?.owner === id);
 var troopCount = (r) => Object.keys(UNITS).reduce((sum, kind) => sum + (r[kind] ?? 0), 0);
 /**
@@ -24091,20 +24093,6 @@ function scatter(key, count, w, h) {
 	return spots.sort((p, q) => p.y - q.y);
 }
 
-/**
- * How many figures to draw for N workers.
- *
- * A DENSITY SIGNAL, NOT A COUNT. Sixty workers cannot be sixty legible sprites
- * in a 92px plot, and trying would turn the plot into a smear. The exact number
- * is on the stepper for anyone who wants it; the crowd only has to say "busy"
- * or "nearly empty" at a glance.
- */
-function figureCount(workers, staffed) {
-	if (workers <= 0) return 0;
-	if (!staffed) return Math.min(3, Math.max(1, Math.round(workers / 20)));
-	const share = Math.max(0, Math.min(1, workers / staffed));
-	return Math.max(1, Math.min(8, Math.round(3 + share * 5)));
-}
 
 /**
  * A THREE-BY-THREE RING AROUND THE TOWN.
@@ -24339,292 +24327,6 @@ function planPlots(county, ctx) {
 	return out;
 }
 
-/** The framed inset: land, workers, and the taps that adjust them. */
-function TownPlan({ plots, idle, selected, onSelect, seat }) {
-	const h = import_react.createElement;
-	const grass = overheadGroundArt("ground");
-	const forest = overheadForestArt();
-	const town = overheadTownArt();
-
-	const nodes = [];
-	// Grass under everything, as a repeating pattern.
-	nodes.push(h("rect", { key: "bg", x: 0, y: 0, width: PLAN_W, height: PLAN_H, fill: "url(#tp-grass)" }));
-
-	// THE CROSSROADS, in real road art rather than a drawn line.
-	//
-	// Every reference is organised around a dirt crossing with the cottage at
-	// the middle, and the roads are what tie the plots into one place instead of
-	// a grid of squares that happen to touch.
-	//
-	// Drawn as a LANE tiled at the art's own size, not one tile stretched over a
-	// whole plot. Stretching it produced a smeared tan slab that read as a field
-	// of mud rather than a track — a road is recognisable because of its width
-	// relative to the land, and scaling destroys exactly that.
-	const LANE = 32;
-	const midX = PLOT_W + PLOT_W / 2 - LANE / 2;
-	const midY = PLOT_H + PLOT_H / 2 - LANE / 2;
-	// Edge bits, matching roadMasks above: N=1 E=2 S=4 W=8. Spelled out because
-	// the bundler inlined the shared constants as literals, and a bare 10 in an
-	// art lookup is unreadable six months from now.
-	const RN = 1, RE = 2, RS = 4, RW = 8;
-	const ewArt = overheadRoadArt(RE | RW);
-	const nsArt = overheadRoadArt(RN | RS);
-	const xArt = overheadRoadArt(RN | RE | RS | RW);
-	const lane = [];
-	if (!ewArt.missing) {
-		for (let x = 0; x < PLAN_W; x += LANE) {
-			lane.push(h("image", {
-				key: `ew${x}`, href: ewArt.url, x, y: midY, width: LANE, height: LANE,
-				style: { imageRendering: PIXEL_ART_RENDERING },
-			}));
-		}
-	}
-	if (!nsArt.missing) {
-		for (let y = 0; y < PLAN_H; y += LANE) {
-			lane.push(h("image", {
-				key: `ns${y}`, href: nsArt.url, x: midX, y, width: LANE, height: LANE,
-				style: { imageRendering: PIXEL_ART_RENDERING },
-			}));
-		}
-	}
-	if (!xArt.missing) {
-		lane.push(h("image", {
-			key: "x", href: xArt.url, x: midX, y: midY, width: LANE, height: LANE,
-			style: { imageRendering: PIXEL_ART_RENDERING },
-		}));
-	}
-	nodes.push(h("g", { key: "lane" }, lane));
-
-	plots.forEach((plot) => {
-		const slotIndex = SLOT_POSITION_INDEX[plot.slot];
-		const s = slotIndex != null ? PLOT_SLOTS[slotIndex] : null;
-		if (!s) return;
-		const kids = [];
-
-		// An enclosure fills the plot and IS its ground — wall ring, gate and
-		// paved yard in one asset, so it needs no tile under it.
-		if (plot.enclosure && !plot.enclosure.missing) {
-			kids.push(h("image", {
-				key: "yard", href: plot.enclosure.url,
-				x: 0, y: 0, width: PLOT_W, height: PLOT_H,
-				style: { imageRendering: PIXEL_ART_RENDERING },
-			}));
-		} else if (plot.tiled && plot.art && !plot.art.missing) {
-			// Laid on the same grid the living map uses — 32 across, 23 down —
-			// and drawn at the art's natural size so nothing is stretched. The
-			// overhang past the plot edge is clipped, which is what lets the
-			// rows overlap their depth bands the way the camera intends.
-			const tiles = [];
-			for (let ty = 0; ty < 3; ty++) {
-				for (let tx = 0; tx < 3; tx++) {
-					tiles.push(h("image", {
-						key: `t${tx}_${ty}`, href: plot.art.url,
-						x: tx * 32, y: ty * 23, width: 32, height: 32,
-						style: { imageRendering: PIXEL_ART_RENDERING },
-					}));
-				}
-			}
-			kids.push(h("g", { key: "tiles", clipPath: `url(#tp-clip-${plot.key})` }, tiles));
-		}
-		// The building stands ON its ground rather than in place of it — a forge
-		// on bare grass was the giveaway that these were cards, not land.
-		//
-		// Size is per-plot because the art is not one size: the mine is drawn at
-		// 72px native against the forge's 48, and scaling them to a common box
-		// would either shrink the mine's detail away or blow the smaller sprites
-		// up past their own resolution.
-		if (plot.building && !plot.building.missing) {
-			const bw = plot.buildingSize ?? 56;
-			kids.push(h("image", {
-				key: "b", href: plot.building.url,
-				x: PLOT_W / 2 - bw / 2, y: plot.buildingTop ?? 4, width: bw, height: bw,
-				style: { imageRendering: PIXEL_ART_RENDERING },
-			}));
-		}
-
-		// The staffing ring, on the ground itself rather than round a card.
-		// Only where the model actually knows what "enough" means: grain and
-		// cattle have a required figure, industry has none, and inventing one
-		// would be a number the game does not believe.
-		let ring = null;
-		if (plot.required > 0) {
-			if (plot.workers < plot.required) ring = "#c0392b";
-			else if (plot.workers > plot.required * 1.35) ring = "#2f6fd0";
-		}
-
-		// PLOT DRESSING — timber, barrels, a plough, spoil, livestock, carts.
-		//
-		// These say what a plot IS, which is a different job from saying who is
-		// on it. The reference mockups make the distinction plainly: their
-		// Repair plot has zero workers and is still strewn with timber, so it
-		// reads as work waiting rather than as empty ground. Props therefore
-		// draw regardless of staffing.
-		//
-		// A list rather than one entry, so a castle yard can hold barrels AND
-		// timber the way the references do.
-		//
-		// Pushed toward the plot's EDGES: props and figures were competing for
-		// the same middle ground, and a barrel landing on a labourer's head
-		// reads as a glitch. The band below is also kept clear for the label.
-		for (const [pi, prop] of (plot.props ?? []).entries()) {
-			const art = prop.art();
-			if (art.missing || !art.url) continue;
-			scatter(`${plot.key}-prop${pi}`, prop.count, PLOT_W - prop.size, PLOT_H - prop.size - 24)
-				.forEach((p, n) => {
-					// Nudge outward from the centre line so the middle stays open.
-					const half = (PLOT_W - prop.size) / 2;
-					const x = p.x < half ? p.x * 0.55 : PLOT_W - prop.size - (PLOT_W - prop.size - p.x) * 0.55;
-					kids.push(h("image", {
-						key: `pr${pi}_${n}`, href: art.url, x, y: p.y,
-						width: prop.size, height: prop.size,
-						style: { imageRendering: PIXEL_ART_RENDERING },
-					}));
-				});
-		}
-
-		const figures = figureCount(plot.workers, plot.required);
-		// Inside the walls when there are walls. The bailey's open floor is
-		// roughly the middle half of the sprite, so the scatter is inset to it —
-		// figures placed on the full plot would stand on the battlements.
-		const spots = plot.enclosure
-			? scatter(plot.key, figures, PLOT_W * 0.46, PLOT_H * 0.4)
-				.map((p) => ({ x: p.x + PLOT_W * 0.27, y: p.y + PLOT_H * 0.3 }))
-			: scatter(plot.key, figures, PLOT_W, PLOT_H);
-		const art = laborerArt(plot.job);
-		if (!art.missing) {
-			spots.forEach((p, n) => kids.push(h("image", {
-				key: `f${n}`, href: art.url,
-				x: p.x, y: p.y, width: 28, height: 28,
-				style: { imageRendering: PIXEL_ART_RENDERING },
-			})));
-		}
-
-		/**
-		* Selection used to repaint this same ring gold, which meant the one
-		* moment you'd actually check "am I overstaffed" — after tapping the
-		* plot to see its stepper — was the exact moment the status color
-		* got hidden. Selection now gets its own glow instead (the same
-		* `drop-shadow(0 0 6px #ffdd78)` `MapSprite` already uses for a
-		* selected army), so the ring is free to show red/blue/nothing at
-		* all times, selected or not.
-		*/
-		kids.push(h("rect", {
-			key: "ring", x: 0.5, y: 0.5, width: PLOT_W - 1, height: PLOT_H - 1,
-			fill: "none", rx: 3,
-			stroke: ring || "transparent",
-			strokeWidth: selected === plot.slot ? 3 : 2,
-		}));
-		kids.push(h("title", { key: "ttl" }, `${plot.label} — ${plot.workers} workers`));
-
-		nodes.push(h("g", {
-			key: plot.key,
-			transform: `translate(${s.x} ${s.y})`,
-			style: {
-				cursor: plot.locked ? "default" : "pointer",
-				filter: selected === plot.slot ? "drop-shadow(0 0 6px #ffdd78)" : void 0,
-			},
-			onClick: () => onSelect(plot.slot === selected ? null : plot.slot),
-		}, kids));
-
-		// The label PLATE, not loose text. Every reference hangs a small banner
-		// over its plot, and it is what keeps the name legible over ploughed
-		// soil, bare rock and grass alike — plain text has to survive whatever
-		// is under it, and over the quarry floor it did not.
-		const plate = `${plot.label} ${plot.workers}`;
-		const pw = plate.length * 6.2 + 14;
-		const px0 = s.x + PLOT_W / 2 - pw / 2;
-		const py0 = s.y + PLOT_H - 19;
-		// Status color always shows here too, same reasoning as the ring
-		// above — selection gets the shared drop-shadow glow instead of
-		// overwriting the tone.
-		const tone = ring === "#c0392b"
-			? { fill: "#5e1a14", stroke: "#e8b0a6" }      // short-handed
-			: plot.workers === 0
-				? { fill: "#2b2620", stroke: "#6b5c46" }    // nobody on it
-				: { fill: "#3a2f22", stroke: "#c9b48a" };
-		nodes.push(h("g", {
-			key: `${plot.key}-lbl`, pointerEvents: "none",
-			style: { filter: selected === plot.slot ? "drop-shadow(0 0 6px #ffdd78)" : void 0 },
-		}, [
-			h("rect", {
-				key: "p", x: px0, y: py0, width: pw, height: 17, rx: 2,
-				fill: tone.fill, stroke: tone.stroke, strokeWidth: 1.5, opacity: 0.96,
-			}),
-			h("text", {
-				key: "t", x: s.x + PLOT_W / 2, y: py0 + 12.5,
-				textAnchor: "middle", fill: "#f2e8d0", fontSize: 11,
-				style: { fontWeight: 600, paintOrder: "stroke", stroke: "rgba(0,0,0,.55)", strokeWidth: 2.5 },
-			}, plate),
-		]));
-	});
-
-	// THE SETTLEMENT AT THE CENTRE, where the roads cross.
-	//
-	// Fixed, not the next free slot. The references all put the cottage in the
-	// middle of the crossing with people milling round it, and that is also
-	// where the idle pool belongs — the workforce doing nothing should be the
-	// first thing the eye lands on, not something to hunt for in a corner.
-	const ts = TOWN_SLOT;
-	const idleKids = [];
-	if (!town.missing) {
-		idleKids.push(h("image", {
-			key: "town", href: town.url, x: PLOT_W / 2 - 30, y: -4,
-			width: 60, height: 60, style: { imageRendering: PIXEL_ART_RENDERING },
-		}));
-	}
-	const idleArt = laborerArt("idle");
-	if (!idleArt.missing && idle > 0) {
-		// Gathered round the cottage rather than spread over the whole cell, so
-		// they read as a crowd waiting for work instead of as another staffed plot.
-		scatter("idle", Math.min(7, Math.max(2, Math.round(idle / 20))), PLOT_W - 30, PLOT_H - 34)
-			.forEach((p, n) => idleKids.push(h("image", {
-				key: `i${n}`, href: idleArt.url, x: p.x + 15, y: p.y + 24, width: 19, height: 19,
-				// GHOSTED, never blue. Azure is seat 1's colour on this map, so a
-				// blue peasant would read as "Aldric's man" rather than "idle".
-				style: { imageRendering: PIXEL_ART_RENDERING, filter: "grayscale(1)", opacity: 0.55 },
-			})));
-	}
-	nodes.push(h("g", { key: "town", transform: `translate(${ts.x} ${ts.y})` }, idleKids));
-
-	// Scenery in the leftover ring slots. The centre is never one of them — the
-	// town owns it — so this can walk the ring freely.
-	for (let i = plots.length; i < PLOT_SLOTS.length; i++) {
-		const s = PLOT_SLOTS[i];
-		if (!s || forest.missing) continue;
-		const rand = plotRng(`scenery${i}`);
-		const trees = [];
-		for (let n = 0; n < 3; n++) {
-			trees.push(h("image", {
-				key: n, href: forest.url,
-				x: rand() * (PLOT_W - 34), y: rand() * (PLOT_H - 34),
-				width: 34, height: 34, style: { imageRendering: PIXEL_ART_RENDERING },
-			}));
-		}
-		nodes.push(h("g", { key: `sc${i}`, transform: `translate(${s.x} ${s.y})`, opacity: 0.9 }, trees));
-	}
-
-	return h("div", { className: "ov-plan-frame", style: { "--plan-aspect": `${PLAN_W} / ${PLAN_H}` } },
-		h("svg", {
-			className: "ov-plan", viewBox: `0 0 ${PLAN_W} ${PLAN_H}`,
-			role: "group", "aria-label": "County labor plan",
-		}, [
-			h("defs", { key: "defs" }, [
-				...plots.filter((p) => p.tiled).map((p) => h("clipPath", { key: p.key, id: `tp-clip-${p.key}` },
-					h("rect", { width: PLOT_W, height: PLOT_H, rx: 3 }))),
-				h("pattern", {
-					// 32 wide by the camera's STRIDE, not the tile's full height.
-					// A tile canvas is 32x32 but only the top 23px is the ground
-					// face; the rest is the depth band meant to be overlapped by
-					// the row in front. Tiling at full height instead repeats
-					// that band and turns plain grass into brown corduroy — which
-					// is exactly what the first render looked like.
-					id: "tp-grass", width: 32, height: 23, patternUnits: "userSpaceOnUse",
-				}, grass.missing ? h("rect", { width: 32, height: 23, fill: "#6f9a4e" })
-					: h("image", { href: grass.url, width: 32, height: 32, style: { imageRendering: PIXEL_ART_RENDERING } })),
-			]),
-			...nodes,
-		]));
-}
 
 /**
 * The painted labor screen (Phase B, Oct 18).
@@ -24747,6 +24449,55 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose, initialSl
 	const adjustSlot = (slot, current, delta) => {
 		if (!onChange) return;
 		const result = setWorkerAllocation(match, countyId, slot, Math.max(0, current + delta));
+		if (result.ok) onChange(result.match);
+	};
+	/**
+	* Hold + or - to repeat (fix list a3). Each repeat reads the LATEST match
+	* and count from `live`, never the values captured when the press began:
+	* a handler computing from stale props moves the count once however many
+	* times it fires (LESSONS, Oct 19 tutorial test). A tap is still a single
+	* step; once a hold has repeated, the click that ends it is swallowed.
+	*/
+	const live = import_react.useRef(null);
+	const hold = import_react.useRef({ timer: null, repeated: false });
+	const stopHold = () => {
+		clearTimeout(hold.current.timer);
+		clearInterval(hold.current.timer);
+		hold.current.timer = null;
+	};
+	import_react.useEffect(() => stopHold, []);
+	const startHold = (delta) => {
+		stopHold();
+		hold.current.repeated = false;
+		hold.current.timer = setTimeout(() => {
+			hold.current.timer = setInterval(() => {
+				const l = live.current;
+				if (!l?.chosen || !l.onChange) return stopHold();
+				const result = setWorkerAllocation(l.match, l.countyId, l.chosen.slot, Math.max(0, l.chosen.current + delta));
+				hold.current.repeated = true;
+				if (result.ok && result.match !== l.match) l.onChange(result.match);
+				else stopHold();
+			}, 110);
+		}, 380);
+	};
+	const holdProps = (delta) => ({
+		onPointerDown: () => startHold(delta),
+		onPointerUp: stopHold,
+		onPointerLeave: stopHold,
+		onPointerCancel: stopHold,
+		onContextMenu: (e) => e.preventDefault()
+	});
+	const tapStep = (delta) => () => {
+		if (hold.current.repeated) {
+			hold.current.repeated = false;
+			return;
+		}
+		adjustSlot(chosen.slot, chosen.current, delta);
+	};
+	/** Fill to need (fix list a3, Chris Oct 21: a button beside + / -). The allocation clamps to what idle people allow. */
+	const fillToNeed = () => {
+		if (!onChange || !chosen) return;
+		const result = setWorkerAllocation(match, countyId, chosen.slot, chosen.required);
 		if (result.ok) onChange(result.match);
 	};
 	const pickWeapon = (weapon) => {
@@ -24880,6 +24631,7 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose, initialSl
 		match, industryModifier,
 	});
 	const chosen = plots.find((p) => p.slot === selected) || null;
+	live.current = { match, countyId, chosen, onChange };
 
 	/**
 	 * The badge is for CONSEQUENCE, not for redness.
@@ -24920,13 +24672,21 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose, initialSl
 		h("div", { className: "ov-labor-header", key: "hd" }, chosen ? [
 			h("div", { className: "ov-lb-step", key: "s" }, [
 				h("strong", { key: "l", className: "ov-lb-name" }, chosen.label),
-				h("button", { key: "-", className: "ov-town-btn", "aria-label": `10 fewer on ${chosen.label}`,
+				h("button", { key: "-", className: "ov-town-btn", "aria-label": `10 fewer on ${chosen.label} (hold to repeat)`,
 					disabled: !owned || chosen.locked || chosen.current <= 0,
-					onClick: () => adjustSlot(chosen.slot, chosen.current, -STEP) }, "−"),
+					...holdProps(-STEP),
+					onClick: tapStep(-STEP) }, "−"),
 				h("span", { key: "v", className: "ov-town-count" }, chosen.current),
-				h("button", { key: "+", className: "ov-town-btn", "aria-label": `10 more on ${chosen.label}`,
+				h("button", { key: "+", className: "ov-town-btn", "aria-label": `10 more on ${chosen.label} (hold to repeat)`,
 					disabled: !owned || chosen.locked || unemployed <= 0,
-					onClick: () => adjustSlot(chosen.slot, chosen.current, STEP) }, "+"),
+					...holdProps(STEP),
+					onClick: tapStep(STEP) }, "+"),
+				owned && !chosen.locked && chosen.required > 0 && chosen.current !== chosen.required && (chosen.current < chosen.required ? unemployed > 0 : true)
+					? h("button", { key: "need", className: "ov-town-btn ov-lb-need", "aria-label": `Set ${chosen.label} to what it needs: ${chosen.required}`, onClick: fillToNeed }, [
+						h("span", { key: "a" }, "\u2192"),
+						h("span", { key: "n" }, chosen.required)
+					])
+					: null,
 				proj ? h("span", { key: "p", className: "ov-lb-proj", title: proj.title }, [
 					proj.icon ? h("img", { key: "i", src: proj.icon, alt: "", width: 24, height: 24 }) : null,
 					h("span", { key: "t" }, proj.text)
@@ -26189,6 +25949,37 @@ function PopulationReportScreen({ match, countyId, countyName, onClose }) {
 * that's the Labor screen's job, same separation the AI's own build logic
 * already respects (see `startCastleBuild`'s comment).
 */
+/**
+* Fix list g5 (Chris, Oct 21): castles stay at LOTR2's costs; the steward says
+* where the missing stone and wood can come from — the merchant's price for the
+* shortfall, a quarry you already hold, or a county with a quarry to take
+* ("L2 routinely started you with iron and no stone; it's an incentive to
+* conquer"). Neighbours first.
+*/
+function stoneAdvice(match, countyId, cost, treasury) {
+	const h = import_react.createElement;
+	const you = match.players.find((p) => p.controller.kind === "human");
+	const nameOf = (id) => REALM.counties.find((c) => c.id === id)?.name ?? id;
+	const short = Object.entries(cost).map(([res, need]) => [res, Math.max(0, Math.ceil(need - (treasury[res] ?? 0)))]).filter(([, n]) => n > 0);
+	const lines = [];
+	const buyable = short.filter(([res]) => MERCHANT_BUY_PRICE[res]);
+	if (buyable.length) {
+		const gold = buyable.reduce((g, [res, n]) => g + n * MERCHANT_BUY_PRICE[res], 0);
+		lines.push(`Short ${buyable.map(([res, n]) => `${n.toLocaleString("en-US")} ${RESOURCE_LABEL[res] ?? res}`).join(", ")} \u2014 the merchant would sell it for about ${gold.toLocaleString("en-US")} gold.`);
+	}
+	if (short.some(([res]) => res === "stone")) {
+		const hasQuarry = (id) => match.counties[id]?.interior?.industry.some((s) => s.kind === "quarry");
+		const ownQuarry = Object.keys(match.counties).filter((id) => match.counties[id].owner === you?.id && hasQuarry(id));
+		if (ownQuarry.length) lines.push(`Staff the quarry in ${ownQuarry.map(nameOf).join(" or ")} \u2014 stone is shared across your realm.`);
+		else {
+			const ix = indexMap(REALM);
+			const near = new Set(Object.keys(match.counties).filter((id) => match.counties[id].owner === you?.id).flatMap((id) => neighboursOf(ix, id)));
+			const targets = Object.keys(match.counties).filter((id) => hasQuarry(id) && match.counties[id].owner !== you?.id).sort((a, b) => (near.has(b) ? 1 : 0) - (near.has(a) ? 1 : 0) || a.localeCompare(b));
+			if (targets.length) lines.push(`None of your lands has a quarry. ${targets.map(nameOf).join(" and ")} ${targets.length === 1 ? "has" : "have"} one \u2014 take ${targets.length === 1 ? "it" : "one"} and its stone is yours.`);
+		}
+	}
+	return [h("b", { key: "t" }, "Steward: "), lines.join(" ")];
+}
 function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLabor }) {
 	/** "Assign builders" used to be a bare footnote (one of them outside its box) with no way to act on it (fix list b16). */
 	const buildersBtn = (slot) => owned && onOpenLabor ? h("button", {
@@ -26356,6 +26147,7 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLa
 						h("span", { className: "ov-ration-row-label", key: "l" }, county.castleTier === "none" ? "You pay" : `Upgrade cost (after credit for your ${CASTLES[county.castleTier]?.name ?? "castle"})`),
 						h("span", { className: `ov-ration-row-val ${affordable ? "pos" : "neg"}`, key: "v" }, Object.keys(cost).length > 0 ? fmtCost(cost) : "Nothing \u2014 already covered"),
 					]),
+					!affordable && cost && treasury ? h("div", { className: "ov-castle-steward", key: "steward" }, stoneAdvice(match, countyId, cost, treasury)) : null,
 					h("div", { className: "ov-ration-row", key: "builders" }, [
 						h("span", { className: "ov-ration-row-label", key: "l" }, "Builders needed"),
 						h("span", { className: "ov-ration-row-val neutral", key: "v" }, castle.buildersNeeded),
@@ -26542,11 +26334,6 @@ function EventHistoryScreen({ match, layout, onClose }) {
 function rationName(value) {
 	const hit = Object.keys(RATION_LEVELS).find((k) => RATION_LEVELS[k] === value);
 	return hit ? hit[0].toUpperCase() + hit.slice(1) : String(value);
-}
-
-/** Total people at the county's industry sites — the far end of the balance. */
-function industryStaff(county) {
-	return county.interior.industry.reduce((sum, s) => sum + Math.max(0, Math.round(s.workers ?? 0)), 0);
 }
 
 function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpenHappiness, onOpenHealth, onOpenCattle, onOpenGrain, onOpenCastle, onOpenBattleReport, onOpenPopulation, onOpenDiplomacy, onOpenBestNoble, onSendCaravan, onEndSeason, onNextUnit, hasUnfinishedUnits, onNextCounty, hasOtherCounties, onFocusCounty }) {
@@ -26835,14 +26622,6 @@ function Gauge({ label, value, tone, title }) {
 			})
 		})]
 	});
-}
-/** Happiness is already a raw 0-100 number — band it at the same 25/50 thresholds the revolt/unrest mechanic itself uses, so the gauge's color changes exactly when the county's actual risk changes. */
-function happinessTone(value) {
-	return value <= 25 ? "red" : value <= 50 ? "amber" : "green";
-}
-/** Health is a named tier already — average and above read as "fine" (green), matching the pre-existing health gauge's only two color overrides (sick/diseased). */
-function healthTone(health) {
-	return health === "diseased" ? "red" : health === "sick" ? "amber" : "green";
 }
 //#endregion
 //#region src/standalone.tsx
