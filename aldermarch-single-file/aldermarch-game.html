@@ -20378,8 +20378,15 @@ var GROUND_LAYERS = [
 function bakeKey(plot, season) {
 	const { interior } = plot;
 	const cells = (list) => list.map((c) => `${c.col},${c.row}`).join(";");
+	/**
+	* The art the season selects, not the season itself: a new season used to
+	* repaint all four counties (1.4 s at End Turn) though no baked art changes
+	* by season yet. When seasonal tiles arrive their URLs change and the bake
+	* follows.
+	*/
+	const seasonal = [...new Set(interior.ground.map((g) => g.kind))].filter((k) => k !== "ground" && k !== "mountain").sort().map((k) => overheadGroundArt(k, season).url).join(",");
 	return [
-		season,
+		seasonal,
 		`${interior.cols}x${interior.rows}`,
 		interior.ground.map((g) => g.kind[0]).join(""),
 		interior.fields.map((f) => `${f.col},${f.row}:${f.status}:${stageOf(f) ?? "-"}:${f.status === "grain" ? Math.min(MAX_SACKS_PER_FIELD, Math.round(f.plantedSacks ?? 0)) : ""}`).join(";"),
@@ -20535,7 +20542,28 @@ function canvasOf(width, height) {
 		ctx
 	};
 }
-var toBlobUrl = (canvas) => canvas.toDataURL("image/png");
+/**
+* Encode a baked layer as a data: URL (blob: URLs break on mobile in-app
+* browsers — LESSONS, Jul 29). toDataURL encodes on the main thread and was
+* most of the End Turn freeze (overnight audit, Oct 22); toBlob encodes off it,
+* and FileReader turns the result into the same data: URL. Falls back to
+* toDataURL where toBlob is missing or fails.
+*/
+var toBlobUrl = (canvas) => new Promise((resolve) => {
+	const sync = () => resolve(canvas.toDataURL("image/png"));
+	if (typeof canvas.toBlob !== "function" || typeof FileReader === "undefined") return sync();
+	try {
+		canvas.toBlob((blob) => {
+			if (!blob) return sync();
+			const reader = new FileReader();
+			reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : sync();
+			reader.onerror = sync;
+			reader.readAsDataURL(blob);
+		}, "image/png");
+	} catch {
+		sync();
+	}
+});
 /**
 * Compose one county's four layers.
 *
