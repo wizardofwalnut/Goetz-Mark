@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aldermarch — Privacy Policy</title>
+<!--
+  DRAFT for fix list a14 (store readiness), written Oct 23 from what the
+  build actually does (checked in aldermarch-game.html, commit 95c512c):
+  no network calls besides loading the page, no analytics, no accounts,
+  saves in the browser's localStorage, a service worker that caches the
+  game for offline play. Before publishing:
+    1. Replace [CONTACT EMAIL] with the address Chris wants public.
+    2. Re-check the facts if the game ever adds ads, analytics, cloud
+       saves or purchases (the paid unlock, d8) — those change this page.
+    3. Move it to pages/privacy.html so tools/deploy_pages.py publishes it,
+       and give its URL in the Play Console.
+  Not legal advice; Google Play only requires an accurate, public policy.
+-->
+<style>
+  :root { --bg: #f6f1e6; --ink: #25211b; --muted: #6a6253; --rule: #ddd3bf; --accent: #8a6412; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #14110d; --ink: #ece3cf; --muted: #a39a86; --rule: #352d22; --accent: #e3bf4a; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 Georgia, "Iowan Old Style", serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 32px 18px 64px; }
+  h1 { color: var(--accent); font-size: 30px; margin: 0 0 4px; }
+  .date { color: var(--muted); margin: 0 0 28px; font-size: 15px; }
+  h2 { font-size: 19px; margin: 28px 0 6px; border-top: 1px solid var(--rule); padding-top: 18px; }
+  p, li { margin: 0 0 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Aldermarch — Privacy Policy</h1>
+  <p class="date">Last updated: [DATE]</p>
+
+  <p>Aldermarch is a single-player strategy game that runs entirely on your device. This page explains what that means for your information. In short: the game does not collect, send or share any personal data.</p>
+
+  <h2>What the game stores</h2>
+  <p>Your saved games and settings (for example, whether music or tips are on) are stored in your browser's local storage on your own device. They never leave it. Uninstalling the game or clearing the app's or browser's data deletes them.</p>
+
+  <h2>What the game sends</h2>
+  <p>Nothing. Aldermarch has no accounts, no analytics, no advertising and no online features. It makes no network requests other than downloading the game itself. Once installed, it can be played offline, and a copy is kept on your device so it can start without a connection.</p>
+
+  <h2>The website that hosts the game</h2>
+  <p>The game is downloaded from GitHub Pages. As with any website, GitHub may keep standard technical logs of requests (such as IP addresses) under <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's own privacy statement</a>. Aldermarch itself does not receive or use that information.</p>
+
+  <h2>Children</h2>
+  <p>Because the game collects no personal information from anyone, it collects none from children.</p>
+
+  <h2>Changes</h2>
+  <p>If a future version adds anything that handles personal data, such as purchases or online saves, this page will be updated before that version is released, and the date at the top will change.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy: [CONTACT EMAIL]</p>
+</main>
+</body>
+</html>
