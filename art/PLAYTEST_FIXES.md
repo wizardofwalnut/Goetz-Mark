@@ -164,3 +164,11 @@ walls with road gaps, shadows, labor screen variants.
 - **Phone check:** the speed-ups were measured in desktop Chrome; worth a feel on the S10e (labor taps, End Turn).
 
 - Oct 23 (Chris): **keep Normal's pace** as it is (d3). g12 left open for now.
+
+## Overnight audit 2, Oct 23 (Chris asleep)
+
+- **Fix List page repaired:** the Oct 22 update put a plain double quote in the page's script and the list stopped rendering; fixed, and every Fix List publish is now parse-checked and render-checked first.
+- `c2f480d` **Fuzz audit** (a chaotic player firing random plausible actions — 27 kinds: labor, fields, levies, trades, caravans, moves, splits, merges, assaults, castles, rams, truces, gifts, raids, escorts, captures, mercenaries — with every invariant checked after every action; 24 games × 80 seasons, ~4,900 successful actions): 0 crashes. One gap: army/caravan moves accepted positions off the map; the rules now refuse them (play never sent them).
+- `ed7fe4c` **War through the UI** (levy, march tile by tile, assault Greyfen, confirm, End Turn): works. Fixed: a capture that resolves on the spot showed a notice but left **no Event History line** (End Turn saw no change of hands to report); "**You's army**" / "held by You" → "Your army" / "held by you"; Event History no longer doubles the county name. Tour of ~25 screens with real actions: no errors, no undefined/NaN text.
+- `95c512c` **`tools/regress.py`**: 23 phone-size checks of this week's fixes (≈3 min). 23/23 now; 9/23 on the Oct 20 build.
+- `bb61821` **Privacy policy draft** (`docs/privacy-policy-draft.html`, a14): the game sends nothing anywhere — saves stay on the device, no analytics or accounts. Needs Chris's public contact address and a date, then move to `pages/`.
