@@ -108,5 +108,24 @@ closed test with 12 testers for 14 days → production.
 
 ---
 
-## Overnight sweep results (Oct 23)
-_Filled in at the end of the sweep — see below._
+## Overnight sweep results (Oct 23) — all clean
+
+| Check | Result |
+|---|---|
+| Health sweep (`codebase_health_sweep.py`) | PASS: 0 broken art refs, 0 banned APIs, 0 orphaned code. The 6 "orphaned" Figma icons are a false positive (looked up by a built name). |
+| Unit tables, extra checks | PASS |
+| Regression suite (`tools/regress.py`) | 23/23 |
+| Full tutorial through the UI (`tools/tutorial_run.py`, new) | all 19 steps complete |
+| Invariant audit, 128 games × 100 seasons, all difficulties | 0 anomalies, 0 errors |
+| Fuzz: chaotic player, 32 games × 100 seasons (~5,400 actions, 28 kinds, now including wall repairs) | 0 crashes, 0 broken invariants |
+| Console during the tutorial and a 25-screen tour | silent — no warnings or errors |
+| Phone sizes 320, 360 and 412 wide, and landscape | nothing off-screen or clipped; End Turn always reachable |
+| A save from the Oct 20 build, loaded into this one | loads and plays on; nothing lost |
+
+**Fixed in the sweep:** season-report lines that still showed internal field
+ids ("Field f_3_5 reclaimed" → "1 field reclaimed from barren land");
+accessible names for seven controls; stale comments; the Phase B plan and
+Big Bang status (facing is done).
+
+**Noticed, not changed:** in landscape the map strip is ~200 px tall and the
+warning strip takes 30 px of it — part of the d6 orientation decision.
