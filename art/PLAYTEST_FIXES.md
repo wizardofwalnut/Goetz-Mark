@@ -162,3 +162,5 @@ walls with road gaps, shadows, labor screen variants.
 - **Win rates after the workforce fix** (32 games each, ±15% noise): stand-in wins Easy 28, Normal 22, Hard 3, Very Hard 7; a few more games run past 100 seasons undecided (builders no longer phantom).
 - **g11** still true: wood/ore pass 3,000 in 19 of 32 Normal games. **g12** looks resolved by the food rule (health no longer sits at 50 in any game) — your call to tick.
 - **Phone check:** the speed-ups were measured in desktop Chrome; worth a feel on the S10e (labor taps, End Turn).
+
+- Oct 23 (Chris): **keep Normal's pace** as it is (d3). g12 left open for now.
