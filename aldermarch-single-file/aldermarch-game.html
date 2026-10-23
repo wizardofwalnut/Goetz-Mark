@@ -13259,12 +13259,23 @@ function transferTroops(source, targetTotal, cap) {
 * recomputed here, so there's no risk of the move's actual cost ever
 * silently drifting from what was shown as reachable.
 */
+/**
+* Safety net found by the Oct 23 fuzz audit: the move actions trusted their
+* target, so a bad call could put an army or caravan at column -1. The map
+* only ever offers on-grid tiles, so play never hit it; the rules now refuse
+* it themselves.
+*/
+function onCountyGrid(match, countyId, col, row) {
+	const interior = match.counties[countyId]?.interior;
+	return !!interior && Number.isInteger(col) && Number.isInteger(row) && col >= 0 && row >= 0 && col < interior.cols && row < interior.rows;
+}
 function moveArmyFieldTo(match, armyId, col, row, countyId, cost) {
 	const army = match.armies[armyId];
 	if (!army) return fail$1("No such army");
 	if (army.location.kind !== "field") return fail$1("Army is not standing in the open");
 	const budget = army.movementRemaining ?? 0;
 	if (!Number.isFinite(cost) || cost > budget) return fail$1("Army has no movement left this season");
+	if (!onCountyGrid(match, countyId ?? army.location.county, col, row)) return fail$1("That spot is off the map");
 	return {
 		ok: true,
 		match: {
@@ -14138,6 +14149,7 @@ function moveCaravanFieldTo(match, caravanId, col, row, countyId, cost) {
 	if (!caravan) return fail$2("No such caravan");
 	const budget = caravan.movementRemaining ?? 0;
 	if (!Number.isFinite(cost) || cost > budget) return fail$2("Caravan has no movement left this season");
+	if (!onCountyGrid(match, countyId ?? caravan.county, col, row)) return fail$2("That spot is off the map");
 	return {
 		ok: true,
 		match: {
