@@ -21519,8 +21519,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})${truceNote}`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?${truceNote}`);
 				if (!proceed) return setSelectedMover(null);
 				if (truceWith) working = breakTruce(working, selectedArmy.owner, truceWith);
-				result = assaultTown(working, selectedArmy.id, target.plot.county.id, cost);
-				announceAssault(result, selectedArmy.owner, target.plot.county.id, target.plot.county.name);
+				result = announceAssault(assaultTown(working, selectedArmy.id, target.plot.county.id, cost), selectedArmy.owner, target.plot.county.id, target.plot.county.name);
 			} else result = moveArmyFieldTo(working, selectedArmy.id, target.local.col, target.local.row, target.plot.county.id, cost);
 			if (result.ok) onChange(result.match);
 		}
@@ -21644,8 +21643,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				const truceNote = truceWith ? ` This BREAKS your truce with ${nameOfPlayer(match, truceWith)} (relations −${BREAK_TRUCE_RELATION}, and they won't trust you for ${DISTRUST_SEASONS} seasons).` : "";
 				const proceed = defenderCount > 0 ? await confirmAsync(`Assault ${target.plot.county.name}'s ${place}? Its garrison will fight. (${troopCount(selectedArmy.troops)} vs ${defenderCount})${truceNote}`) : await confirmAsync(`${target.plot.county.name}'s ${place} is undefended — march in and take it?${truceNote}`);
 			if (proceed) {
-				const result = assaultTown(truceWith ? breakTruce(match, selectedArmy.owner, truceWith) : match, selectedArmy.id, targetCountyId, cost);
-				announceAssault(result, selectedArmy.owner, targetCountyId, target.plot.county.name);
+				const result = announceAssault(assaultTown(truceWith ? breakTruce(match, selectedArmy.owner, truceWith) : match, selectedArmy.id, targetCountyId, cost), selectedArmy.owner, targetCountyId, target.plot.county.name);
 				if (result.ok) onChange(result.match);
 			}
 		}
@@ -22006,6 +22004,8 @@ function facingOf(id, cell) {
 	moverFacing.set(id, f);
 	return f;
 }
+/** "Your army" / "Lady Aubrey's army" — the human's display name is "You", so "You's" read wrong (Oct 23 audit). */
+var possessive = (player) => !player ? "Someone's" : player.controller?.kind === "human" ? "Your" : `${player.displayName ?? "Someone"}'s`;
 var PLATE_EDGE = (seat) => (seat % 4 + 4) % 4 === 3 ? "#9a9aa8" : seatColor(seat).bright;
 var plateText = (n) => n >= 1e4 ? `${Math.round(n / 1e3)}k` : n.toLocaleString("en-US");
 function TroopPlate({ x, y, count, seat, label }) {
@@ -22115,7 +22115,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 					art: castleFlagArt(holder.seat),
 					size: .45,
 					offset: flagOffset,
-					label: `${plot.county.name} \u2014 held by ${holder.displayName ?? "a lord"}${garrison > 0 ? `, ${garrison} in garrison` : ""}`
+					label: `${plot.county.name} \u2014 held by ${holder.controller?.kind === "human" ? "you" : holder.displayName ?? "a lord"}${garrison > 0 ? `, ${garrison} in garrison` : ""}`
 				}, `${plot.county.id}-flag`)
 			});
 			if (garrison > 0) {
@@ -22175,7 +22175,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 					art: overheadWagonArt(face.away),
 					mirror: face.mirror,
 					size: .55,
-					label: `${owner?.displayName ?? "Someone"}'s transport caravan`,
+					label: `${possessive(owner)} transport caravan`,
 					selected,
 					onClick: () => onSelectCaravan?.(caravan.id)
 				}, `${caravan.id}-wagon`), owner && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapSprite, {
@@ -22228,7 +22228,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 						mirror: face.mirror,
 						size: .48,
 						offset: { x: fx(off.x), y: off.y },
-						label: `${owner?.displayName ?? "Someone"}'s army — ${total} troops`,
+						label: `${possessive(owner)} army — ${total} troops`,
 						selected,
 						onClick: isYours ? () => onSelectArmy?.(army.id) : void 0
 					}, `${army.id}-soldier-${i}`)),
@@ -22253,7 +22253,7 @@ function Movers({ layout, match, selectedMover, onSelectCaravan, onSelectArmy, o
 					y: c.y + TILE_H * .45 + 9,
 					count: total,
 					seat: owner.seat,
-					label: `${owner.displayName ?? "Someone"}'s army \u2014 ${total} troops`
+					label: `${possessive(owner)} army \u2014 ${total} troops`
 				}, `${army.id}-plate`));
 			}
 		}
@@ -25820,9 +25820,17 @@ function GrainReportScreen({ match, countyId, countyName, onClose }) {
 * season report never sees it change hands (b10). Say how it went now.
 */
 function announceAssault(result, owner, countyId, name) {
-	if (!result?.ok || !result.outcome) return;
-	if (result.match.counties[countyId]?.owner === owner) noticeAsync(`\u{1F451} ${name} is yours.`);
-	else noticeAsync(result.outcome === "mutualDestruction" ? `Both sides fell at ${name}. It stays in its owner's hands.` : `The assault on ${name} was thrown back.`);
+	if (!result?.ok || !result.outcome) return result;
+	const won = result.match.counties[countyId]?.owner === owner;
+	const text = won ? `${name} is yours.` : result.outcome === "mutualDestruction" ? `Both sides fell at ${name}. It stays in its owner's hands.` : `The assault on ${name} was thrown back.`;
+	noticeAsync(won ? `\u{1F451} ${text}` : text);
+	/**
+	* Also into Event History (Oct 23 audit): an assault resolved on the spot
+	* only showed this notice, so a capture or a repulse left no record — and
+	* End Turn saw no change of hands to report either.
+	*/
+	const entry = { county: countyId, kind: won ? "conquered" : "repelled", detail: text, turn: result.match.turn.number };
+	return { ...result, match: { ...result.match, eventLog: [...result.match.eventLog ?? [], entry].slice(-100) } };
 }
 function DiplomacyScreen({ match, onChange, onClose }) {
 	const h = import_react.createElement;
@@ -26570,7 +26578,7 @@ function EventHistoryScreen({ match, layout, onClose }) {
 				const countyName = layout.plots.find((p) => p.county.id === event.county)?.county.name ?? event.county ?? "The Realm";
 				return h("div", { className: "ov-events-row", key: i }, [
 					h("span", { className: "ov-events-row-icon" }, EVENT_KIND_ICON[event.kind] ?? "\u{1F4DC}"),
-					h("span", { className: "ov-events-row-detail" }, countyFilter === "all" ? `${countyName}: ${event.detail ?? event.kind}` : event.detail ?? event.kind)
+					h("span", { className: "ov-events-row-detail" }, countyFilter === "all" && !(event.detail ?? "").startsWith(countyName) ? `${countyName}: ${event.detail ?? event.kind}` : event.detail ?? event.kind)
 				]);
 			}))
 		]),
