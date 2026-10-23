@@ -5,8 +5,9 @@
 > from the plan below: the bake is **200 px**, not ~270 (one merged ground
 > canvas per county; tall props are live sprites, not baked); `builder` job
 > not added (castle-lot crowds use the farmer); decoration is rocks only
-> (bushes need skirt-free art). **Not done:** step 6 (facing — the `.away`
-> keys are embedded, the code isn't), and the on-device S10e check in step 9.
+> (bushes need skirt-free art). Step 6 (facing) done Oct 22 (`531f60a`:
+> toward/away art, mirrored, from each mover's last step). **Not done:** the
+> on-device S10e check in step 9.
 > Details: `claude/BIG_BANG_STATUS.md`.
 
 Originally doc only — nothing here had been applied to the game file. This is the

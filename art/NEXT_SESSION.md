@@ -55,7 +55,7 @@ and the current in-game icons exported to `art/_reference/icon-style/`
 > resource icons: hand-painted, warm medieval, soft light from the top left,
 > one object per icon, centred, filling about 80% of the square.
 > Rules: each icon a **separate 1024×1024 PNG**; background **solid flat navy
-> #020C24** filling the whole square (no gradient, no vignette, no border,
+> #020A1F (the Art Bible's icon navy)** filling the whole square (no gradient, no vignette, no border,
 > no frame, no text, no shadow on the background); no flags or animals unless
 > listed; nothing touching the edges. Name each file exactly as below.
 > 1. `icon_population.png` — three medieval peasants standing together

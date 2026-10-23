@@ -14921,7 +14921,7 @@ var ambientMusic = createAmbientMusicEngine();
 * Game) and aren't retroactively pushed into a game already in progress.
 * `randomEventsEnabled` branches real behavior in `advanceSeason`;
 * `reportCardEnabled` is checked live every End Turn (not just at New
-* Game) since the Report Card is a per-turn popup, not a match-config
+* Game) since the Standings tab (the old Report Card) is per-turn, not a match-config
 * value baked in at creation — a player should be able to turn it off
 * mid-game without starting over. `musicEnabled` similarly takes effect
 * immediately via `ambientMusic.setEnabled`, not just on next launch.
@@ -18551,6 +18551,8 @@ function advanceSeason(match, map) {
 			kind: "harvest",
 			detail: `${reapedFields} field${reapedFields === 1 ? "" : "s"} harvested ${Math.round(reapedSacks).toLocaleString("en-US")} sacks of grain`
 		});
+		/** Per-county counts, reported once after the loop: the per-field lines showed internal ids ("Field f_3_5 reclaimed"; Oct 23 sweep, same as b9/g9). */
+		const fieldNews = { reclaimed: 0, noSeed: 0, shortSeed: 0 };
 		const fields = county.interior.fields.map((field) => {
 			if (damagedFieldIds.has(field.id)) return {
 				...field,
@@ -18571,11 +18573,7 @@ function advanceSeason(match, map) {
 				const barrenFieldCount = county.interior.fields.filter((f) => f.status === "barren").length;
 				const staffedShare = barrenFieldCount > 0 ? clamp01(county.repairWorkers / (barrenFieldCount * REPAIR_WORKERS_PER_FIELD)) : 0;
 				const reclaimed = Math.min(1, field.reclaimed + RECLAIM_PER_SEASON * staffedShare);
-				if (reclaimed >= 1 && field.reclaimed < 1) events.push({
-					county: id,
-					kind: "reclaimed",
-					detail: `Field ${field.id} reclaimed`
-				});
+				if (reclaimed >= 1 && field.reclaimed < 1) fieldNews.reclaimed++;
 				return {
 					...field,
 					reclaimed
@@ -18606,16 +18604,8 @@ function advanceSeason(match, map) {
 					const laborCap = Math.max(0, Math.min(MAX_SACKS_PER_FIELD, uncapped));
 					const planted = Math.max(0, Math.min(laborCap, Math.floor(wheat)));
 					wheat -= planted;
-					if (planted <= 0 && laborCap > 0) events.push({
-						county: id,
-						kind: "noSeed",
-						detail: `Field ${field.id} could not be planted — no seed grain left`
-					});
-					else if (planted < laborCap) events.push({
-						county: id,
-						kind: "shortSeed",
-						detail: `Field ${field.id} only partly planted — seed grain ran out`
-					});
+					if (planted <= 0 && laborCap > 0) fieldNews.noSeed++;
+					else if (planted < laborCap) fieldNews.shortSeed++;
 					return {
 						...field,
 						seasonsGrown: 0,
@@ -18639,6 +18629,10 @@ function advanceSeason(match, map) {
 			}
 			return field;
 		});
+		const nFields = (n) => `${n} field${n === 1 ? "" : "s"}`;
+		if (fieldNews.reclaimed) events.push({ county: id, kind: "reclaimed", detail: `${nFields(fieldNews.reclaimed)} reclaimed from barren land` });
+		if (fieldNews.noSeed) events.push({ county: id, kind: "noSeed", detail: `${nFields(fieldNews.noSeed)} could not be planted \u2014 no seed grain left` });
+		if (fieldNews.shortSeed) events.push({ county: id, kind: "shortSeed", detail: `${nFields(fieldNews.shortSeed)} only partly planted \u2014 seed grain ran out` });
 		/**
 		* Herd growth computed once for the whole county now, not inside the
 		* per-field loop — there's only one herd number. `cattleFieldCount`
@@ -21867,6 +21861,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				className: "ov-minimap-tab",
 				onClick: () => setMinimapOpen((v) => !v),
 				title: minimapOpen ? "Hide the minimap" : "Show the minimap",
+				"aria-label": minimapOpen ? "Hide the minimap" : "Show the minimap",
 				children: minimapOpen ? "\u2715" : "\u{1F5FA}\uFE0F"
 			}),
 			/**
@@ -22612,15 +22607,16 @@ function LevyPanel({ match, countyId, onChange, onClose }) {
 	}));
 	const setTier = (kind, value) => setCounts((c) => ({ ...c, [kind]: Math.max(0, value) }));
 	/**
-	* A real, computed cap for the "Max" tier — not a guess. Bounded by the
+	* A real, computed cap per unit kind — not a guess. Bounded by the
 	* same two limits `recruitArmy` itself enforces: population (60 left
 	* behind, never more than half drafted) and whatever equipment/material
-	* the treasury actually holds for that unit, so tapping Max on Knights
+	* the treasury actually holds for that unit, so "Safe max" on Knights
 	* only ever proposes as many as you actually have armor for.
 	*/
 	/**
-	* A single, real ceiling per unit kind — used by BOTH the "Max" tier
-	* button and the fine +1 stepper's disabled state, so they can never
+	* A single, real ceiling per unit kind — used by the fine +1 stepper's
+	* disabled state and as the upper bound of "Safe max" (fix list g4,
+	* which further limits it to stay clear of unrest), so they can never
 	* disagree with each other the way they just did (Max showing a stale
 	* population/3 figure while the individual clicker had no population
 	* check at all and could walk straight past it to the real 50% limit).
@@ -23158,11 +23154,10 @@ var BEST_NOBLE_CATEGORIES = [
 * full Best Noble screen already computes, so the two can never disagree
 * with each other. Deliberately a plain two-column comparison rather than
 * reusing Best Noble's rampart-and-banner visual — that screen is a
-* deliberate destination players choose to open; this one appears
-* uninvited after every turn, so it needs to be scannable in under a
-* second, not a scene to look at. Gated on `settings.reportCardEnabled`
-* at the call site in `endSeason`, not inside this component, so a
-* disabled Report Card never even gets constructed.
+* deliberate destination players choose to open; this one sits in the
+* season summary every turn, so it needs to be scannable in under a
+* second, not a scene to look at. Shown when `settings.reportCardEnabled`
+* (Settings > Season Summary > Standings) is on.
 */
 /**
 * Fix list g8/r2: the Report Card no longer pops up on its own. It is the
@@ -23227,6 +23222,7 @@ function BestNoblePanel({ match, onClose }) {
 				className: "ov-noble-header",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Best Noble" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 					className: "ov-noble-close",
+					"aria-label": "Close",
 					onClick: onClose,
 					children: "\u2715"
 				})]
@@ -23927,7 +23923,9 @@ function TopBarMenu({ onOpenSave, onOpenHistory, onOpenSettings }) {
 			key: "btn",
 			className: "ov-save-btn",
 			onClick: () => setOpen((o) => !o),
-			title: "Menu"
+			title: "Menu",
+			"aria-label": "Menu",
+			"aria-expanded": open
 		}, "\u2630"),
 		open && h("div", { className: "ov-menu-backdrop", key: "bd", onClick: () => setOpen(false) }),
 		open && h("div", { className: "ov-menu-dropdown", key: "dd" }, [
@@ -24186,6 +24184,7 @@ function FigbarStatCard({ label, value, onMinus, onPlus, minusDisabled, plusDisa
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 						className: "ov-figbar-stat-btn minus",
+						"aria-label": `Lower ${label.toLowerCase()}`,
 						disabled: minusDisabled,
 						onClick: onMinus,
 						children: "\u2212"
@@ -24198,6 +24197,7 @@ function FigbarStatCard({ label, value, onMinus, onPlus, minusDisabled, plusDisa
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 						className: "ov-figbar-stat-btn plus",
+						"aria-label": `Raise ${label.toLowerCase()}`,
 						disabled: plusDisabled,
 						onClick: onPlus,
 						children: "+"
@@ -25123,7 +25123,7 @@ function RationScreen({ match, countyId, countyName, onChange, onClose }) {
 	return h("div", { className: "ov-ration-overlay" }, [
 		h("div", { className: "ov-ration-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u{1F60A} Ration \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		h("div", { className: "ov-ration-stepper-row", key: "step" }, [
 			h("div", { className: "ov-ration-stepper-title", key: "t" }, "Ration Level"),
@@ -25227,7 +25227,7 @@ function SaveLoadScreen({ match, onChange, onClose, allowSave = true }) {
 	return h("div", { className: "ov-save-overlay" }, [
 		h("div", { className: "ov-save-header", key: "hd" }, [
 			h("h2", { key: "t" }, "\u{1F4BE} Save & Load"),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		h("div", { className: "ov-save-section-label", key: "l1" }, "Autosave — updates every End Turn"),
 		h("div", { className: "ov-save-zone", key: "z1" }, [slotRow(AUTOSAVE_KEY, "Autosave", false)]),
@@ -25277,7 +25277,7 @@ function SettingsScreen({ onClose }) {
 	return h("div", { className: "ov-save-overlay" }, [
 		h("div", { className: "ov-save-header", key: "hd" }, [
 			h("h2", { key: "t" }, "\u2699\uFE0F Settings"),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		h("div", { className: "ov-save-section-label", key: "l1" }, "New Games"),
 		h("div", { className: "ov-save-zone", key: "z1" }, [
@@ -25464,7 +25464,7 @@ function HappinessReportScreen({ match, countyId, countyName, onClose }) {
 	return h("div", { className: "ov-happiness-overlay" }, [
 		h("div", { className: "ov-happiness-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u{1F60A} Happiness Report \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		history.length > 0 ? h("div", { className: "ov-happiness-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-happiness-zone", key: "z1" }, [
@@ -25538,7 +25538,7 @@ function HealthReportScreen({ match, countyId, countyName, onClose }) {
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u2764\uFE0F Health Report \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
@@ -25661,7 +25661,7 @@ function CattleReportScreen({ match, countyId, countyName, onClose }) {
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u{1F404} Cattle Report \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
@@ -25734,7 +25734,7 @@ function GrainReportScreen({ match, countyId, countyName, onClose }) {
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u{1F33E} Grain Report \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
@@ -25942,7 +25942,7 @@ function BattleReportScreen({ match, countyId, countyName, onClose }) {
 	return h("div", { className: "ov-health-overlay", style: { zIndex: 35 } }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u2694\uFE0F Battle Report \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		!report ? h("div", { className: "ov-health-zone", key: "empty" }, "No fighting here yet.") : [
 			h("div", { className: "ov-health-section-label", key: "l1" }, `${report.kind === "harassment" ? "Archers at the walls" : report.kind === "wallFire" ? "Archers on the walls" : "Siege"} \u2014 ${capitalise(report.season)} ${report.turn}`),
@@ -26085,7 +26085,7 @@ function KingdomResourcesPanel({ match, layout, playerId, onClose, onOpenGrain, 
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, "Kingdom Resources"),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715")
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715")
 		]),
 		h("div", { className: "ov-health-section-label", key: "mt" }, "Materials"),
 		h("div", { className: "ov-kr-material-list", key: "ml" }, materials.map((m) => {
@@ -26159,7 +26159,7 @@ function PopulationReportScreen({ match, countyId, countyName, onClose }) {
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u{1F465} Population Report \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		history.length > 0 ? h("div", { className: "ov-health-section-label", key: "l1" }, `Trend \u2014 Last ${history.length} Season${history.length === 1 ? "" : "s"}`) : null,
 		history.length > 0 ? h("div", { className: "ov-health-zone", key: "z1" }, [
@@ -26302,7 +26302,7 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLa
 	return h("div", { className: "ov-health-overlay" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u{1F3F0} Castle \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		h("div", { className: "ov-health-section-label", key: "l1" }, "Current"),
 		h("div", { className: "ov-ration-zone", key: "z1" }, [
@@ -26491,7 +26491,7 @@ function GameOverScreen({ match, onClose }) {
 	return h("div", { className: "ov-health-overlay", key: "gameover" }, [
 		h("div", { className: "ov-health-header", key: "hd" }, [
 			h("h2", { key: "t" }, youWon ? "\u{1F451} Victory" : "\u2620\uFE0F Defeat"),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		h("div", { className: "ov-health-zone", key: "z1" }, youWon
 			? "Every rival realm has fallen or surrendered its lands. The map is yours."
@@ -26510,7 +26510,7 @@ function TurnEventsScreen({ events, layout, onClose, onOpenBattle, match, showSt
 	return h("div", { className: "ov-events-overlay" }, [
 		h("div", { className: "ov-events-header", key: "hd" }, [
 			h("h2", { key: "t" }, `\u{1F4DC} ${match ? describeTurn(match.turn.number) : "This Season"}`),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		showStandings && match ? h("div", { className: "ov-events-tabs", key: "tabs", role: "tablist" }, [
 			h("button", { key: "e", role: "tab", "aria-selected": tab === "events", className: `ov-events-tab${tab === "events" ? " on" : ""}`, onClick: () => setTab("events") }, "What happened"),
@@ -26556,7 +26556,7 @@ function EventHistoryScreen({ match, layout, onClose }) {
 	return h("div", { className: "ov-events-overlay" }, [
 		h("div", { className: "ov-events-header", key: "hd" }, [
 			h("h2", { key: "t" }, "\u{1F4DC} Event History"),
-			h("button", { key: "x", className: "ov-noble-close", onClick: onClose }, "\u2715"),
+			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
 		]),
 		ownedCounties.length > 1 ? h("div", { className: "ov-save-zone", key: "filter", style: { display: "flex", flexWrap: "wrap", gap: 6, margin: "0 16px 10px" } }, [
 			h("button", {
@@ -26715,6 +26715,7 @@ function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpen
 				disabled: !hasUnfinishedUnits,
 				onClick: onNextUnit,
 				title: "Jump to the next army that hasn't finished its turn",
+				"aria-label": "Next army",
 				children: "\u2694\uFE0F"
 			}),
 			onNextCounty && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
@@ -26722,6 +26723,7 @@ function CountyStrip({ county, match, onChange, onOpenLevy, onOpenRation, onOpen
 				disabled: !hasOtherCounties,
 				onClick: onNextCounty,
 				title: "Jump to the next county you own",
+				"aria-label": "Next county",
 				children: "\u{1F3D8}\uFE0F"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
