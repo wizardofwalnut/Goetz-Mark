@@ -86,7 +86,7 @@ What the Play Store needs, checked Oct 23 against Google's help pages:
 - **Screenshots:** at least 2; for games, at least 3 at 1080×1920 portrait
   (or 1920×1080 landscape) are recommended. I can capture these from the
   real build at true size once the icons are in.
-- **Privacy policy:** drafted (`docs/privacy-policy-draft.html`) — needs your
+- **Privacy policy:** the draft covers the single-player game only; online multiplayer means rewriting it (accounts, server, chat, Data safety form). Drafted (`docs/privacy-policy-draft.html`) — needs your
   public email and a date, then it moves to `pages/`.
 - **Closed testing first:** a new personal developer account must run a
   closed test with **at least 12 testers opted in for 14 days in a row**
