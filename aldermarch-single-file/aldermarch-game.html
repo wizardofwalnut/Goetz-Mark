@@ -22920,10 +22920,46 @@ function seasonsOfGrain(county, match) {
 * advisor icon shows the first; the end-turn strip walks through them all.
 * Each has a full `text` and a `short` one-line form for the strip.
 */
+/**
+* Surplus advice (fix list g11, Chris Oct 23: "in L2, if I had stone piling up,
+* I would sell it and buy things I couldn't make or needed more of"). Wood, ore
+* and stone are realm-wide; beyond a working reserve they're only worth what the
+* merchant pays. Returns the biggest surplus, what it fetches, and what that gold
+* would buy that the realm actually needs (grain running low, the next castle's
+* stone), else plain gold for soldiers.
+*/
+var SURPLUS_RESERVE = { wood: 600, ore: 600, stone: 1200 };
+var SURPLUS_MIN = 1e3;
+function surplusAdvice(match) {
+	const you = match.players.find((p) => p.controller.kind === "human");
+	if (!you) return null;
+	const t = match.treasuries[you.id] ?? {};
+	const spare = Object.keys(SURPLUS_RESERVE).map((r) => [r, Math.floor((t[r] ?? 0) - SURPLUS_RESERVE[r])]).filter(([, n]) => n >= SURPLUS_MIN).sort((a, b) => b[1] * MERCHANT_SELL_PRICE[b[0]] - a[1] * MERCHANT_SELL_PRICE[a[0]] || a[0].localeCompare(b[0]));
+	if (!spare.length) return null;
+	const [res, qty] = spare[0];
+	const gold = Math.floor(qty * MERCHANT_SELL_PRICE[res]);
+	const owned = Object.entries(match.counties).filter(([, c]) => c.owner === you.id && c.interior);
+	const nameOf = (id) => REALM.counties.find((c) => c.id === id)?.name ?? id;
+	const label = (r) => (RESOURCE_LABEL[r] ?? r).toLowerCase();
+	let buy = null;
+	const hungry = owned.find(([id, c]) => seasonsOfGrain(c, match) < 4);
+	if (hungry) buy = `${Math.floor(gold / MERCHANT_BUY_PRICE.wheat).toLocaleString("en-US")} sacks of grain for ${nameOf(hungry[0])}`;
+	else if (res !== "stone") {
+		const castleShort = Math.max(0, ...owned.map(([id, c]) => {
+			const next = nextCastleTier(c.castleTier);
+			if (!next) return 0;
+			const cost = scaledCost(c.castleTier, next, getFaction(factionOf(match, you.id))?.bonuses?.castleCost ?? 1);
+			return Math.max(0, (cost.stone ?? 0) - (t.stone ?? 0));
+		}));
+		if (castleShort > 0) buy = `${Math.min(castleShort, Math.floor(gold / MERCHANT_BUY_PRICE.stone)).toLocaleString("en-US")} stone toward your next castle`;
+	}
+	const text = `You have ${qty.toLocaleString("en-US")} more ${label(res)} than you need. The merchant pays ${MERCHANT_SELL_PRICE[res]} gold each \u2014 about ${gold.toLocaleString("en-US")} gold, ${buy ? `enough for ${buy}` : "gold that pays soldiers and hires mercenaries"}. Trade it when he visits one of your counties.`;
+	return { resource: res, qty, gold, buy, text, short: `${qty.toLocaleString("en-US")} spare ${label(res)} \u2014 sell it to the merchant` };
+}
 function getAdvisorAlerts(match) {
 	const out = [];
 	const you = match.players.find((p) => p.controller.kind === "human");
-	if (!you) return null;
+	if (!you) return out;
 	const owned = Object.entries(match.counties).filter(([, c]) => c.owner === you.id && c.interior);
 	const nameOf = (id) => REALM.counties.find((c) => c.id === id)?.name ?? id;
 	for (const [id, c] of owned) {
@@ -22973,6 +23009,8 @@ function getAdvisorAlerts(match) {
 		const idle = unemployedWorkersOf(c);
 		if (idle >= Math.max(20, c.population * .1)) out.push({ icon: "\u{1F465}", text: `${idle} people stand idle in ${nameOf(id)} \u2014 put them to work from the town centre`, short: `${nameOf(id)}: ${idle} idle`, countyId: id });
 	}
+	const surplus = surplusAdvice(match);
+	if (surplus) out.push({ icon: "\u{1F4B0}", text: surplus.text, short: surplus.short, countyId: match.merchant?.county && match.counties[match.merchant.county]?.owner === you.id ? match.merchant.county : owned[0]?.[0] });
 	return out;
 }
 function getAdvisorAlert(match) {
@@ -23471,6 +23509,13 @@ function MerchantPanel({ match, countyId, countyName, onChange, onClose }) {
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "ov-merchant-body",
 				children: [
+					(() => {
+						const adv = surplusAdvice(match);
+						return adv ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "ov-castle-steward",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Steward: " }), adv.text.replace("Trade it when he visits one of your counties.", `Sell it here with the \u2212 buttons${adv.buy ? ", then buy what you need" : ""}.`)]
+						}) : null;
+					})(),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "ov-merchant-section-label",
 						children: "Goods"
