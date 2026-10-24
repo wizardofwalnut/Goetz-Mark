@@ -22928,17 +22928,59 @@ function seasonsOfGrain(county, match) {
 * would buy that the realm actually needs (grain running low, the next castle's
 * stone), else plain gold for soldiers.
 */
-var SURPLUS_RESERVE = { wood: 600, ore: 600, stone: 1200 };
+var SURPLUS_RESERVE = { wood: 300, ore: 300, stone: 0 };
 var SURPLUS_MIN = 1e3;
+/** Seasons of forge use kept back from the advice (Chris, Oct 23: "sometimes you need a lot of a resource for castles and/or building weapons"). */
+var FORGE_RESERVE_SEASONS = 4;
+/** Castle upgrades ahead kept back per county (the next one and the one after). */
+var CASTLE_PLAN_STEPS = 2;
+/**
+* What the realm is saving each material for: every held county's next two castle
+* upgrades (stone and wood, at this lord's cost), and a year of what the staffed
+* forges would use if materials weren't the limit. Only what's left past this is
+* "spare".
+*/
+function plannedNeeds(match, you, owned) {
+	const need = { ...SURPLUS_RESERVE };
+	const why = { wood: [], ore: [], stone: [] };
+	const nameOf = (id) => REALM.counties.find((c) => c.id === id)?.name ?? id;
+	const mult = getFaction(factionOf(match, you.id))?.bonuses?.castleCost ?? 1;
+	const season = seasonOfTurn(match.turn.number);
+	for (const [id, c] of owned) {
+		const from = c.building?.tier ?? c.castleTier;
+		let goal = from;
+		for (let i = 0; i < CASTLE_PLAN_STEPS; i++) goal = nextCastleTier(goal) ?? goal;
+		if (goal !== from) {
+			const cost = scaledCost(from, goal, mult);
+			for (const r of ["wood", "stone"]) if (cost[r] > 0) {
+				need[r] += cost[r];
+				why[r].push(`${nameOf(id)}'s ${CASTLES[goal].name}`);
+			}
+		}
+		const forge = c.interior.industry.find((x) => x.kind === "blacksmith" && x.active && (x.workers ?? 0) > 0 && x.weapon);
+		if (forge) {
+			const p = projectProduction({ interior: c.interior, population: c.population, split: { farmWorkers: c.farmWorkers, cattleWorkers: c.cattleWorkers }, season, rationLevel: c.rationLevel, cattleEfficiency: c.cattleEfficiency, herd: c.herd, treasuryOre: 1e9, treasuryWood: 1e9 });
+			for (const r of ["ore", "wood"]) {
+				const used = p.lines.find((l) => l.key === r)?.consumed ?? 0;
+				if (used > 0) {
+					need[r] += Math.ceil(used * FORGE_RESERVE_SEASONS);
+					why[r].push(`a year at ${nameOf(id)}'s forge`);
+				}
+			}
+		}
+	}
+	return { need, why };
+}
 function surplusAdvice(match) {
 	const you = match.players.find((p) => p.controller.kind === "human");
 	if (!you) return null;
 	const t = match.treasuries[you.id] ?? {};
-	const spare = Object.keys(SURPLUS_RESERVE).map((r) => [r, Math.floor((t[r] ?? 0) - SURPLUS_RESERVE[r])]).filter(([, n]) => n >= SURPLUS_MIN).sort((a, b) => b[1] * MERCHANT_SELL_PRICE[b[0]] - a[1] * MERCHANT_SELL_PRICE[a[0]] || a[0].localeCompare(b[0]));
+	const owned = Object.entries(match.counties).filter(([, c]) => c.owner === you.id && c.interior);
+	const { need, why } = plannedNeeds(match, you, owned);
+	const spare = Object.keys(need).map((r) => [r, Math.floor((t[r] ?? 0) - need[r])]).filter(([, n]) => n >= SURPLUS_MIN).sort((a, b) => b[1] * MERCHANT_SELL_PRICE[b[0]] - a[1] * MERCHANT_SELL_PRICE[a[0]] || a[0].localeCompare(b[0]));
 	if (!spare.length) return null;
 	const [res, qty] = spare[0];
 	const gold = Math.floor(qty * MERCHANT_SELL_PRICE[res]);
-	const owned = Object.entries(match.counties).filter(([, c]) => c.owner === you.id && c.interior);
 	const nameOf = (id) => REALM.counties.find((c) => c.id === id)?.name ?? id;
 	const label = (r) => (RESOURCE_LABEL[r] ?? r).toLowerCase();
 	let buy = null;
@@ -22953,7 +22995,8 @@ function surplusAdvice(match) {
 		}));
 		if (castleShort > 0) buy = `${Math.min(castleShort, Math.floor(gold / MERCHANT_BUY_PRICE.stone)).toLocaleString("en-US")} stone toward your next castle`;
 	}
-	const text = `You have ${qty.toLocaleString("en-US")} more ${label(res)} than you need. The merchant pays ${MERCHANT_SELL_PRICE[res]} gold each \u2014 about ${gold.toLocaleString("en-US")} gold, ${buy ? `enough for ${buy}` : "gold that pays soldiers and hires mercenaries"}. Trade it when he visits one of your counties.`;
+	const kept = why[res].length ? ` (after keeping ${Math.round(need[res]).toLocaleString("en-US")} for ${why[res].join(" and ")})` : "";
+	const text = `You have ${qty.toLocaleString("en-US")} more ${label(res)} than you need${kept}. The merchant pays ${MERCHANT_SELL_PRICE[res]} gold each \u2014 about ${gold.toLocaleString("en-US")} gold, ${buy ? `enough for ${buy}` : "gold that pays soldiers and hires mercenaries"}. Trade it when he visits one of your counties.`;
 	return { resource: res, qty, gold, buy, text, short: `${qty.toLocaleString("en-US")} spare ${label(res)} \u2014 sell it to the merchant` };
 }
 function getAdvisorAlerts(match) {
