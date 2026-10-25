@@ -1586,6 +1586,11 @@ full standalone screen, not a panel over gameplay. */
   max-width: none;
 }
 
+/* Attack prompt (Oct 25): Cancel / Attack side by side, the special move full width below. */
+.ov-confirm-choices { flex-wrap: wrap; }
+.ov-confirm-choices .ov-title-btn:nth-child(3) { flex-basis: 100%; }
+.ov-confirm-choices .ov-title-btn:disabled { opacity: .5; }
+
 /* NoticeHost - same visual language as ConfirmHost, one OK button instead
    of Cancel/Continue, since a notice is informational, not a decision. */
 .ov-notice-backdrop {
@@ -13040,6 +13045,7 @@ function recruitArmyRaw(match, countyId, troops) {
 			id,
 			owner,
 			troops: kindTroops,
+			morale: MORALE_NEW_LEVY,
 			location: {
 				kind: "field",
 				county: countyId,
@@ -13181,6 +13187,7 @@ function hireMercenaries(match, countyId) {
 					id,
 					owner,
 					troops,
+					morale: MORALE_MERCENARY,
 					mercenary: { company: offer.company },
 					location: { kind: "field", county: countyId, col: at.col, row: at.row },
 					movementRemaining: armySpeed(troops),
@@ -13328,6 +13335,46 @@ function moveArmyFieldTo(match, armyId, col, row, countyId, cost) {
 function kindsOf(troops) {
 	return Object.keys(troops ?? {}).filter((k) => (troops[k] ?? 0) > 0);
 }
+/**
+* Morale (ROTK11's Will; Chris, Oct 25). 0-100 per army. Troops at home drill
+* it up every season; fresh levies start low and pull a garrison's average
+* down; an army marches out with what it has. Special moves cost morale, and
+* an army without enough can't use them (it still fights). Old saves: 50.
+*/
+var MORALE_MAX = 100;
+var MORALE_NEW_LEVY = 30;
+var MORALE_MERCENARY = 60;
+var MORALE_DEFAULT = 50;
+var MORALE_DRILL_PER_SEASON = 10;
+var MORALE_MOVE_COST = 20;
+var MORALE_WIN_EXCHANGE = 5;
+var moraleOf = (army) => army?.morale ?? MORALE_DEFAULT;
+/** Headcount-weighted morale when two bodies of troops become one. */
+function blendMorale(a, aTroops, b, bTroops) {
+	const na = troopCount(aTroops), nb = troopCount(bTroops);
+	if (na + nb <= 0) return MORALE_DEFAULT;
+	return Math.round((moraleOf(a) * na + moraleOf(b) * nb) / (na + nb));
+}
+/** Garrisons drill: every army inside its own lord's castle gains morale each season. */
+function drillGarrisons(match) {
+	let changed = false;
+	const armies = { ...match.armies };
+	for (const a of Object.values(match.armies)) {
+		if (a.location.kind !== "garrison" || match.counties[a.location.county]?.owner !== a.owner) continue;
+		const next = Math.min(MORALE_MAX, moraleOf(a) + MORALE_DRILL_PER_SEASON);
+		if (next !== a.morale) {
+			armies[a.id] = { ...a, morale: next };
+			changed = true;
+		}
+	}
+	return changed ? { ...match, armies } : match;
+}
+/** The special move this army could use on that one, or null (only against the type it counters). */
+function specialMoveAgainst(attackerTroops, defenderTroops) {
+	const ks = kindsOf(attackerTroops);
+	if (ks.length !== 1 || !SPECIAL_MOVE[ks[0]]) return null;
+	return kindsOf(defenderTroops).some((k) => COUNTER_BONUS[ks[0]]?.[k]) ? SPECIAL_MOVE[ks[0]] : null;
+}
 /** Why two bodies of troops can't be one army, or null when they can. */
 function mixedKindsReason(a, b) {
 	const ka = kindsOf(a);
@@ -13405,7 +13452,8 @@ function garrisonArmy(match, armyId) {
 		const target = army.mercenary ? null : Object.values(armies).find((a) => a.location.kind === "garrison" && a.location.county === countyId && a.owner === army.owner && !a.mercenary && !mixedKindsReason(a.troops, part));
 		if (target) armies[target.id] = {
 			...target,
-			troops: { [kind]: target.troops[kind] + part[kind] }
+			troops: { [kind]: target.troops[kind] + part[kind] },
+			morale: blendMorale(target, target.troops, army, part)
 		};
 		else {
 			const newId = freeArmyId({
@@ -13416,6 +13464,7 @@ function garrisonArmy(match, armyId) {
 				id: newId,
 				owner: army.owner,
 				troops: part,
+				morale: moraleOf(army),
 				...army.mercenary ? { mercenary: army.mercenary } : {},
 				location: {
 					kind: "garrison",
@@ -13465,7 +13514,8 @@ function mergeFieldArmies(match, fromId, intoId) {
 		...match.armies,
 		[intoId]: {
 			...into,
-			troops: merged
+			troops: merged,
+			morale: blendMorale(into, into.troops, from, moving)
 		}
 	};
 	if (troopCount(staying) === 0) delete armies[fromId];
@@ -13761,23 +13811,34 @@ function runDiplomacy(match, ix) {
 var VOLLEY_DAMAGE_SCALE_FIELD = .3;
 var FIELD_EXCHANGE_SCALE = .35;
 var FIELD_VOLLEY_SCALE = VOLLEY_DAMAGE_SCALE_FIELD;
+/** The attack prompt: Attack, the special move when this army has one against them, or Cancel. */
+async function askAttack(attacker, defender, what) {
+	const move = specialMoveAgainst(attacker.troops, defender.troops);
+	const morale = moraleOf(attacker);
+	const head = `${what} (${troopCount(attacker.troops)} vs ${troopCount(defender.troops)}) Your morale: ${morale}.`;
+	const choices = [{ label: "Cancel", value: false }, { label: "Attack", value: "attack", primary: !move || morale < MORALE_MOVE_COST }];
+	if (move) choices.push(morale >= MORALE_MOVE_COST ? { label: `${move} (${MORALE_MOVE_COST} morale)`, value: "move", primary: true } : { label: `${move}: needs ${MORALE_MOVE_COST} morale`, value: "move", disabled: true });
+	const pick = await chooseAsync(move ? `${head} ${move} hits ${kindsOf(defender.troops).map((k) => UNITS[k]?.name ?? k).join(" and ")} twice as hard.` : head, choices);
+	return pick === "move" ? { useMove: true } : pick === "attack" ? {} : null;
+}
 /** One-paragraph account of a field fight for the player (the full report is a6). */
 function fieldFightSummary(attacker, defender, { result, match }) {
 	const kindName = (troops) => kindsOf(troops).map((k) => UNITS[k]?.name ?? k).join(" and ");
 	const lost = (l) => troopCount(l ?? {});
-	const moves = [...new Set((result.rounds ?? []).flatMap((r) => [...r.attacker.modifiers, ...r.defender.modifiers]).filter((m) => / \(.+ vs .+\)$/.test(m.label)).map((m) => m.label))];
 	const ours = kindName(attacker.troops);
 	const theirs = kindName(defender.troops);
-	const opening = result.ranged ? `Your ${ours} loosed on their ${theirs}.` : `Your ${ours} fought their ${theirs}.`;
+	const opening = result.ranged ? `Your ${ours} loosed on their ${theirs}.` : result.move ? `Your ${ours} used ${result.move} on their ${theirs} (${MORALE_MOVE_COST} morale).` : `Your ${ours} fought their ${theirs}.`;
 	const tally = `You lost ${lost(result.attackerLosses)}, they lost ${lost(result.defenderLosses)}.`;
-	const used = moves.length ? ` ${moves.join("; ")}.` : "";
 	const ending = !match.armies[defender.id] ? " They are broken." : !match.armies[attacker.id] ? " Your army is broken." : " Both still stand. The fight can go on next season.";
-	return `${opening} ${tally}${used}${ending}`;
+	return `${opening} ${tally}${ending}`;
 }
-function resolveFieldEncounter(match, attackerId, defenderId) {
+function resolveFieldEncounter(match, attackerId, defenderId, options = {}) {
 	const attacker = match.armies[attackerId];
 	const defender = match.armies[defenderId];
 	if (!attacker || !defender) return fail$1("No such army");
+	const move = options.useMove ? specialMoveAgainst(attacker.troops, defender.troops) : null;
+	if (options.useMove && !move) return fail$1("That army has no special move against these troops");
+	if (move && moraleOf(attacker) < MORALE_MOVE_COST) return fail$1(`${move} needs ${MORALE_MOVE_COST} morale (this army has ${moraleOf(attacker)})`);
 	if ((attacker.movementRemaining ?? 0) <= 0 && attacker.location.kind === "field") return fail$1("This army has already moved or fought this season");
 	/**
 	* ROTK11 (Chris, Oct 25): a fight is a few exchanges inside the season
@@ -13795,7 +13856,8 @@ function resolveFieldEncounter(match, attackerId, defenderId) {
 		attacker: {
 			troops: attacker.troops,
 			stance: DEFAULT_ATTACK_STANCE,
-			factionId: factionOf(match, attacker.owner)
+			factionId: factionOf(match, attacker.owner),
+			move: !!move
 		},
 		defender: {
 			troops: defender.troops,
@@ -13825,8 +13887,14 @@ function resolveFieldEncounter(match, attackerId, defenderId) {
 	if (returnFire) applyLosses(attackerId, result.attackerLosses);
 	else result.attackerLosses = {};
 	applyLosses(defenderId, result.defenderLosses);
-	if (armies[attackerId]) armies[attackerId] = { ...armies[attackerId], movementRemaining: 0 };
+	const won = troopCount(result.defenderLosses) > troopCount(result.attackerLosses);
+	if (armies[attackerId]) armies[attackerId] = {
+		...armies[attackerId],
+		movementRemaining: 0,
+		morale: Math.max(0, Math.min(MORALE_MAX, moraleOf(attacker) - (move ? MORALE_MOVE_COST : 0) + (won ? MORALE_WIN_EXCHANGE : 0)))
+	};
 	result.ranged = ranged;
+	result.move = move;
 	const next = adjustRelation({ ...match, armies }, attacker.owner, defender.owner, -RELATION_COST_FIELD_BATTLE);
 	return {
 		ok: true,
@@ -14328,7 +14396,8 @@ function escortCaravan(match, armyId, caravanId) {
 		for (const [kind, count] of Object.entries(moving)) merged[kind] = (merged[kind] ?? 0) + count;
 		armies[existing.id] = {
 			...existing,
-			troops: merged
+			troops: merged,
+			morale: blendMorale(existing, existing.troops, army, moving)
 		};
 	} else {
 		escortId = freeArmyId({
@@ -14857,7 +14926,8 @@ function sanitizeLoadedMatch(match) {
 	const armies = {};
 	for (const [id, army] of Object.entries(match.armies ?? {})) armies[id] = {
 		...army,
-		movementRemaining: army.movementRemaining ?? armySpeed(army.troops)
+		movementRemaining: army.movementRemaining ?? armySpeed(army.troops),
+		morale: army.morale ?? MORALE_DEFAULT
 	};
 	const caravans = {};
 	for (const [id, caravan] of Object.entries(match.caravans ?? {})) caravans[id] = {
@@ -16201,7 +16271,8 @@ function resolveBattle(input) {
 			label: `${stance.name} stance`,
 			factor: stance.attack
 		});
-		mods.push(...counterModifiers(troops, enemy));
+		/** ROTK11: the triangle rides only on a special move, and only the attacker makes one (Oct 25). */
+		if (attacking && input.attacker.move) mods.push(...counterModifiers(troops, enemy));
 		const faction = factionModifier(factionId, attacking);
 		if (faction) mods.push(faction);
 		/** ROTK11: a shot from range does ~70% of a close-in attack (both sides of a volley). */
@@ -18497,6 +18568,7 @@ function advanceSeason(match, map) {
 		working = conquest.match;
 		events.push(...conquest.events);
 	}
+	working = drillGarrisons(working);
 	const counties = { ...working.counties };
 	const treasuries = { ...working.treasuries };
 	/**
@@ -21707,8 +21779,9 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 			} else {
 				const escort = caravanHere.escortArmyId ? match.armies[caravanHere.escortArmyId] : null;
 				if (escort) {
-					if (await confirmAsync(`Attack the escort guarding that caravan? (${troopCount(selectedArmy.troops)} vs ${troopCount(escort.troops)})`)) {
-						const result = resolveFieldEncounter(match, selectedArmy.id, escort.id);
+					const how = await askAttack(selectedArmy, escort, "Attack the escort guarding that caravan?");
+					if (how) {
+						const result = resolveFieldEncounter(match, selectedArmy.id, escort.id, how);
 						if (result.ok) {
 							let next = result.match;
 							if (!next.armies[escort.id]) {
@@ -21733,8 +21806,13 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				const result = mergeFieldArmies(match, selectedArmy.id, occupant.id);
 				if (result.ok) onChange(result.match);
 				else noticeAsync(result.reason ?? "These armies can't join.");
-			} else if (await confirmAsync(`Attack the army standing there? (${troopCount(selectedArmy.troops)} vs ${troopCount(occupant.troops)})`)) {
-				const result = resolveFieldEncounter(match, selectedArmy.id, occupant.id);
+			} else {
+				const how = await askAttack(selectedArmy, occupant, "Attack the army standing there?");
+				if (!how) {
+					setSelectedMover(null);
+					return;
+				}
+				const result = resolveFieldEncounter(match, selectedArmy.id, occupant.id, how);
 				if (result.ok) {
 					onChange(result.match);
 					noticeAsync(fieldFightSummary(selectedArmy, occupant, result));
@@ -24030,6 +24108,15 @@ function ArmyPanel({ match, army, onDeselect }) {
 					marginBottom: 4
 				},
 				children: ["Movement remaining: ", army.movementRemaining ?? 0]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "ov-army-morale",
+				style: {
+					fontSize: 12,
+					color: palette.parchmentShadow,
+					marginBottom: 4
+				},
+				children: `Morale: ${moraleOf(army)} / ${MORALE_MAX}${army.location.kind === "garrison" && match.counties[army.location.county]?.owner === army.owner ? " \u00b7 drilling +" + MORALE_DRILL_PER_SEASON + " a season" : ""}`
 			}),
 			kinds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				style: { fontSize: 12, color: palette.parchmentShadow },
@@ -27186,6 +27273,21 @@ function confirmAsync(message) {
 		}, 3e3);
 	});
 }
+/**
+* A confirm with more than two answers (the attack prompt's Attack / special
+* move). `choices` is [{label, value, primary?, disabled?}]; tapping outside
+* resolves false, like Cancel.
+*/
+function chooseAsync(message, choices) {
+	return new Promise((resolve) => {
+		const entry = { message, choices, resolve };
+		if (_confirmHostSetter) {
+			_confirmHostSetter(entry);
+			return;
+		}
+		_pendingConfirmQueue.push(entry);
+	});
+}
 function ConfirmHost() {
 	const [pending, setPending] = (0, import_react.useState)(null);
 	(0, import_react.useEffect)(() => {
@@ -27211,7 +27313,15 @@ function ConfirmHost() {
 					className: "ov-confirm-message",
 					children: pending.message
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				pending.choices ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "ov-confirm-buttons ov-confirm-choices",
+					children: pending.choices.map((c, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						className: `ov-title-btn${c.primary ? " primary" : ""}`,
+						disabled: !!c.disabled,
+						onClick: () => decide(c.value),
+						children: c.label
+					}, i))
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "ov-confirm-buttons",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
