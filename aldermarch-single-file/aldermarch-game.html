@@ -13320,6 +13320,62 @@ function moveArmyFieldTo(match, armyId, col, row, countyId, cost) {
 * Whatever does not fit stays behind as a (smaller) field army on the castle
 * tile — this is the overflow split from the plan, not a failure state.
 */
+/**
+* ROTK11: every field army is one kind of troop (Chris, Oct 25; see
+* art/COMBAT_R11_PLAN.md). A castle's garrison is held as one army per kind,
+* so whatever marches out of it is single-kind too.
+*/
+function kindsOf(troops) {
+	return Object.keys(troops ?? {}).filter((k) => (troops[k] ?? 0) > 0);
+}
+/** Why two bodies of troops can't be one army, or null when they can. */
+function mixedKindsReason(a, b) {
+	const ka = kindsOf(a);
+	const kb = kindsOf(b);
+	if (ka.length === 1 && kb.length === 1 && ka[0] === kb[0]) return null;
+	const name = (ks) => ks.map((k) => UNITS[k]?.name ?? k).join(" and ");
+	return `Each army is one kind of troop: ${name(ka)} can't join ${name(kb)}. Stand them side by side instead.`;
+}
+/** Nearest free, passable tile to `from` in a county (for splitting an old mixed army). */
+function nearestFreeTile(match, countyId, from) {
+	const interior = match.counties[countyId]?.interior;
+	if (!interior) return null;
+	const occupied = occupiedTiles(match, countyId);
+	const cells = interior.ground.filter((g) => isPassable(g.kind) && !occupied.has(cellKey(g.col, g.row)) && !(g.col === interior.town.col && g.row === interior.town.row) && !(g.col === interior.castle.col && g.row === interior.castle.row));
+	cells.sort((a, b) => Math.abs(a.col - from.col) + Math.abs(a.row - from.row) - (Math.abs(b.col - from.col) + Math.abs(b.row - from.row)) || a.row - b.row || a.col - b.col);
+	return cells[0] ? { col: cells[0].col, row: cells[0].row } : null;
+}
+/**
+* Old saves (and anything that slipped through) may hold armies of several
+* kinds: split each into one army per kind. A field army keeps its biggest
+* kind on its tile and the rest stand on the nearest free tiles. Escorts are
+* left as they are (they march with their caravan).
+*/
+function splitMixedArmies(match) {
+	const armies = { ...match.armies };
+	for (const army of Object.values(match.armies)) {
+		const kinds = kindsOf(army.troops);
+		if (kinds.length <= 1 || army.location.kind === "escort") continue;
+		kinds.sort((a, b) => army.troops[b] - army.troops[a] || a.localeCompare(b));
+		const keep = { [kinds[0]]: army.troops[kinds[0]] };
+		armies[army.id] = { ...army, troops: keep };
+		for (const kind of kinds.slice(1)) {
+			const troops = { [kind]: army.troops[kind] };
+			let location = army.location;
+			if (location.kind === "field") {
+				const at = nearestFreeTile({ ...match, armies }, location.county, location);
+				if (!at) {
+					keep[kind] = troops[kind];
+					continue;
+				}
+				location = { ...location, col: at.col, row: at.row };
+			}
+			const id = freeArmyId({ ...match, armies }, army.owner);
+			armies[id] = { ...army, id, troops, location, movementRemaining: Math.min(army.movementRemaining ?? 0, armySpeed(troops)) };
+		}
+	}
+	return { ...match, armies };
+}
 function garrisonArmy(match, armyId) {
 	const army = match.armies[armyId];
 	if (!army) return fail$1("No such army");
@@ -13339,32 +13395,36 @@ function garrisonArmy(match, armyId) {
 		...army,
 		troops: staying
 	};
-	/** A hired company keeps its own army inside the walls too; others never join it. */
-	const target = army.mercenary ? null : existingGarrison.find((a) => !a.mercenary);
-	if (target) {
-		const merged = { ...target.troops };
-		for (const [kind, count] of Object.entries(moving)) merged[kind] = (merged[kind] ?? 0) + count;
-		armies[target.id] = {
+	/**
+	* A hired company keeps its own army inside the walls too; others never
+	* join it. Otherwise each kind joins the garrison army of that kind, so the
+	* garrison stays one army per kind (ROTK11).
+	*/
+	for (const kind of kindsOf(moving)) {
+		const part = { [kind]: moving[kind] };
+		const target = army.mercenary ? null : Object.values(armies).find((a) => a.location.kind === "garrison" && a.location.county === countyId && a.owner === army.owner && !a.mercenary && !mixedKindsReason(a.troops, part));
+		if (target) armies[target.id] = {
 			...target,
-			troops: merged
+			troops: { [kind]: target.troops[kind] + part[kind] }
 		};
-	} else {
-		const newId = freeArmyId({
-			...match,
-			armies
-		}, army.owner);
-		armies[newId] = {
-			id: newId,
-			owner: army.owner,
-			troops: moving,
-			...army.mercenary ? { mercenary: army.mercenary } : {},
-			location: {
-				kind: "garrison",
-				county: countyId
-			},
-			movementRemaining: 0,
-			unpaidUpkeepTurns: 0
-		};
+		else {
+			const newId = freeArmyId({
+				...match,
+				armies
+			}, army.owner);
+			armies[newId] = {
+				id: newId,
+				owner: army.owner,
+				troops: part,
+				...army.mercenary ? { mercenary: army.mercenary } : {},
+				location: {
+					kind: "garrison",
+					county: countyId
+				},
+				movementRemaining: 0,
+				unpaidUpkeepTurns: 0
+			};
+		}
 	}
 	return {
 		ok: true,
@@ -13395,6 +13455,8 @@ function mergeFieldArmies(match, fromId, intoId) {
 	if (from.location.kind !== "field" || into.location.kind !== "field") return fail$1("Both armies must be in the open");
 	if (from.owner !== into.owner) return fail$1("Armies must share an owner to merge");
 	if (from.mercenary || into.mercenary) return fail$1("A mercenary company marches as its own army");
+	const mixed = mixedKindsReason(from.troops, into.troops);
+	if (mixed) return fail$1(mixed);
 	const { moving, staying } = transferTroops(from.troops, troopCount(into.troops), MAX_FIELD_ARMY_SIZE);
 	if (troopCount(moving) === 0) return fail$1("That army is already full");
 	const merged = { ...into.troops };
@@ -14211,6 +14273,7 @@ function escortCaravan(match, armyId, caravanId) {
 	if (army.location.county !== caravan.county || army.location.col !== caravan.at.col || army.location.row !== caravan.at.row) return fail$2("Army must stand on the caravan's tile to escort it");
 	const existing = caravan.escortArmyId ? match.armies[caravan.escortArmyId] : null;
 	if (existing && (existing.mercenary || army.mercenary)) return fail$2("A mercenary company marches as its own army");
+	if (existing && mixedKindsReason(army.troops, existing.troops)) return fail$2(mixedKindsReason(army.troops, existing.troops));
 	const already = existing ? troopCount(existing.troops) : 0;
 	const { moving, staying } = transferTroops(army.troops, already, MAX_FIELD_ARMY_SIZE);
 	if (troopCount(moving) === 0) return fail$2("The escort is already at full strength");
@@ -14762,13 +14825,13 @@ function sanitizeLoadedMatch(match) {
 		...caravan,
 		movementRemaining: caravan.movementRemaining ?? MERCHANT_MOVE_BUDGET
 	};
-	return {
+	return splitMixedArmies({
 		...match,
 		counties,
 		armies,
 		caravans,
 		eventLog: match.eventLog ?? []
-	};
+	});
 }
 function saveToSlot(key, match) {
 	try {
@@ -21628,6 +21691,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 			if (occupant.owner === selectedArmy.owner) {
 				const result = mergeFieldArmies(match, selectedArmy.id, occupant.id);
 				if (result.ok) onChange(result.match);
+				else noticeAsync(result.reason ?? "These armies can't join.");
 			} else if (await confirmAsync(`Attack the army standing there? (${troopCount(selectedArmy.troops)} vs ${troopCount(occupant.troops)})`)) {
 				const result = resolveFieldEncounter(match, selectedArmy.id, occupant.id);
 				if (result.ok) onChange(result.match);

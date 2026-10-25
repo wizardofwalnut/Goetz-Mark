@@ -23,7 +23,7 @@ JS=r"""(diff)=>{const S=window.__ALDERMARCH_SIM__;const res={diff,games:0,winsSt
      if(c.owner)res.popMax=Math.max(res.popMax,c.population);
      if(c.owner) healthSeen.add(Math.round(c.health));}
    for(const [pid,tr] of Object.entries(m.treasuries)){for(const [k,v] of Object.entries(tr)){if(!Number.isFinite(v))note('NaN treasury '+k,`seed ${seed} t${t} ${pid}`);if(v< -0.01)note('neg treasury '+k,`seed ${seed} t${t} ${pid} ${v}`)} res.maxGold=Math.max(res.maxGold,tr.gold||0)}
-   for(const a of Object.values(m.armies)){for(const [k,v] of Object.entries(a.troops||{})){if(!Number.isFinite(v)||v<0)note('bad troops',`seed ${seed} t${t} ${a.id} ${k}=${v}`)} const n=Object.values(a.troops||{}).reduce((x,y)=>x+y,0);res.maxTroops=Math.max(res.maxTroops,n)}
+   for(const a of Object.values(m.armies)){for(const [k,v] of Object.entries(a.troops||{})){if(!Number.isFinite(v)||v<0)note('bad troops',`seed ${seed} t${t} ${a.id} ${k}=${v}`)} if(a.location.kind!=='escort'&&Object.values(a.troops||{}).filter(v=>v>0).length>1)note('mixed army',`seed ${seed} t${t} ${a.id} ${JSON.stringify(a.troops)} ${a.location.kind}`);const n=Object.values(a.troops||{}).reduce((x,y)=>x+y,0);res.maxTroops=Math.max(res.maxTroops,n)}
    const owners=Object.values(m.counties).filter(c=>c.interior).map(c=>c.owner).join();if(owners===lastOwners)sameOwners++;else{sameOwners=0;lastOwners=owners}
    if(m.winner)break;}
   if(m.winner==='p0')res.winsStandIn++;else if(m.winner)res.winsAI++;else{res.undecided++; if(sameOwners>=40)res.stalemates++}
