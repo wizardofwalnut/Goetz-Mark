@@ -13752,13 +13752,15 @@ function runDiplomacy(match, ix) {
 	return { match: m, events };
 }
 /**
-* How hard one exchange bites in a field fight. ROTK11 armies wear each other
-* down over several turns rather than wiping in one; at these values an even
-* fight costs each side about half its men in a season, and a lopsided
-* one (the triangle, or numbers) still breaks the weaker side.
+* How hard one exchange bites in a field fight. Chris, Oct 25: "keep a season
+* as 1 day, so years" — one ROTK11 exchange per season, so fights last a year
+* or more. At .35 an even fight costs each side about a quarter a season; the
+* triangle costs the loser most of its men but rarely ends it in one season.
+* Bowmen use the same volley bite as shots at and from the walls.
 */
+var VOLLEY_DAMAGE_SCALE_FIELD = .3;
 var FIELD_EXCHANGE_SCALE = .35;
-var FIELD_VOLLEY_SCALE = .15;
+var FIELD_VOLLEY_SCALE = VOLLEY_DAMAGE_SCALE_FIELD;
 /** One-paragraph account of a field fight for the player (the full report is a6). */
 function fieldFightSummary(attacker, defender, { result, match }) {
 	const kindName = (troops) => kindsOf(troops).map((k) => UNITS[k]?.name ?? k).join(" and ");
@@ -17732,7 +17734,8 @@ function setRationPolicy(match, countyId, level) {
 * county — also a first-pass number, not sourced, same caveat as the
 * rest of the durability system.
 */
-var SIEGE_ROUNDS_PER_TURN = 3;
+/** Chris, Oct 25: one ROTK11 exchange per season (was 3), for sieges and field fights alike. */
+var SIEGE_ROUNDS_PER_TURN = 1;
 var ARCHER_RANGE = 2;
 var RAM_SIEGE_PER_HEAD = 3;
 function castleDurabilityMax(tier) {

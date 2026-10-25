@@ -10,9 +10,9 @@ Aldermarch, Chris chose the adaptations below (all four recommended options).
 |---|---|---|
 | Army make-up | **One troop type per field army.** A castle's garrison is a pool (as an ROTK11 city holds troops); armies leave it single-type. | ROTK11 |
 | Stances | **None.** Each type's special move replaces them. (Stances were never in the UI; the resolver always used Balanced.) | ROTK11 |
-| Special moves | **Automatic.** An army uses its move when it faces the type it counters; the triangle bonus applies to those hits only. No Will meter. | Chris (adaptation) |
+| Special moves | **Morale meter** (Chris, Oct 25, changed from automatic). The attack prompt offers Attack or the type's move for a morale cost; the move carries the triangle bonus. Low morale means no special moves (siege engines can't fire). How morale fills (ROTK11-style training?) is still open. | Chris |
 | Officers | **None for now.** Every army has its type's move. Commanders can come later. | Chris (adaptation) |
-| Time | **Several exchanges inside a season** when armies meet (today's 3 siege rounds); unresolved fights carry into the next season. | Chris (adaptation: our turn is a season, ROTK11's is 10 days) |
+| Time | **One exchange per season** (Chris, Oct 25, changed from several: "keep a season as 1 day, so years"). Fights and sieges last a year or more. | Chris |
 | Troop roles | **Medieval triangle:** Pikemen = spears, Knights = cavalry, Swordsmen + Macemen = halberds. Pikes beat Knights, Knights beat Swords/Maces, Swords/Maces beat Pikes. Archers and Crossbows: ranged (2 squares, ~70% power, no melee reply), outside the triangle; Crossbows hit harder but move slower. Militia: weakest, no special move. | Chris |
 | Zone of control | Enemy armies and castles stop movement on the squares next to them. | ROTK11 |
 | Sieges | Wall strength and garrison are separate; a castle falls when either reaches zero. No starvation. | ROTK11 |
@@ -38,6 +38,6 @@ Aldermarch, Chris chose the adaptations below (all four recommended options).
 7. **Balance** — invariant audit + 128-game sims after each step; regress
    checks added per step.
 
-Progress: steps 1-3 done Oct 25 (see PLAYTEST_FIXES.md).
+Progress: steps 1-3 done Oct 25 (see PLAYTEST_FIXES.md); one exchange per season done Oct 25. Next: morale (once its filling rule is settled), then 4-7. Sims after the switch to one exchange: Very Hard got easier than Hard (AI wins 24 to 8 of 32) - the AI's attack odds were tuned for 3 rounds; retune in step 7.
 
 Art needed later: siege tower and catapult (m-list), archer firing frames (m9).
