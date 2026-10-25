@@ -13751,11 +13751,45 @@ function runDiplomacy(match, ix) {
 	}
 	return { match: m, events };
 }
+/**
+* How hard one exchange bites in a field fight. ROTK11 armies wear each other
+* down over several turns rather than wiping in one; at these values an even
+* fight costs each side about half its men in a season, and a lopsided
+* one (the triangle, or numbers) still breaks the weaker side.
+*/
+var FIELD_EXCHANGE_SCALE = .35;
+var FIELD_VOLLEY_SCALE = .15;
+/** One-paragraph account of a field fight for the player (the full report is a6). */
+function fieldFightSummary(attacker, defender, { result, match }) {
+	const kindName = (troops) => kindsOf(troops).map((k) => UNITS[k]?.name ?? k).join(" and ");
+	const lost = (l) => troopCount(l ?? {});
+	const moves = [...new Set((result.rounds ?? []).flatMap((r) => [...r.attacker.modifiers, ...r.defender.modifiers]).filter((m) => / \(.+ vs .+\)$/.test(m.label)).map((m) => m.label))];
+	const ours = kindName(attacker.troops);
+	const theirs = kindName(defender.troops);
+	const opening = result.ranged ? `Your ${ours} loosed on their ${theirs}.` : `Your ${ours} fought their ${theirs}.`;
+	const tally = `You lost ${lost(result.attackerLosses)}, they lost ${lost(result.defenderLosses)}.`;
+	const used = moves.length ? ` ${moves.join("; ")}.` : "";
+	const ending = !match.armies[defender.id] ? " They are broken." : !match.armies[attacker.id] ? " Your army is broken." : " Both still stand. The fight can go on next season.";
+	return `${opening} ${tally}${used}${ending}`;
+}
 function resolveFieldEncounter(match, attackerId, defenderId) {
 	const attacker = match.armies[attackerId];
 	const defender = match.armies[defenderId];
 	if (!attacker || !defender) return fail$1("No such army");
+	if ((attacker.movementRemaining ?? 0) <= 0 && attacker.location.kind === "field") return fail$1("This army has already moved or fought this season");
+	/**
+	* ROTK11 (Chris, Oct 25): a fight is a few exchanges inside the season
+	* (the same count a siege gets), not a fight to the death; what's left
+	* fights on next season. Attacking is the army's action for the season.
+	* Bowmen shoot rather than close: ~70% power, worn down like a volley,
+	* and melee troops can't answer (only other bowmen shoot back).
+	*/
+	const ranged = kindsOf(attacker.troops).length > 0 && kindsOf(attacker.troops).every((k) => RANGED_KINDS.includes(k));
+	const returnFire = !ranged || kindsOf(defender.troops).some((k) => RANGED_KINDS.includes(k));
 	const result = resolveBattle({
+		maxRounds: SIEGE_ROUNDS_PER_TURN,
+		rangedVolley: ranged,
+		damageScale: ranged ? FIELD_VOLLEY_SCALE : FIELD_EXCHANGE_SCALE,
 		attacker: {
 			troops: attacker.troops,
 			stance: DEFAULT_ATTACK_STANCE,
@@ -13786,8 +13820,11 @@ function resolveFieldEncounter(match, attackerId, defenderId) {
 			troops
 		};
 	};
-	applyLosses(attackerId, result.attackerLosses);
+	if (returnFire) applyLosses(attackerId, result.attackerLosses);
+	else result.attackerLosses = {};
 	applyLosses(defenderId, result.defenderLosses);
+	if (armies[attackerId]) armies[attackerId] = { ...armies[attackerId], movementRemaining: 0 };
+	result.ranged = ranged;
 	const next = adjustRelation({ ...match, armies }, attacker.owner, defender.owner, -RELATION_COST_FIELD_BATTLE);
 	return {
 		ok: true,
@@ -21676,7 +21713,8 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 								if (captured.ok) next = captured.match;
 							}
 							onChange(next);
-						}
+							noticeAsync(fieldFightSummary(selectedArmy, escort, result) + (next.caravans[caravanHere.id]?.owner === selectedArmy.owner ? " The caravan is yours." : ""));
+						} else noticeAsync(result.reason ?? "They can't attack now.");
 					}
 				} else if (await confirmAsync("Capture this undefended caravan? It offers no resistance.")) {
 					const result = captureCaravan(match, caravanHere.id, selectedArmy.owner);
@@ -21694,7 +21732,10 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				else noticeAsync(result.reason ?? "These armies can't join.");
 			} else if (await confirmAsync(`Attack the army standing there? (${troopCount(selectedArmy.troops)} vs ${troopCount(occupant.troops)})`)) {
 				const result = resolveFieldEncounter(match, selectedArmy.id, occupant.id);
-				if (result.ok) onChange(result.match);
+				if (result.ok) {
+					onChange(result.match);
+					noticeAsync(fieldFightSummary(selectedArmy, occupant, result));
+				} else noticeAsync(result.reason ?? "They can't attack now.");
 			}
 			setSelectedMover(null);
 			return;

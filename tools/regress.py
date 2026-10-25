@@ -281,6 +281,34 @@ async def run(p):
     check('no page errors (session 2)', not errs, str(errs[:2]))
     await b.close()
 
+    # session 3 (Oct 25, d11 ROTK11 combat): one kind per army; a field fight explains itself
+    b, pg, errs = await launch(p)
+    await new_game(pg, 'Easy'); await clear(pg)
+    await set_state(pg, """(() => { const c = m.counties.hollowmere; const t = c.interior.town;
+      const cells = c.interior.road.filter(x => Math.abs(x.col - t.col) + Math.abs(x.row - t.row) >= 2).sort((a, b) => (Math.abs(a.col - t.col) + Math.abs(a.row - t.row)) - (Math.abs(b.col - t.col) + Math.abs(b.row - t.row)));
+      const a = cells[0]; const near = cells.filter(x => Math.abs(x.col - a.col) + Math.abs(x.row - a.row) === 1);
+      const mk = (id, owner, troops, at) => ({id, owner, troops, location: {kind: 'field', county: 'hollowmere', col: at.col, row: at.row}, movementRemaining: 4, unpaidUpkeepTurns: 0});
+      return {...m, armies: {...m.armies, KK: mk('KK', 'p0', {knights: 60}, a), AR: mk('AR', 'p0', {archers: 30}, near[0]), EN: mk('EN', 'p1', {pikemen: 100}, near[1])}} })()""")
+    async def select_knights():
+        await pg.evaluate("() => { const t = [...document.querySelectorAll('title')].find(x => /^Your army — 60/.test(x.textContent)); t.parentNode.dispatchEvent(new MouseEvent('click', {bubbles: true})) }")
+        await pg.wait_for_timeout(400)
+    async def tap_red_near(title_re):
+        await pg.evaluate("""(re) => { const t = [...document.querySelectorAll('title')].find(x => new RegExp(re).test(x.textContent)); const tr = t.parentNode.getBoundingClientRect(); const tx = tr.x + tr.width / 2, ty = tr.y + tr.height * .8;
+          const d = p => { const r = p.getBoundingClientRect(); return Math.hypot(r.x + r.width / 2 - tx, r.y + r.height / 2 - ty) };
+          [...document.querySelectorAll('polygon')].filter(p => /214, 90, 74/.test(p.getAttribute('fill') || '')).sort((a, b) => d(a) - d(b))[0].dispatchEvent(new MouseEvent('click', {bubbles: true})) }""", title_re)
+        await pg.wait_for_timeout(600)
+    dialog = "() => { const b = [...document.querySelectorAll('button')].find(b => ['OK', 'Continue'].includes(b.innerText.trim())); return b ? b.parentNode.parentNode.innerText : '' }"
+    await select_knights(); await tap_red_near('^Your army — 30')
+    refused = await pg.evaluate(dialog)
+    check('knights and archers refuse to merge, and say why', 'one kind of troop' in refused and await state(pg, "!!m.armies.AR && !!m.armies.KK"), refused[:80])
+    await clear(pg)
+    await select_knights(); await tap_red_near("^(?!Your).*army")
+    await pg.evaluate("() => [...document.querySelectorAll('button')].find(b => b.innerText.trim() === 'Continue').click()"); await pg.wait_for_timeout(600)
+    told = await pg.evaluate(dialog)
+    check('a field fight reports losses and the special move', 'You lost' in told and 'Brace' in told, told[:80])
+    check('no page errors (session 3)', not errs, str(errs[:2]))
+    await b.close()
+
 
 async def main():
     async with async_playwright() as p:

@@ -38,4 +38,6 @@ Aldermarch, Chris chose the adaptations below (all four recommended options).
 7. **Balance** — invariant audit + 128-game sims after each step; regress
    checks added per step.
 
+Progress: steps 1-3 done Oct 25 (see PLAYTEST_FIXES.md).
+
 Art needed later: siege tower and catapult (m-list), archer firing frames (m9).
