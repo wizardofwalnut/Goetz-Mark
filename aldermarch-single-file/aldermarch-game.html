@@ -12722,16 +12722,33 @@ var UNITS = {
 * costs on this page were, so treat it as a reasonable placeholder rather
 * than a confirmed source value.
 */
+/**
+* ROTK11's triangle (Chris, Oct 25: "for battle, use R11 mechanics"; see
+* art/COMBAT_R11_PLAN.md). Spears beat cavalry, cavalry beats halberds,
+* halberds beat spears: here Pikemen > Knights > Swordsmen/Macemen > Pikemen.
+* In ROTK11 the bonus rides on each type's special move ("tactic"), which an
+* army uses automatically against the type it counters. Archers and
+* crossbows sit outside the triangle (range is their edge); militia have no
+* move. The old LOTR2 pairs (archers vs militia, knights vs archers) are gone.
+*/
+var TACTIC_BONUS = 2;
 var COUNTER_BONUS = {
 	militia: {},
-	archers: { militia: 1.35 },
+	archers: {},
 	crossbowmen: {},
-	swordsmen: {},
-	macemen: {},
-	pikemen: { knights: 1.4 },
-	knights: { archers: 1.4 },
+	swordsmen: { pikemen: TACTIC_BONUS },
+	macemen: { pikemen: TACTIC_BONUS },
+	pikemen: { knights: TACTIC_BONUS },
+	knights: { swordsmen: TACTIC_BONUS, macemen: TACTIC_BONUS },
 	mercenaries: {},
 	rams: {}
+};
+/** The special move each triangle type uses on the type it counters. */
+var SPECIAL_MOVE = {
+	pikemen: "Brace",
+	knights: "Charge",
+	swordsmen: "Hook and Hew",
+	macemen: "Hook and Hew"
 };
 //#endregion
 //#region src/domain/map/mapTypes.ts
@@ -15982,7 +15999,7 @@ function counterModifiers(own, enemy) {
 			if (enemyShare[enemyKind] < .4) continue;
 			const weighted = 1 + (factor - 1) * ownShare[kind];
 			mods.push({
-				label: `${UNITS[kind].name} vs ${UNITS[enemyKind].name}-heavy`,
+				label: `${SPECIAL_MOVE[kind] ?? "Special move"} (${UNITS[kind].name} vs ${UNITS[enemyKind].name})`,
 				factor: round3(weighted)
 			});
 		}
