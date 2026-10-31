@@ -194,3 +194,25 @@ Make a cobblestone road TEXTURE for a game, seen from straight above (top-down, 
 
 Deliver as stone-road-texture.png.
 ```
+
+
+## Iron mine — redo (Oct 31)
+
+Chris: the mine "looks off". In the game it is a small grey rubble pile with a
+timber door, sitting on open lawn, so it reads like a toy dropped on the grass.
+Attach as style references: `art/_reference/target-look-hollowmere.jpg`,
+`art/review-s3/blacksmith.png`, `art/review-s3/lumber-mill.png`.
+
+> Isometric game building in exactly the style of the attached references:
+> warm hand-painted 3D diorama, soft light from the top left, same camera angle
+> (about 30 degrees down), same scale as the attached blacksmith and lumber mill.
+> An iron mine cut into the side of a grey rocky hill, like the rock outcrop in
+> the reference scene: a timber-framed tunnel mouth set into the rock face, a
+> short mine-cart track running out of it with one cart of dark iron ore, a
+> small heap of reddish-grey spoil beside the entrance, a lantern on a post, and
+> a few tufts of grass and one small tree on the rocks. Rock colour warm grey,
+> not blue. Footprint about one and a half map tiles wide.
+> Rules: SOLID flat #00FF00 green background filling the whole image (not
+> transparent, no gradient, no shadow on the background); no ground slab under
+> it; no people; no flags or banners; nothing touching the edges. One separate
+> PNG named `mine.png`.

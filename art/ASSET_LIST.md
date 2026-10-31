@@ -27,6 +27,7 @@ Counts checked against the game on Oct 30: 160 art files stored; the game never 
 | Laborer figures: miner, woodcutter, smith, builder at full size | labor screen (today they reuse the farmer and herder) | ChatGPT | canon versions exist only at 64 px |
 | Knights portrait redo (chibi figure on a grass diamond, slate background like the other six) | troop portraits (style check: clashes) | ChatGPT | optional |
 | Mercenaries portrait with the shared background | troop portraits (style check: slightly off) | ChatGPT | optional |
+| Iron mine redo (map) | the mine reads as a small rubble pile dropped on the lawn (Chris, Oct 31: "looks off") | ChatGPT, prompt in CHATGPT_PROMPTS.md | not started |
 | Store screenshots (3+ at 1080×1920) | Play Store (a14, parked) | Claude captures from the game | after icons |
 
 ### Maybe later (not decided)
