@@ -1586,6 +1586,10 @@ full standalone screen, not a panel over gameplay. */
   max-width: none;
 }
 
+/* Zone-of-control key in the army panel (Oct 30). */
+.ov-zoc-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; color: #e8dcc0; margin: 2px 0 4px; }
+.ov-zoc-key { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.ov-zoc-key i { width: 12px; height: 12px; border-width: 2px; transform: rotate(45deg) scale(.8); display: inline-block; }
 /* Attack prompt (Oct 25): Cancel / Attack side by side, the special move full width below. */
 .ov-confirm-choices { flex-wrap: wrap; }
 .ov-confirm-choices .ov-title-btn:nth-child(3) { flex-basis: 100%; }
@@ -12420,7 +12424,9 @@ function reachableTiles(interior, start, budget, opts = {}) {
 * actually paths across the seam instead of only drawing across it.
 */
 function worldReachableTiles(layout, start, budget, opts = {}) {
-	const { roadOnly = false, blocked = /* @__PURE__ */ new Set() } = opts;
+	const { roadOnly = false, blocked = /* @__PURE__ */ new Set(), zoc = /* @__PURE__ */ new Set() } = opts;
+	/** Reachable tiles inside an enemy's zone of control: you can step in, but you stop there (ROTK11). */
+	const stops = /* @__PURE__ */ new Set();
 	const onRoad = /* @__PURE__ */ new Set();
 	const groundByKey = /* @__PURE__ */ new Map();
 	for (const { interior, origin } of layout.plots) {
@@ -12458,6 +12464,20 @@ function worldReachableTiles(layout, start, budget, opts = {}) {
 			targets.add(curKey);
 			continue;
 		}
+		/**
+		* Zone of control (Chris, Oct 30; ROTK11): a tile next to an enemy army or
+		* castle halts the march. From there you can still strike what's beside
+		* you, but not walk on. The starting tile doesn't hold you, so an army
+		* already engaged can pull back.
+		*/
+		if (curKey !== startKey && zoc.has(curKey)) {
+			stops.add(curKey);
+			for (const [dc, dr] of STEP_DIRS) {
+				const k = cellKey(cur.col + dc, cur.row + dr);
+				if (blocked.has(k)) targets.add(k);
+			}
+			continue;
+		}
 		for (const [dc, dr] of STEP_DIRS) {
 			const nCol = cur.col + dc, nRow = cur.row + dr;
 			if (nCol < 0 || nRow < 0 || nCol >= layout.cols || nRow >= layout.rows) continue;
@@ -12479,7 +12499,8 @@ function worldReachableTiles(layout, start, budget, opts = {}) {
 	best.delete(startKey);
 	return {
 		reachable: best,
-		targets
+		targets,
+		stops
 	};
 }
 /**
@@ -21580,14 +21601,41 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				return cellKey(w.col, w.row);
 			}).filter(Boolean);
 			const blocked = new Set([...blockedArmies, ...blockedCaravans, ...blockedAssaultPoints]);
-			const { reachable: cells, targets } = worldReachableTiles(layout, startWorld, selectedArmy.movementRemaining ?? 0, {
+			/** Every tile beside an enemy army or an enemy castle/town (not at truce) is under its control. */
+			const hostile = (owner) => owner !== selectedArmy.owner && !atPeace(match, selectedArmy.owner, owner);
+			const anchors = [];
+			for (const a of Object.values(match.armies)) {
+				if (a.location.kind !== "field" || !hostile(a.owner)) continue;
+				const p = layout.plots.find((pl) => pl.county.id === a.location.county);
+				if (p) anchors.push(toWorld(p.origin, a.location));
+			}
+			for (const p of layout.plots) {
+				const county = match.counties[p.county.id];
+				if (!county?.owner || !hostile(county.owner)) continue;
+				const local = county.castleTier === "none" ? p.interior.town : p.interior.castle;
+				if (local) anchors.push(toWorld(p.origin, local));
+			}
+			const zoc = new Set();
+			for (const w of anchors) for (const [dc, dr] of STEP_DIRS) {
+				const k = cellKey(w.col + dc, w.row + dr);
+				if (!blocked.has(k)) zoc.add(k);
+			}
+			const { reachable: cells, targets, stops } = worldReachableTiles(layout, startWorld, selectedArmy.movementRemaining ?? 0, {
 				roadOnly: false,
-				blocked
+				blocked,
+				zoc
 			});
+			/** The enemy's controlled tiles near this army that it can't reach this season, drawn as a warning ring. */
+			const ring = new Set([...zoc].filter((k) => !cells.has(k) && (() => {
+				const [c, r] = k.split(",").map(Number);
+				return Math.abs(c - startWorld.col) + Math.abs(r - startWorld.row) <= 12;
+			})()));
 			return {
 				plot: { origin: { col: 0, row: 0 } },
 				cells,
-				targets
+				targets,
+				stops,
+				ring
 			};
 		}
 		if (selectedCaravan) {
@@ -21707,7 +21755,7 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				if (!proceed) return setSelectedMover(null);
 				if (truceWith) working = breakTruce(working, selectedArmy.owner, truceWith);
 				result = announceAssault(assaultTown(working, selectedArmy.id, target.plot.county.id, cost), selectedArmy.owner, target.plot.county.id, target.plot.county.name);
-			} else result = moveArmyFieldTo(working, selectedArmy.id, target.local.col, target.local.row, target.plot.county.id, cost);
+			} else result = moveArmyFieldTo(working, selectedArmy.id, target.local.col, target.local.row, target.plot.county.id, reachable?.stops?.has(cellKey(col, row)) ? Math.max(cost ?? 0, selectedArmy.movementRemaining ?? 0) : cost);
 			if (result.ok) onChange(result.match);
 		}
 		setSelectedMover(null);
@@ -22054,6 +22102,8 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				plot: reachable?.plot,
 				cells: reachable?.cells,
 				targets: reachable?.targets,
+				stops: reachable?.stops,
+				ring: reachable?.ring,
 				onMove: moveSelected,
 				onTarget: targetSelected
 			})]
@@ -22567,10 +22617,19 @@ function MapSprite({ cell, art, size, label, offset, onClick, selected, mirror }
 * Occupied tiles the flood-fill reported as `targets` render in a different
 * colour: they are encounter prompts, not plain destinations.
 */
-function Highlights({ plot, cells, targets, onMove, onTarget }) {
+/**
+* Zone of control colours (Oct 30, Chris: "it was difficult to know where I
+* could walk in R11"): gold = walk on; orange with a dashed edge = you can go
+* here but you'll stop (it's beside an enemy); a thin red dashed ring = the
+* enemy's controlled ground you can't reach this season; red = attack/join.
+*/
+var ZOC_STOP_FILL = "rgba(236, 132, 44, 0.42)";
+var ZOC_STOP_STROKE = "rgba(236, 132, 44, 0.95)";
+var ZOC_RING_STROKE = "rgba(214, 90, 74, 0.7)";
+function Highlights({ plot, cells, targets, stops, ring, onMove, onTarget }) {
 	if (!plot || !cells) return null;
 	const { origin } = plot;
-	const rectFor = (col, row, fill, stroke, handler) => {
+	const rectFor = (col, row, fill, stroke, handler, dash) => {
 		const world = toWorld(origin, {
 			col,
 			row
@@ -22580,19 +22639,25 @@ function Highlights({ plot, cells, targets, onMove, onTarget }) {
 			fill,
 			stroke,
 			strokeWidth: 2,
-			style: { cursor: "pointer" },
-			onClick: () => handler(col, row)
+			strokeDasharray: dash,
+			style: { cursor: handler ? "pointer" : void 0, pointerEvents: handler ? void 0 : "none" },
+			onClick: handler ? () => handler(col, row) : void 0
 		}, `${col},${row}`);
 	};
+	const ringRects = ring ? [...ring].map((key) => {
+		const [col, row] = key.split(",").map(Number);
+		return rectFor(col, row, "rgba(214, 90, 74, 0.08)", ZOC_RING_STROKE, null, "6 5");
+	}) : [];
 	const reachRects = [...cells.keys()].map((key) => {
 		const [col, row] = key.split(",").map(Number);
+		if (stops?.has(key)) return rectFor(col, row, ZOC_STOP_FILL, ZOC_STOP_STROKE, onMove, "7 4");
 		return rectFor(col, row, "rgba(255, 221, 120, 0.35)", "rgba(255, 221, 120, 0.9)", onMove);
 	});
 	const targetRects = targets ? [...targets].map((key) => {
 		const [col, row] = key.split(",").map(Number);
 		return rectFor(col, row, "rgba(214, 90, 74, 0.4)", "rgba(214, 90, 74, 0.95)", onTarget ?? (() => {}));
 	}) : [];
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [reachRects, targetRects] });
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [ringRects, reachRects, targetRects] });
 }
 /**
 * Cow icons on cattle fields — 1/2/3 copies of the same small icon per the
@@ -24118,6 +24183,14 @@ function ArmyPanel({ match, army, onDeselect }) {
 				},
 				children: `Morale: ${moraleOf(army)} / ${MORALE_MAX}${army.location.kind === "garrison" && match.counties[army.location.county]?.owner === army.owner ? " \u00b7 drilling +" + MORALE_DRILL_PER_SEASON + " a season" : ""}`
 			}),
+			army.location.kind === "field" && (army.movementRemaining ?? 0) > 0 && army.owner === match.players.find((p) => p.controller.kind === "human")?.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "ov-zoc-legend",
+				"aria-label": "Map key: gold, walk; orange, you stop beside an enemy; red, attack or join",
+				children: [["rgba(255, 221, 120, 0.9)", "solid", "Walk"], [ZOC_STOP_STROKE, "dashed", "Stop: beside enemy"], ["rgba(214, 90, 74, 0.95)", "solid", "Attack"]].map(([c, style, label]) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+					className: "ov-zoc-key",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { style: { borderColor: c, borderStyle: style, background: c.replace(/0\.9\d?\)/, "0.35)") } }), label]
+				}, label))
+			}) : null,
 			kinds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				style: { fontSize: 12, color: palette.parchmentShadow },
 				children: "No troops \u2014 about to disband"
