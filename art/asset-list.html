@@ -1,0 +1,110 @@
+<title>Aldermarch Asset List</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: one ledger column — summary line, "still needed" grouped by who makes it, then the inventory of what's in the game. Same family as the Fix List. */
+:root {
+  --bg: #f3efe6; --panel: #fbf8f1; --ink: #23201b; --muted: #6b6457; --line: #ddd4c2;
+  --gold: #9a6f12; --need: #a3352a; --wait: #9a6f12; --have: #4f7a3a; --chip: #f1e2b8;
+  --display: "Alegreya SC", "Iowan Old Style", Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12100d; --panel: #1c1813; --ink: #ece3cf; --muted: #a39a86; --line: #352d22;
+  --gold: #e3bf4a; --need: #e0705f; --wait: #e3bf4a; --have: #8fc06f; --chip: #3a2f14; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12100d; --panel: #1c1813; --ink: #ece3cf; --muted: #a39a86; --line: #352d22;
+  --gold: #e3bf4a; --need: #e0705f; --wait: #e3bf4a; --have: #8fc06f; --chip: #3a2f14; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--body); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 64px; }
+h1 { font: 700 30px/1.1 var(--display); margin: 0 0 4px; color: var(--gold); text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); font-size: 15px; max-width: 62ch; }
+.sum { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.sum span { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.sum b { font-weight: 700; }
+h2 { font: 700 22px/1.2 var(--display); margin: 30px 0 4px; text-wrap: balance; }
+h3 { font: 700 13px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 2px; }
+ul { list-style: none; margin: 0; padding: 0; }
+.it { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 11px 0; border-top: 1px solid var(--line); }
+.it .t { font-weight: 700; min-width: 0; }
+.it .d { grid-column: 1 / -1; color: var(--muted); font-size: 14.5px; }
+.st { font: 700 11px var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; border: 1px solid currentColor; align-self: start; white-space: nowrap; }
+.st.need { color: var(--need); } .st.wait { color: var(--wait); } .st.have { color: var(--have); }
+.inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 20px; }
+.inv .it { grid-template-columns: minmax(0, 1fr) auto; }
+.n { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 700; }
+.maybe li { padding: 8px 0; border-top: 1px dashed var(--line); color: var(--muted); }
+footer { margin-top: 34px; color: var(--muted); font-size: 13px; }
+</style>
+<div class="wrap">
+  <h1>Aldermarch Asset List</h1>
+  <p class="lede">Everything the game has and everything it still needs: art, music and sound. Art waits until the game settles; music comes first. Updated Oct 30, checked against the game's 135 art entries.</p>
+  <div class="sum"><span><b>13</b> still needed</span><span><b>1</b> waiting on your ears</span><span><b>135</b> art pieces in the game</span><span><b>2</b> music tracks made</span></div>
+
+  <h2>Still needed</h2>
+
+  <h3>Music and sound — Suno and you</h3>
+  <ul>
+    <li class="it"><span class="t">Shire check</span><span class="st wait">Your ears</span><span class="d">Listen to tier_step_hearth_to_shire, shire1_seam_check and shire1_10min_test. Tier 2 map music (m1).</span></li>
+    <li class="it"><span class="t">Realm and Crown</span><span class="st need">Not started</span><span class="d">Tier 3 and 4 map music, as Covers of Hearth 2; leave the tempo out of the prompts (m2).</span></li>
+    <li class="it"><span class="t">Six stings</span><span class="st need">Not started</span><span class="d">War declared, enemy army arrives, castle finished, harvest in, county gained, county lost. Suno Sounds, One Shot, A minor (m3).</span></li>
+    <li class="it"><span class="t">Sound effects</span><span class="st need">Not started</span><span class="d">Taps, harvest, battle horn, siege hits (a11). Source still to choose.</span></li>
+  </ul>
+
+  <h3>Art — ChatGPT (later)</h3>
+  <ul>
+    <li class="it"><span class="t">15 painted UI icons</span><span class="st need">Prompt ready</span><span class="d">Population, happiness, health, castle, diplomacy, noble, caravan, levy, map, next army, next county, save, history, settings, ale. Replaces the emoji buttons (u3, m4, m6). Prompt is in NEXT_SESSION.md.</span></li>
+    <li class="it"><span class="t">Ram: portrait and map sprite</span><span class="st need">Stand-in</span><span class="d">Shows a lettered "RAM" tile today.</span></li>
+    <li class="it"><span class="t">Siege Tower: portrait and map sprite</span><span class="st need">Stand-in</span><span class="d">New engine, Oct 30. Lettered "TOWER" tile today.</span></li>
+    <li class="it"><span class="t">Catapult: portrait and map sprite</span><span class="st need">Stand-in</span><span class="d">New engine, Oct 30. Lettered "CATAPULT" tile today.</span></li>
+    <li class="it"><span class="t">Title screen painting</span><span class="st need">Not started</span><span class="d">Also becomes the Play Store feature graphic, 1024×500 (m7).</span></li>
+    <li class="it"><span class="t">Best Noble backdrop</span><span class="st need">Not started</span><span class="d">Replaces the flat grey rampart (m8, u8).</span></li>
+    <li class="it"><span class="t">Bush on green screen</span><span class="st need">Not started</span><span class="d">Map decoration (m5).</span></li>
+  </ul>
+
+  <h3>Art — animation</h3>
+  <ul>
+    <li class="it"><span class="t">Archer and crossbowman firing frames</span><span class="st need">Not started</span><span class="d">Draw and loose, for volleys on the map (m9).</span></li>
+  </ul>
+
+  <h3>Store — Claude</h3>
+  <ul>
+    <li class="it"><span class="t">Play Store screenshots</span><span class="st need">After icons</span><span class="d">At least 3 at 1080×1920, captured from the real game (a14, parked).</span></li>
+  </ul>
+
+  <h3>Maybe later — not decided</h3>
+  <ul class="maybe">
+    <li>A map soldier per troop type, now that every army is one type. Today every army uses the same soldier and banner bearers.</li>
+    <li>Winter or season art (d7, parked).</li>
+    <li>Minimap art (u7); the road corner under the town (u11).</li>
+  </ul>
+
+  <h2>In the game now</h2>
+  <h3>Map</h3>
+  <ul class="inv">
+    <li class="it"><span class="t">Ground tiles</span><span class="n">8</span><span class="d">Grass and 4 variants, forest, mountain, water</span></li>
+    <li class="it"><span class="t">Fields</span><span class="n">7</span><span class="d">Fallow, barren, parched, cattle, grain sown / growing / mature</span></li>
+    <li class="it"><span class="t">Roads</span><span class="n">16</span><span class="d">Every joining piece</span></li>
+    <li class="it"><span class="t">Town and castles</span><span class="n">12</span><span class="d">Town, 5 castle tiers, 4 flag colours, wall run and post</span></li>
+    <li class="it"><span class="t">Industry buildings</span><span class="n">4</span><span class="d">Mine, quarry, lumber mill, blacksmith</span></li>
+    <li class="it"><span class="t">Props and decor</span><span class="n">11</span><span class="d">Timber, grain cart, barrels, spoil, sawhorse; 4 mountains, forest, rock</span></li>
+    <li class="it"><span class="t">Movers</span><span class="n">13</span><span class="d">Soldier and 4 banner bearers, both facings; wagon, both facings; cow</span></li>
+  </ul>
+  <h3>Screens and panels</h3>
+  <ul class="inv">
+    <li class="it"><span class="t">Castle pictures</span><span class="n">5</span><span class="d">One per tier</span></li>
+    <li class="it"><span class="t">Industry pictures</span><span class="n">8</span><span class="d">4 buildings, idle and working</span></li>
+    <li class="it"><span class="t">Labor screen</span><span class="n">7</span><span class="d">Backdrop and 6 lot pictures</span></li>
+    <li class="it"><span class="t">Troop portraits</span><span class="n">8</span><span class="d">Militia, archers, crossbowmen, swordsmen, macemen, pikemen, knights, mercenaries</span></li>
+    <li class="it"><span class="t">Resource icons</span><span class="n">18</span><span class="d">12 goods and weapons, plus 6 Figma resource icons</span></li>
+    <li class="it"><span class="t">Banners and crests</span><span class="n">9</span><span class="d">4 lord colours, 4 crests, knight armour</span></li>
+    <li class="it"><span class="t">Sprites</span><span class="n">7</span><span class="d">Army small / medium / large, mercenary offer, merchant wagon, supply wagon, cow</span></li>
+    <li class="it"><span class="t">App icon and stamp</span><span class="n">2</span><span class="d">512 app icon, wax stamp</span></li>
+  </ul>
+  <h3>Music — made, not yet in the game</h3>
+  <ul>
+    <li class="it"><span class="t">Hearth v2</span><span class="st have">Locked</span><span class="d">Tier 1 theme. Loop found; seam and 10-minute test passed Oct 11.</span></li>
+    <li class="it"><span class="t">Shire v1</span><span class="st wait">Your ears</span><span class="d">Tier 2. Same melody by measurement, time-aligned with Hearth so tiers can crossfade mid-tune.</span></li>
+  </ul>
+  <footer>Source of truth: ASSET_LIST.md in the Stone-hold project. Codes like m4 and u3 refer to the Aldermarch Fix List.</footer>
+</div>

@@ -12,6 +12,7 @@ overnight sweep (see the bottom of this file).
 
 | # | Question | Options |
 |---|---|---|
+| ✓ | Decided Oct 30: icons via ChatGPT (prompt below); men-vs-cost balance left as is; art waits — running list in art/ASSET_LIST.md |
 | g11 | Wood and ore pile up (past 3,000 in most Normal games) | **A** leave it · **B** steward suggests selling surplus / moving mill and mine workers to farms · **C** add more things to spend them on |
 | g12 | Should anything besides food move health? | **A** no, food only (works today) · **B** add crowding · **C** add plague recovery |
 | d6 | Phone orientation | **A** lock portrait (recommended earlier, see the Phone Orientation page) · **B** design a landscape layout |
