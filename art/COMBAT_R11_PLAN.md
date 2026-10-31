@@ -38,7 +38,7 @@ Aldermarch, Chris chose the adaptations below (all four recommended options).
 7. **Balance** — invariant audit + 128-game sims after each step; regress
    checks added per step.
 
-Progress: steps 1-3 done Oct 25 (see PLAYTEST_FIXES.md); one exchange per season and morale done Oct 25. Oct 30: step 4 zone of control (orange stop tiles, red ring, key in the army panel; player armies only, since the AI moves county to county), step 5 sieges (walls down with troops at the gate = surrender; siege towers and catapults), difficulty order fixed (Very Hard grace 2 -> 4; AI wins of 32: 1 / 3 / 18 / 23). Waiting: battle report style A or B (mock-ups sent Oct 30).
+Progress: steps 1-3 done Oct 25 (see PLAYTEST_FIXES.md); one exchange per season and morale done Oct 25. Oct 30: step 4 zone of control (orange stop tiles, red ring, key in the army panel; player armies only, since the AI moves county to county), step 5 sieges (walls down with troops at the gate = surrender; siege towers and catapults), difficulty order fixed (Very Hard grace 2 -> 4; AI wins of 32: 1 / 3 / 18 / 23). Oct 30 (later): step 6 battle report built (Chris picked A, the LOTR2 ledger); Chris confirmed the siege-pace targets below. Remaining: AI use of towers/catapults, and the men-vs-cost balance call.
 
 Art needed later: siege tower and catapult (m-list), archer firing frames (m9).
 
@@ -58,7 +58,7 @@ Seasons to bring walls to zero with a 30-man crew (current numbers):
 | Stone Castle (280) | 4 | 5 | 13 |
 | Royal Castle (450) | 5 | 8 | 20 |
 
-Proposed targets (Chris to confirm): a Norman Keep with a proper siege train
+Targets (confirmed by Chris, Oct 30): a Norman Keep with a proper siege train
 falls in about a year (3-4 seasons); a Royal Castle in about two years; an
 engine costs less than the castle tier it breaks but enough that you build one
 or two, not ten. The tower is the garrison killer (30 crew kill ~24 a season),
