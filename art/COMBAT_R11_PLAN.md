@@ -38,6 +38,29 @@ Aldermarch, Chris chose the adaptations below (all four recommended options).
 7. **Balance** — invariant audit + 128-game sims after each step; regress
    checks added per step.
 
-Progress: steps 1-3 done Oct 25 (see PLAYTEST_FIXES.md); one exchange per season done Oct 25. Morale built Oct 25. Next: 4-7. Sims after the switch to one exchange: Very Hard got easier than Hard (AI wins 24 to 8 of 32) - the AI's attack odds were tuned for 3 rounds; retune in step 7.
+Progress: steps 1-3 done Oct 25 (see PLAYTEST_FIXES.md); one exchange per season and morale done Oct 25. Oct 30: step 4 zone of control (orange stop tiles, red ring, key in the army panel; player armies only, since the AI moves county to county), step 5 sieges (walls down with troops at the gate = surrender; siege towers and catapults), difficulty order fixed (Very Hard grace 2 -> 4; AI wins of 32: 1 / 3 / 18 / 23). Waiting: battle report style A or B (mock-ups sent Oct 30).
 
 Art needed later: siege tower and catapult (m-list), archer firing frames (m9).
+
+## How we judge siege numbers (Oct 30, Chris: "how will we know what's a good cost, time, HP, damage?")
+
+Numbers are fun when the *time* and *cost* of a siege land where we want them,
+so we set targets first and tune the numbers to hit them, checked by sims and
+then by Chris playing on the S10e.
+
+Seasons to bring walls to zero with a 30-man crew (current numbers):
+
+| Castle (walls) | Ram (90/season) | Catapult (57) | Siege Tower (22) |
+|---|---|---|---|
+| Wooden Palisade (60) | 1 | 2 | 3 |
+| Motte & Bailey (100) | 2 | 2 | 5 |
+| Norman Keep (150) | 2 | 3 | 7 |
+| Stone Castle (280) | 4 | 5 | 13 |
+| Royal Castle (450) | 5 | 8 | 20 |
+
+Proposed targets (Chris to confirm): a Norman Keep with a proper siege train
+falls in about a year (3-4 seasons); a Royal Castle in about two years; an
+engine costs less than the castle tier it breaks but enough that you build one
+or two, not ten. The tower is the garrison killer (30 crew kill ~24 a season),
+not a wall breaker. If play feels too fast or slow, the one knob per engine is
+its `walls` / `garrison` number in SIEGE_ENGINES.
