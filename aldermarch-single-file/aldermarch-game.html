@@ -1586,6 +1586,31 @@ full standalone screen, not a panel over gameplay. */
   max-width: none;
 }
 
+/* Battle report, LOTR2 ledger (Chris picked A, Oct 30). */
+.ov-battle-card { padding: 4px 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+.ov-battle-when { text-align: center; color: #a39a86; font-size: 14px; }
+.ov-battle-banner { text-align: center; font-weight: 700; font-size: 17px; padding: 8px; border-radius: 8px; }
+.ov-battle-banner.win { background: #2f4a22; color: #cfe8b5; }
+.ov-battle-banner.loss { background: #4a2420; color: #f2c2b8; }
+.ov-battle-banner.even { background: #3a3226; color: #ece3cf; }
+.ov-battle-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ov-battle-side { background: #2a231b; border-radius: 10px; padding: 8px 6px; min-width: 0; }
+.ov-battle-who { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-battle-flag { width: 12px; height: 16px; border-radius: 2px; flex: none; }
+.ov-battle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.ov-battle-unit { background: #1a1611; border-radius: 8px; text-align: center; padding: 4px 2px; }
+.ov-battle-unit img { width: 44px; height: 44px; }
+.ov-battle-n { font-size: 20px; font-weight: 700; line-height: 1.05; }
+.ov-battle-name { font-size: 11px; color: #cfc2a4; }
+.ov-battle-lost { font-size: 13px; color: #e0705f; font-weight: 700; }
+.ov-battle-lost.none { color: #8fc06f; font-weight: 500; font-size: 11px; }
+.ov-battle-total, .ov-battle-none { font-size: 13px; color: #cfc2a4; text-align: center; margin-top: 6px; }
+.ov-battle-walls { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.ov-battle-bar { flex: 1; height: 8px; background: #3a3226; border-radius: 4px; overflow: hidden; }
+.ov-battle-bar i { display: block; height: 100%; background: #79a6e6; }
+.ov-battle-why { font-size: 14px; color: #d8cdb2; line-height: 1.45; }
+.ov-battle-why b { color: #e3bf4a; }
+.ov-battle-ok { align-self: stretch; max-width: none; }
 /* Siege engine choices in the castle panel (Oct 30). */
 .ov-engine-card { border-top: 1px solid rgba(232, 220, 192, .15); padding: 8px 0 6px; display: flex; flex-direction: column; }
 .ov-engine-card:first-child { border-top: none; padding-top: 0; }
@@ -13945,7 +13970,18 @@ function resolveFieldEncounter(match, attackerId, defenderId, options = {}) {
 	};
 	result.ranged = ranged;
 	result.move = move;
-	const next = adjustRelation({ ...match, armies }, attacker.owner, defender.owner, -RELATION_COST_FIELD_BATTLE);
+	let next = adjustRelation({ ...match, armies }, attacker.owner, defender.owner, -RELATION_COST_FIELD_BATTLE);
+	const where = defender.location.county ?? attacker.location.county;
+	if (where && next.counties[where]) next = updateCounty(next, where, (c) => ({ ...c, lastBattleReport: {
+		turn: match.turn.number, season: seasonOfTurn(match.turn.number), kind: "field",
+		attacker: attacker.owner, defender: defender.owner,
+		attackerBefore: attacker.troops, attackerAfter: armies[attackerId]?.troops ?? {},
+		defenderBefore: defender.troops, defenderAfter: armies[defenderId]?.troops ?? {},
+		walls: null, move, ranged, returnFire,
+		outcome: result.outcome, rounds: result.rounds,
+		attackerLosses: troopCount(result.attackerLosses), defenderLosses: troopCount(result.defenderLosses),
+		groundTaken: false, broken: !armies[defenderId] ? "defender" : !armies[attackerId] ? "attacker" : null
+	} }));
 	return {
 		ok: true,
 		match: next,
@@ -18225,8 +18261,18 @@ function resolveConquest(match, ix) {
 				terrain: "open",
 				seed: seedFrom(current.id, current.turn.number, countyId)
 			});
+			const streetIds = attackers.map((a) => a.id);
+			const streetBefore = mergeTroops(attackers);
 			current = applyCasualties(current, attackers, street.attackerLosses, 1);
 			const fallen = troopCount(street.defenderLosses);
+			current = updateCounty(current, countyId, (c) => ({ ...c, lastBattleReport: {
+				turn: current.turn.number, season: seasonOfTurn(current.turn.number), kind: "street",
+				attacker: lead.owner, defender: county.owner,
+				attackerBefore: streetBefore, attackerAfter: mergeTroops(streetIds.map((id) => current.armies[id]).filter(Boolean)),
+				defenderBefore: { militia: levy }, defenderAfter: { militia: Math.max(0, levy - fallen) },
+				walls: null, outcome: street.outcome, rounds: street.rounds,
+				attackerLosses: troopCount(street.attackerLosses), defenderLosses: fallen, groundTaken: attackerTakesGround(street)
+			} }));
 			const after = current.counties[countyId];
 			if (after) current = {
 				...current,
@@ -18270,6 +18316,9 @@ function resolveConquest(match, ix) {
 			current = updateCounty(current, countyId, (c) => ({ ...c, lastBattleReport: {
 				turn: current.turn.number, season: seasonOfTurn(current.turn.number), kind: "wallsFell",
 				attacker: lead.owner, defender: county.owner, breached: true, defenceMultiplier: 1, archerBonus: 1,
+				attackerBefore: attackerTroops, attackerAfter: attackerTroops,
+				defenderBefore: mergeTroops(garrisoned), defenderAfter: {},
+				walls: { now: 0, max: castleDurabilityMax(county.castleTier) },
 				outcome: "attackerWins", rounds: [], attackerLosses: 0, defenderLosses: surrendered, wallsSpared: 0, groundTaken: true
 			} }));
 			events.push({ county: countyId, kind: "battle", attacker: lead.owner, detail: `${nameOfCounty(ix, countyId)}'s walls are down — ${surrendered > 0 ? `the garrison of ${surrendered} surrendered` : "the castle is taken"}` });
@@ -18316,9 +18365,19 @@ function resolveConquest(match, ix) {
 		/** Report what each side actually lost (walls cut the garrison's), not the raw battle numbers (Oct 20). */
 		const atkIds = attackers.map((a) => a.id), defIds = defenders.map((a) => a.id);
 		const atkBefore = headcount(current, atkIds), defBefore = headcount(current, defIds);
+		const atkTroopsBefore = mergeTroops(atkIds.map((id) => current.armies[id]).filter(Boolean));
+		const defTroopsBefore = mergeTroops(defIds.map((id) => current.armies[id]).filter(Boolean));
 		current = applyCasualties(current, attackers, result.attackerLosses, 1);
 		current = applyCasualties(current, defenders, result.defenderLosses, survivorBias);
 		const atkLost = atkBefore - headcount(current, atkIds), defLost = defBefore - headcount(current, defIds);
+		/**
+		* Ground is taken only when no defender is left standing. The raw
+		* battle can wipe the garrison while the walls spare a few (survivor
+		* bias); before Oct 30 the county changed hands anyway and those few
+		* stayed inside as a hostile "garrison" of the new owner's castle
+		* (found by the new battle report showing "Victory" beside 10 militia).
+		*/
+		const taken = attackerTakesGround(result) && headcount(current, defIds) === 0;
 		/**
 		* `resolveBattle` already computes a full round-by-round breakdown
 		* (base output, every modifier, casualties per round) — this used
@@ -18338,6 +18397,11 @@ function resolveConquest(match, ix) {
 				kind: "siege",
 				attacker: lead.owner,
 				defender: county.owner,
+				attackerBefore: atkTroopsBefore,
+				attackerAfter: mergeTroops(atkIds.map((id) => current.armies[id]).filter(Boolean)),
+				defenderBefore: defTroopsBefore,
+				defenderAfter: mergeTroops(defIds.map((id) => current.armies[id]).filter(Boolean)),
+				walls: castleDurabilityMax(county.castleTier) > 0 ? { now: currentCastleDurability(county), max: castleDurabilityMax(county.castleTier) } : null,
 				breached,
 				defenceMultiplier,
 				archerBonus,
@@ -18346,11 +18410,11 @@ function resolveConquest(match, ix) {
 				attackerLosses: atkLost,
 				defenderLosses: defLost,
 				wallsSpared: Math.max(0, troopCount(result.defenderLosses) - defLost),
-				groundTaken: attackerTakesGround(result)
+				groundTaken: taken
 			}
 		}));
 		current = adjustRelation(current, lead.owner, county.owner, -RELATION_COST_SIEGE_ROUND);
-		if (attackerTakesGround(result)) {
+		if (taken) {
 			current = setOwner(current, countyId, lead.owner);
 			takenThisSeason.add(countyId);
 			events.push({
@@ -21302,6 +21366,8 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 	const [grainScreenCounty, setGrainScreenCounty] = (0, import_react.useState)(null);
 	const [castleScreenCounty, setCastleScreenCounty] = (0, import_react.useState)(null);
 	const [battleScreenCounty, setBattleScreenCounty] = (0, import_react.useState)(null);
+	/** Counties whose battle report is still to show after End Turn (LOTR2: the breakdown after every battle you fought). */
+	const [battleQueue, setBattleQueue] = (0, import_react.useState)([]);
 	const [populationScreenCounty, setPopulationScreenCounty] = (0, import_react.useState)(null);
 	const [diplomacyOpen, setDiplomacyOpen] = (0, import_react.useState)(false);
 	const [gameOverDismissed, setGameOverDismissed] = (0, import_react.useState)(false);
@@ -21538,7 +21604,11 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				match,
 				countyId: battleScreenCounty,
 				countyName: layout.plots.find((p) => p.county.id === battleScreenCounty)?.county.name ?? battleScreenCounty,
-				onClose: () => setBattleScreenCounty(null)
+				onClose: () => {
+					const [next, ...rest] = battleQueue;
+					setBattleQueue(rest);
+					setBattleScreenCounty(next ?? null);
+				}
 			}),
 			populationScreenCounty && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopulationReportScreen, {
 				match,
@@ -21571,8 +21641,17 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				showStandings: reportCardOpen,
 				onOpenBattle: (id) => setBattleScreenCounty(id),
 				onClose: () => {
+					const you = match.players.find((p) => p.controller.kind === "human");
+					const fought = [...new Set(turnEvents.filter((e) => e.county && (e.kind === "battle" || e.kind === "repelled")).map((e) => e.county))].filter((id) => {
+						const r = match.counties[id]?.lastBattleReport;
+						return r && (r.kind === "siege" || r.kind === "wallsFell" || r.kind === "street") && r.turn >= match.turn.number - 1 && you && (r.attacker === you.id || r.defender === you.id);
+					});
 					setTurnEvents([]);
 					setReportCardOpen(false);
+					if (fought.length) {
+						setBattleScreenCounty(fought[0]);
+						setBattleQueue(fought.slice(1));
+					}
 				}
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(World, {
@@ -21584,6 +21663,7 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 				onChange,
 				onOpenLabor: setLaborScreenCounty,
 				onOpenMerchant: setMerchantScreenCounty,
+				onOpenBattle: setBattleScreenCounty,
 				selectedMover,
 				setSelectedMover
 			}),
@@ -21656,7 +21736,7 @@ function LivingMap({ map, match, initialFocus, onChange }) {
 	});
 }
 /** The scrolling surface. */
-function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOpenMerchant, selectedMover, setSelectedMover }) {
+function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOpenMerchant, onOpenBattle, selectedMover, setSelectedMover }) {
 	const stage = (0, import_react.useRef)(null);
 	const surface = (0, import_react.useRef)(null);
 	const [baked, setBaked] = (0, import_react.useState)(null);
@@ -21988,7 +22068,9 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 								if (captured.ok) next = captured.match;
 							}
 							onChange(next);
-							noticeAsync(fieldFightSummary(selectedArmy, escort, result) + (next.caravans[caravanHere.id]?.owner === selectedArmy.owner ? " The caravan is yours." : ""));
+							if (onOpenBattle && escort.location.county) onOpenBattle(escort.location.county);
+							else noticeAsync(fieldFightSummary(selectedArmy, escort, result));
+							if (next.caravans[caravanHere.id]?.owner === selectedArmy.owner) noticeAsync("The caravan is yours.");
 						} else noticeAsync(result.reason ?? "They can't attack now.");
 					}
 				} else if (await confirmAsync("Capture this undefended caravan? It offers no resistance.")) {
@@ -22014,7 +22096,8 @@ function World({ layout, map, match, focus, onFocus, onChange, onOpenLabor, onOp
 				const result = resolveFieldEncounter(match, selectedArmy.id, occupant.id, how);
 				if (result.ok) {
 					onChange(result.match);
-					noticeAsync(fieldFightSummary(selectedArmy, occupant, result));
+					if (onOpenBattle) onOpenBattle(occupant.location.county);
+					else noticeAsync(fieldFightSummary(selectedArmy, occupant, result));
 				} else noticeAsync(result.reason ?? "They can't attack now.");
 			}
 			setSelectedMover(null);
@@ -26462,53 +26545,85 @@ function BattleReportScreen({ match, countyId, countyName, onClose }) {
 	const county = match.counties[countyId];
 	if (!county) return null;
 	const report = county.lastBattleReport;
-	const nameOf = (id) => id ? match.players.find((p) => p.id === id)?.displayName ?? id : "Nobody";
-	const fmtMods = (mods) => mods.length === 0 ? "no modifiers" : mods.map((m) => `${m.label} \u00D7${m.factor.toFixed(2)}`).join(", ");
-	return h("div", { className: "ov-health-overlay", style: { zIndex: 35 } }, [
-		h("div", { className: "ov-health-header", key: "hd" }, [
-			h("h2", { key: "t" }, `\u2694\uFE0F Battle Report \u2014 ${countyName ?? countyId}`),
-			h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "\u2715"),
+	const you = match.players.find((p) => p.controller.kind === "human");
+	const player = (id) => match.players.find((p) => p.id === id);
+	const nameOf = (id) => !id ? "The townsfolk" : id === you?.id ? "You" : player(id)?.displayName ?? id;
+	const flagOf = (id) => {
+		const seat = player(id)?.seat;
+		return seat === void 0 ? "#8a8170" : seatColor(seat).bright;
+	};
+	const place = countyName ?? countyId;
+	const close = h("button", { key: "x", className: "ov-noble-close", "aria-label": "Close", onClick: onClose }, "✕");
+	if (!report) return h("div", { className: "ov-health-overlay ov-battle", style: { zIndex: 35 } }, [
+		h("div", { className: "ov-health-header", key: "hd" }, [h("h2", { key: "t" }, `Battle Report — ${place}`), close]),
+		h("div", { className: "ov-health-zone", key: "empty" }, "No fighting here yet."),
+	]);
+	const kind = report.kind;
+	const title = kind === "field" ? `Battle at ${place}` : kind === "street" ? `Fight in ${place}'s streets` : kind === "wallsFell" ? `Fall of ${place}` : kind === "siege" ? `Siege of ${place}` : kind === "harassment" ? `Archers at ${place}'s walls` : `Archers on ${place}'s walls`;
+	const when = describeTurn(report.turn ?? match.turn.number);
+	/** Your side on the left, as in LOTR2's breakdown panel. */
+	const youAttacked = report.attacker === you?.id;
+	const sides = [
+		{ id: report.attacker, before: report.attackerBefore, after: report.attackerAfter, lost: report.attackerLosses },
+		{ id: report.defender, before: report.defenderBefore, after: report.defenderAfter, lost: report.defenderLosses },
+	];
+	if (!youAttacked && report.defender === you?.id) sides.reverse();
+	const yourSide = report.attacker === you?.id ? "attacker" : report.defender === you?.id ? "defender" : null;
+	let banner, tone;
+	if (report.groundTaken) {
+		banner = yourSide === "attacker" ? `Victory: ${place} is yours` : yourSide === "defender" ? `Defeat: ${place} has fallen` : `${place} changed hands`;
+		tone = yourSide === "attacker" ? "win" : yourSide === "defender" ? "loss" : "even";
+	} else if (report.broken) {
+		const youBroke = report.broken === yourSide;
+		banner = youBroke ? "Defeat: your army is broken" : "Victory: their army is broken";
+		tone = youBroke ? "loss" : "win";
+	} else if (kind === "siege") {
+		banner = yourSide === "defender" ? `${place} holds` : `${place} holds out — the siege goes on`;
+		tone = yourSide === "defender" ? "win" : "even";
+	} else {
+		banner = "Both still stand — the fight goes on";
+		tone = "even";
+	}
+	const tile = (owner, k, before, after) => h("div", { className: "ov-battle-unit", key: k }, [
+		h("img", { key: "i", src: unitArt(k, player(owner)?.factionId).url, alt: "" }),
+		h("div", { className: "ov-battle-n", key: "n" }, after),
+		h("div", { className: "ov-battle-name", key: "nm" }, UNITS[k]?.name ?? k),
+		h("div", { className: `ov-battle-lost${before - after > 0 ? "" : " none"}`, key: "l" }, before - after > 0 ? `−${before - after}` : "no losses"),
+	]);
+	const side = (sd) => {
+		const before = sd.before ?? {};
+		const after = sd.after ?? {};
+		const kinds = Object.keys(before).filter((k) => (before[k] ?? 0) > 0);
+		const tb = troopCount(before), ta = troopCount(after);
+		return h("div", { className: "ov-battle-side", key: sd.id ?? "town" }, [
+			h("div", { className: "ov-battle-who", key: "w" }, [h("span", { className: "ov-battle-flag", key: "f", style: { background: flagOf(sd.id) } }), nameOf(sd.id)]),
+			kinds.length ? h("div", { className: "ov-battle-grid", key: "g" }, kinds.map((k) => tile(sd.id, k, before[k] ?? 0, after[k] ?? 0))) : h("div", { className: "ov-battle-none", key: "g" }, sd.lost != null ? `${sd.lost} lost` : "—"),
+			kinds.length ? h("div", { className: "ov-battle-total", key: "t" }, `${tb} → ${ta}`) : null,
+		]);
+	};
+	const why = [];
+	if (report.move) why.push(`${report.move} used (${MORALE_MOVE_COST} morale)`);
+	if (report.ranged) why.push(report.returnFire ? "their bowmen shot back" : "shot from range: melee troops can't answer");
+	if (kind === "street") why.push("no soldiers held the town: its people fought with what came to hand");
+	if (kind === "wallsFell") why.push(`walls down: ${(report.defenderLosses ?? 0) > 0 ? `${report.defenderLosses} of the garrison surrendered` : "the castle was empty"}`);
+	else if (kind === "siege") why.push(report.breached ? "walls breached: no shelter for the garrison" : `walls holding: the garrison fights at ×${(report.defenceMultiplier ?? 1).toFixed(2)}`);
+	if ((report.wallsSpared ?? 0) > 0) why.push(`the walls spared ${report.wallsSpared} defender${report.wallsSpared === 1 ? "" : "s"}`);
+	if ((report.archerBonus ?? 1) > 1.001) why.push("archers on the walls");
+	const walls = report.walls;
+	return h("div", { className: "ov-health-overlay ov-battle", style: { zIndex: 35 } }, [
+		h("div", { className: "ov-health-header", key: "hd" }, [h("h2", { key: "t" }, title), close]),
+		h("div", { className: "ov-battle-card", key: "c" }, [
+			h("div", { className: "ov-battle-when", key: "w" }, when),
+			h("div", { className: `ov-battle-banner ${tone}`, key: "b" }, banner),
+			h("div", { className: "ov-battle-cols", key: "cols" }, sides.map(side)),
+			walls ? h("div", { className: "ov-battle-walls", key: "wall" }, [
+				h("span", { key: "l" }, "Walls"),
+				h("div", { className: "ov-battle-bar", key: "b" }, h("i", { style: { width: `${Math.round(100 * walls.now / Math.max(1, walls.max))}%` } })),
+				h("span", { key: "v" }, `${walls.now} / ${walls.max}`),
+			]) : null,
+			why.length ? h("div", { className: "ov-battle-why", key: "why" }, [h("b", { key: "b" }, "Why: "), why.join(" · ")]) : null,
+			h("button", { className: "ov-title-btn primary ov-battle-ok", key: "ok", onClick: onClose }, "Continue"),
 		]),
-		!report ? h("div", { className: "ov-health-zone", key: "empty" }, "No fighting here yet.") : [
-			h("div", { className: "ov-health-section-label", key: "l1" }, `${report.kind === "harassment" ? "Archers at the walls" : report.kind === "wallFire" ? "Archers on the walls" : "Siege"} \u2014 ${capitalise(report.season)} ${report.turn}`),
-			h("div", { className: "ov-ration-zone", key: "z1" }, [
-				h("div", { className: "ov-ration-row", key: "sides" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, report.kind === "siege" ? "Attacker vs Defender" : "Shooting vs Shot at"),
-					h("span", { className: "ov-ration-row-val neutral", key: "v" }, `${nameOf(report.attacker)} vs ${nameOf(report.defender)}`),
-				]),
-				h("div", { className: "ov-ration-row", key: "outcome" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, "Outcome"),
-					h("span", { className: `ov-ration-row-val ${report.groundTaken ? "neg" : "pos"}`, key: "v" }, report.groundTaken ? "Ground taken" : report.outcome === "mutualDestruction" ? "Mutual destruction" : "Held"),
-				]),
-				h("div", { className: "ov-ration-row", key: "losses" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, report.kind === "siege" ? "Losses (attacker / defender)" : "Losses (shooting / shot at)"),
-					h("span", { className: "ov-ration-row-val neutral", key: "v" }, `${report.attackerLosses} / ${report.defenderLosses}`),
-				]),
-				report.kind !== "siege" ? h("div", { className: "ov-title-footnote ov-report-note", key: "nofire" }, report.returnFire ? "Their archers answered in a volley of their own." : "The side shot at has no archers or crossbowmen, so it couldn't shoot back.") : null,
-				(report.wallsSpared ?? 0) > 0 ? h("div", { className: "ov-title-footnote ov-report-note", key: "spared" }, `The walls spared ${report.wallsSpared} defender${report.wallsSpared === 1 ? "" : "s"}.`) : null,
-				h("div", { className: "ov-ration-row", key: "wall" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, "Wall state"),
-					h("span", { className: `ov-ration-row-val ${report.breached ? "neg" : "neutral"}`, key: "v" }, report.breached ? "Breached \u2014 no defence bonus" : `Holding \u2014 \u00D7${report.defenceMultiplier.toFixed(2)} defence, \u00D7${report.archerBonus.toFixed(2)} archer bonus`),
-				]),
-			]),
-			h("div", { className: "ov-health-section-label", key: "l2" }, `Rounds (${report.rounds.length})`),
-			h("div", { className: "ov-ration-zone", key: "z2" }, report.rounds.map((round) => h("div", { key: round.number, style: { marginBottom: 10 } }, [
-				h("div", { className: "ov-ration-row", key: "n" }, [
-					h("span", { className: "ov-ration-row-label", key: "l", style: { fontWeight: 700 } }, `Round ${round.number}`),
-				]),
-				h("div", { className: "ov-ration-row", key: "atk" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, `${report.kind === "siege" ? "Attacker" : "Shooting"}: ${Math.round(round.attacker.baseOutput)} \u2192 ${Math.round(round.attacker.finalOutput)}`),
-					/** Before Oct 20 this printed the volley's raw return damage even when it was never applied (a melee garrison can't shoot back). */
-					h("span", { className: "ov-ration-row-val neg", key: "v" }, report.kind !== "siege" ? "\u2014" : `-${round.attacker.casualtiesTaken}`),
-				]),
-				h("div", { className: "ov-title-footnote", key: "atkmods" }, fmtMods(round.attacker.modifiers)),
-				h("div", { className: "ov-ration-row", key: "def" }, [
-					h("span", { className: "ov-ration-row-label", key: "l" }, `${report.kind === "siege" ? "Defender" : "Shot at"}: ${Math.round(round.defender.baseOutput)} \u2192 ${Math.round(round.defender.finalOutput)}${(report.wallsSpared ?? 0) > 0 ? " (before the walls)" : ""}`),
-					h("span", { className: "ov-ration-row-val neg", key: "v" }, `-${round.defender.casualtiesTaken}`),
-				]),
-				h("div", { className: "ov-title-footnote", key: "defmods" }, fmtMods(round.defender.modifiers)),
-			]))),
-		],
 	]);
 }
 /**
