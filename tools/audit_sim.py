@@ -37,8 +37,13 @@ async def main():
         pg.on('pageerror',lambda e:errs.append(str(e)))
         game=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'aldermarch-single-file','aldermarch-game.html')
         await pg.goto('file://'+game); await pg.wait_for_timeout(1200)
-        for d in (sys.argv[1:] or ['easy','normal','hard','veryHard']):
-            r=await pg.evaluate(JS,d); r['pageerrors']=errs[:3]
+        levels=sys.argv[1:] or ['easy','normal','hard','veryHard']; ai={}
+        for d in levels:
+            r=await pg.evaluate(JS,d); r['pageerrors']=errs[:3]; ai[d]=r['winsAI']
             ek=r.pop('eventKinds'); print(json.dumps(r)); print('  events:',json.dumps(dict(sorted(ek.items(),key=lambda x:-x[1])[:25])))
+        # Oct 30: Very Hard once played easier than Hard; each level must win at least as often as the one below
+        if len(levels)==4:
+            seq=[ai[d] for d in levels]
+            print('DIFFICULTY ORDER', 'OK' if all(a<=b for a,b in zip(seq,seq[1:])) else 'BROKEN', seq)
         await b.close()
 asyncio.run(main())
