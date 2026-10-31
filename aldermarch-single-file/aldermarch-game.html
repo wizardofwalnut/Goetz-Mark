@@ -18149,7 +18149,7 @@ function fireSiegeEngines(match, ix) {
 	let current = match;
 	const events = [];
 	for (const army of Object.values(match.armies)) {
-		if (army.location.kind !== "field") continue;
+		if (army.location.kind !== "field" && army.location.kind !== "garrison") continue;
 		const kind = ENGINE_KINDS.find((k) => k !== "rams" && (army.troops[k] ?? 0) > 0);
 		if (!kind) continue;
 		const engine = SIEGE_ENGINES[kind];
@@ -18157,7 +18157,9 @@ function fireSiegeEngines(match, ix) {
 		const county = current.counties[countyId];
 		if (!county?.owner || county.owner === army.owner || !county.interior || atPeace(current, army.owner, county.owner)) continue;
 		const aim = county.castleTier === "none" ? county.interior.town : county.interior.castle;
-		if (!aim || Math.abs(army.location.col - aim.col) + Math.abs(army.location.row - aim.row) > engine.range) continue;
+		/** In the enemy county's garrison list = camped at the gate (how the AI besieges): always in range. */
+		const atGate = army.location.kind === "garrison";
+		if (!aim || !atGate && Math.abs(army.location.col - aim.col) + Math.abs(army.location.row - aim.row) > engine.range) continue;
 		const me = current.armies[army.id];
 		if (!me || moraleOf(me) < MORALE_ENGINE_SHOT) continue;
 		const crew = me.troops[kind];
@@ -20037,6 +20039,7 @@ var AI_ARMY_CAP_SHARE = .3;
 var AI_CAMPAIGN_MIN_ODDS = 1.3;
 var AI_GOLD_FLOOR = 150;
 var AI_RAM_CREW = 20;
+var AI_ENGINE_ORDER = ["rams", "catapults", "siegeTowers"];
 var AI_RAM_BUILDERS = 40;
 var standingArmies = (match, owner, countyId) => Object.values(match.armies).filter((a) => a.owner === owner && a.location.county === countyId && (a.location.kind === "garrison" || a.location.kind === "field"));
 /** What the attacker must beat: the owner's garrison behind its walls, or the town's levy in the street. */
@@ -20234,33 +20237,44 @@ function takeMilitaryTurn(match, ix, playerId) {
 	* crew marches with the next assault and wears the walls down each
 	* season. Without this, a well-held castle never fell (Oct 19 sims).
 	*/
-	const ramArmyAt = (c) => standingArmies(current, playerId, c).find((a) => (a.troops.rams ?? 0) > 0);
+	/**
+	* Siege engines (Chris, Oct 30: "they should build all the siege
+	* weapons"). The AI keeps one of each crewed and with the campaign, building
+	* the missing ones one at a time in the staging county in AI_ENGINE_ORDER:
+	* ram first (cheapest wall-breaker), then catapult, then siege tower.
+	*/
+	const engineArmiesAt = (c) => standingArmies(current, playerId, c).filter(isEngineArmy);
 	if (target && staging && target.walled) {
-		const st = current.counties[staging];
-		const hasRamArmy = Object.values(current.armies).some((a) => a.owner === playerId && (a.troops.rams ?? 0) > 0);
-		if (!hasRamArmy && (st.ramsAvailable ?? 0) > 0) {
-			const crewed = manRam(current, staging, AI_RAM_CREW);
+		const fielded = new Set(Object.values(current.armies).filter((a) => a.owner === playerId).flatMap((a) => ENGINE_KINDS.filter((k) => (a.troops[k] ?? 0) > 0)));
+		for (const kind of AI_ENGINE_ORDER) {
+			if (fielded.has(kind) || enginesReadyOf(current.counties[staging], kind) <= 0) continue;
+			const crewed = manRam(current, staging, AI_RAM_CREW, kind);
 			if (crewed.ok) {
 				current = crewed.match;
-				decisions.push({ county: staging, what: "crewed a ram" });
+				fielded.add(kind);
+				decisions.push({ county: staging, what: `crewed a ${SIEGE_ENGINES[kind].name.toLowerCase()}` });
 			}
-		} else if (!hasRamArmy && !st.ramBuilding && (st.ramsAvailable ?? 0) === 0) {
+		}
+		const st = current.counties[staging];
+		const want = AI_ENGINE_ORDER.find((k) => !fielded.has(k) && enginesReadyOf(st, k) === 0);
+		if (want && !st.ramBuilding) {
 			/**
 			* The forge eats the AI's ore, so it buys any shortfall at the
 			* merchant's price (the player can do the same at the merchant).
 			*/
+			const cost = SIEGE_ENGINES[want].cost;
 			const t = current.treasuries[playerId];
-			const short = Object.entries(RAM_BUILD_COST).map(([res, n]) => [res, Math.max(0, n - (t[res] ?? 0))]).filter(([, n]) => n > 0);
+			const short = Object.entries(cost).map(([res, n]) => [res, Math.max(0, n - (t[res] ?? 0))]).filter(([, n]) => n > 0);
 			const bill = short.reduce((g, [res, n]) => g + n * MERCHANT_BUY_PRICE[res], 0);
 			if (bill > 0 && (t.gold ?? 0) - bill >= AI_GOLD_FLOOR) {
 				const bought = { ...t, gold: t.gold - bill };
 				for (const [res, n] of short) bought[res] = (bought[res] ?? 0) + n;
 				current = { ...current, treasuries: { ...current.treasuries, [playerId]: bought } };
 			}
-			const started = startRamBuild(current, staging, playerId);
+			const started = startRamBuild(current, staging, playerId, want);
 			if (started.ok) {
 				current = { ...started.match, counties: { ...started.match.counties, [staging]: { ...started.match.counties[staging], ramWorkers: Math.min(AI_RAM_BUILDERS, Math.floor(st.population * .15)) } } };
-				decisions.push({ county: staging, what: "started a ram" });
+				decisions.push({ county: staging, what: `started a ${SIEGE_ENGINES[want].name.toLowerCase()}` });
 			}
 		}
 	}
@@ -20292,12 +20306,14 @@ function takeMilitaryTurn(match, ix, playerId) {
 		const ready = surplusStacks(staging);
 		const readyPower = ready.reduce((s, { army, count }) => s + powerOf(army.troops) * count / troopCount(army.troops), 0);
 		/** With a ram along, the walls come down during the siege: aim between the walled and breached estimates. */
-		const ram = target.walled ? ramArmyAt(staging) : null;
-		const bar = ram && ram.movementRemaining > 0 ? (target.need + target.needBreached) / 2 : target.need;
+		const engines = target.walled ? engineArmiesAt(staging).filter((a) => a.movementRemaining > 0) : [];
+		/** With a wall-breaker along, the walls come down during the siege: aim between the walled and breached estimates. */
+		const breaker = engines.some((a) => (a.troops.rams ?? 0) > 0 || (a.troops.catapults ?? 0) > 0);
+		const bar = breaker ? (target.need + target.needBreached) / 2 : target.need;
 		if (readyPower >= bar && readyPower >= AI_MIN_EXPEDITION) {
 			let sent = 0;
 			for (const { army, count } of ready) if (send(army, count, target.id)) sent += count;
-			if (sent > 0 && ram && ram.movementRemaining > 0) send(ram, troopCount(ram.troops), target.id);
+			if (sent > 0) for (const e of engines) send(e, troopCount(e.troops), target.id);
 			if (sent > 0) decisions.push({
 				county: target.id,
 				what: target.need === 0 ? `marched on undefended ${target.id}` : `attacked ${target.id} with ${sent}`
