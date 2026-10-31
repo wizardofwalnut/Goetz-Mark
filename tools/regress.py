@@ -244,9 +244,9 @@ async def run(p):
         label = await pg.evaluate("() => { const t = [...document.querySelectorAll('title')].find(x => /^Your army/.test(x.textContent)); if (!t) return null; t.parentNode.dispatchEvent(new MouseEvent('click', {bubbles: true})); return t.textContent }")
         await pg.wait_for_timeout(400)
         await pg.evaluate("""() => { const town = [...document.querySelectorAll('title')].find(x => x.textContent.startsWith('Greyfen town centre')); const tr = town.parentNode.getBoundingClientRect(); const tx = tr.x + tr.width / 2, ty = tr.y + tr.height * .8;
-            const polys = [...document.querySelectorAll('polygon')].filter(p => /255, 221, 120, 0.35|214, 90, 74, 0.4\)/.test(p.getAttribute('fill') || ''));
+            const polys = [...document.querySelectorAll('polygon')].filter(p => /255, 221, 120, 0.35|214, 90, 74, 0.4\\)/.test(p.getAttribute('fill') || ''));
             const d = p => { const r = p.getBoundingClientRect(); return Math.hypot(r.x + r.width / 2 - tx, r.y + r.height / 2 - ty) };
-            const red = polys.filter(p => /214, 90, 74, 0.4\)/.test(p.getAttribute('fill'))).sort((a, b) => d(a) - d(b))[0];
+            const red = polys.filter(p => /214, 90, 74, 0.4\\)/.test(p.getAttribute('fill'))).sort((a, b) => d(a) - d(b))[0];
             const go = red && d(red) < 60 ? red : polys.filter(p => /255, 221, 120/.test(p.getAttribute('fill'))).sort((a, b) => d(a) - d(b))[0];
             go && go.dispatchEvent(new MouseEvent('click', {bubbles: true})) }""")
         await pg.wait_for_timeout(700)
@@ -295,7 +295,7 @@ async def run(p):
     async def tap_red_near(title_re):
         await pg.evaluate("""(re) => { const t = [...document.querySelectorAll('title')].find(x => new RegExp(re).test(x.textContent)); const tr = t.parentNode.getBoundingClientRect(); const tx = tr.x + tr.width / 2, ty = tr.y + tr.height * .8;
           const d = p => { const r = p.getBoundingClientRect(); return Math.hypot(r.x + r.width / 2 - tx, r.y + r.height / 2 - ty) };
-          [...document.querySelectorAll('polygon')].filter(p => /214, 90, 74, 0.4\)/.test(p.getAttribute('fill') || '')).sort((a, b) => d(a) - d(b))[0].dispatchEvent(new MouseEvent('click', {bubbles: true})) }""", title_re)
+          [...document.querySelectorAll('polygon')].filter(p => /214, 90, 74, 0.4\\)/.test(p.getAttribute('fill') || '')).sort((a, b) => d(a) - d(b))[0].dispatchEvent(new MouseEvent('click', {bubbles: true})) }""", title_re)
         await pg.wait_for_timeout(600)
     dialog = "() => { const b = [...document.querySelectorAll('button')].find(b => ['OK', 'Continue'].includes(b.innerText.trim())); return b ? b.parentNode.parentNode.innerText : '' }"
     await select_knights()
@@ -317,6 +317,12 @@ async def run(p):
     told = await pg.evaluate("() => { const b = [...document.querySelectorAll('button')].find(b => b.innerText.trim() === 'OK'); return b ? b.parentNode.parentNode.innerText : '' }")
     morale = await state(pg, "m.armies.KK && m.armies.KK.morale")
     check('Brace is used, reported, and costs morale', 'used Brace' in told and 'You lost' in told and morale in (30, 35), f'{told[:70]} morale={morale}')
+    await clear(pg)
+    await pg.evaluate("() => { const e = [...document.querySelectorAll('.ov-figbar-status-chip')].find(x => x.innerText.includes('🏰')); e && e.click() }")
+    await pg.wait_for_timeout(600); await tips(pg)
+    engines = await pg.evaluate("() => [...document.querySelectorAll('.ov-engine-card b')].map(b => b.innerText.trim())")
+    check('castle panel offers Ram, Siege Tower and Catapult', engines == ['Ram', 'Siege Tower', 'Catapult'], str(engines))
+    await clear(pg)
     check('no page errors (session 3)', not errs, str(errs[:2]))
     await b.close()
 

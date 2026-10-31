@@ -1586,6 +1586,10 @@ full standalone screen, not a panel over gameplay. */
   max-width: none;
 }
 
+/* Siege engine choices in the castle panel (Oct 30). */
+.ov-engine-card { border-top: 1px solid rgba(232, 220, 192, .15); padding: 8px 0 6px; display: flex; flex-direction: column; }
+.ov-engine-card:first-child { border-top: none; padding-top: 0; }
+.ov-engine-blurb { font-size: 13px; color: #cfc2a4; margin: 2px 0 4px; line-height: 1.35; }
 /* Zone-of-control key in the army panel (Oct 30). */
 .ov-zoc-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; color: #e8dcc0; margin: 2px 0 4px; }
 .ov-zoc-key { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -12728,6 +12732,29 @@ var UNITS = {
 		upkeep: UNIT_UPKEEP_PER_SEASON,
 		recruitable: false
 	},
+	/** ROTK11 siege engines (Oct 30): crews that can't fight, built and crewed like rams. See SIEGE_ENGINES. */
+	siegeTowers: {
+		kind: "siegeTowers",
+		name: "Siege Tower crew",
+		attack: 1,
+		defence: 3,
+		hardiness: 1,
+		speed: 2,
+		buildCost: {},
+		upkeep: UNIT_UPKEEP_PER_SEASON,
+		recruitable: false
+	},
+	catapults: {
+		kind: "catapults",
+		name: "Catapult crew",
+		attack: 1,
+		defence: 3,
+		hardiness: 1,
+		speed: 2,
+		buildCost: {},
+		upkeep: UNIT_UPKEEP_PER_SEASON,
+		recruitable: false
+	},
 	mercenaries: {
 		kind: "mercenaries",
 		name: "Mercenaries",
@@ -12767,7 +12794,9 @@ var COUNTER_BONUS = {
 	pikemen: { knights: TACTIC_BONUS },
 	knights: { swordsmen: TACTIC_BONUS, macemen: TACTIC_BONUS },
 	mercenaries: {},
-	rams: {}
+	rams: {},
+	siegeTowers: {},
+	catapults: {}
 };
 /** The special move each triangle type uses on the type it counters. */
 var SPECIAL_MOVE = {
@@ -14938,6 +14967,7 @@ function sanitizeLoadedMatch(match) {
 			ramBuilding: county.ramBuilding ?? null,
 			ramWorkers: county.ramWorkers ?? 0,
 			ramsAvailable: county.ramsAvailable ?? 0,
+			enginesReady: county.enginesReady ?? {},
 			castleRepair: county.castleRepair ?? null,
 			castleRepairWorkers: county.castleRepairWorkers ?? 0,
 			lastBattleReport: county.lastBattleReport ?? null,
@@ -16233,6 +16263,8 @@ function applyCasualties$1(troops, damage, archerProtection, rng) {
 	/** Ram crews die first. They were missing from both lists, so rams could never be killed and a county with a crewed ram could never fall (found Oct 20). */
 	const order = archerProtection > 0 ? [
 		"rams",
+		"siegeTowers",
+		"catapults",
 		"militia",
 		"mercenaries",
 		"crossbowmen",
@@ -16243,6 +16275,8 @@ function applyCasualties$1(troops, damage, archerProtection, rng) {
 		"archers"
 	] : [
 		"rams",
+		"siegeTowers",
+		"catapults",
 		"militia",
 		"mercenaries",
 		"archers",
@@ -17221,21 +17255,48 @@ function startCastleBuild(match, countyId, playerId, targetTier) {
 */
 var RAM_BUILDERS_NEEDED = 150;
 var RAM_BUILD_COST = { wood: 200, ore: 60 };
-function startRamBuild(match, countyId, playerId) {
+/**
+* Siege engines (Chris, Oct 30: "add more siege weapons"; roles from ROTK11).
+* Per crewman per season: `walls` = wall strength knocked off, `garrison` =
+* defenders killed. Ratios follow the ROTK11 research: the tower does ~3x a
+* ram's damage to the garrison but ~1/4 of its wall damage; the catapult does
+* ~2/3 of the tower's garrison damage and ~2.5x its wall damage, from further
+* off. Rams must stand at the wall (an assault); towers and catapults fire
+* from `range` tiles off the castle. Every shot costs MORALE_ENGINE_SHOT, so
+* an engine with no morale left stops (ROTK11: engines act only through
+* Will). First-pass numbers, tuned against the siege targets in
+* art/COMBAT_R11_PLAN.md.
+*/
+var SIEGE_ENGINES = {
+	rams: { kind: "rams", name: "Ram", plural: "Rams", cost: RAM_BUILD_COST, builders: RAM_BUILDERS_NEEDED, range: 0, walls: 3, garrison: 0, blurb: "Batters the walls from right beside them. Can't touch the garrison, can't defend itself: escort it." },
+	siegeTowers: { kind: "siegeTowers", name: "Siege Tower", plural: "Siege Towers", cost: { wood: 300, ore: 20 }, builders: 200, range: 2, walls: .75, garrison: .8, blurb: "Archers on a rolling tower shoot over the walls from 2 tiles off. Best at thinning the garrison; barely scratches stone." },
+	catapults: { kind: "catapults", name: "Catapult", plural: "Catapults", cost: { wood: 250, ore: 120 }, builders: 250, range: 3, walls: 1.9, garrison: .5, blurb: "Hurls stones from 3 tiles off. Hits both walls and garrison: the all-rounder, and the dearest." }
+};
+var ENGINE_KINDS = Object.keys(SIEGE_ENGINES);
+var MORALE_ENGINE_SHOT = 5;
+var isEngineArmy = (army) => ENGINE_KINDS.some((k) => (army?.troops?.[k] ?? 0) > 0);
+/** How many finished, uncrewed engines of a kind wait in a county. Rams keep their old field. */
+var enginesReadyOf = (county, kind) => kind === "rams" ? county.ramsAvailable ?? 0 : county.enginesReady?.[kind] ?? 0;
+function withEnginesReady(county, kind, n) {
+	return kind === "rams" ? { ...county, ramsAvailable: n } : { ...county, enginesReady: { ...county.enginesReady ?? {}, [kind]: n } };
+}
+function startRamBuild(match, countyId, playerId, kind = "rams") {
+	const engine = SIEGE_ENGINES[kind];
+	if (!engine) return fail("Unknown siege engine");
 	const county = match.counties[countyId];
 	if (!county) return fail("No such county");
 	if (county.owner !== playerId) return fail("You don't hold this county");
-	if (county.ramBuilding) return fail("Already building a ram here");
+	if (county.ramBuilding) return fail(`Already building a ${SIEGE_ENGINES[county.ramBuilding.kind ?? "rams"].name.toLowerCase()} here`);
 	const treasury = match.treasuries[playerId];
-	if (!treasury || !canAfford(treasury, RAM_BUILD_COST)) return fail("Cannot afford to start building a ram");
+	if (!treasury || !canAfford(treasury, engine.cost)) return fail(`Cannot afford to start building a ${engine.name.toLowerCase()}`);
 	return {
 		ok: true,
 		match: updateCounty({
 			...match,
-			treasuries: { ...match.treasuries, [playerId]: spend(treasury, RAM_BUILD_COST) }
+			treasuries: { ...match.treasuries, [playerId]: spend(treasury, engine.cost) }
 		}, countyId, (c) => ({
 			...c,
-			ramBuilding: { workDone: 0 }
+			ramBuilding: { workDone: 0, kind }
 		}))
 	};
 }
@@ -17298,11 +17359,12 @@ function startCastleRepair(match, countyId, playerId) {
 * county the ordinary levy cap wouldn't allow either.
 */
 var manRam = withFittedWorkforce(manRamRaw);
-function manRamRaw(match, countyId, count) {
+function manRamRaw(match, countyId, count, kind = "rams") {
 	const county = match.counties[countyId];
 	if (!county) return fail$1("No such county");
 	if (!county.owner) return fail$1("County is unclaimed");
-	if ((county.ramsAvailable ?? 0) <= 0) return fail$1("No finished ram waiting to be crewed here");
+	if (!SIEGE_ENGINES[kind]) return fail$1("Unknown siege engine");
+	if (enginesReadyOf(county, kind) <= 0) return fail$1(`No finished ${SIEGE_ENGINES[kind].name.toLowerCase()} waiting to be crewed here`);
 	if (!(count > 0)) return fail$1("No crew specified");
 	if (county.population - count < CONSCRIPTION_POPULATION_FLOOR) return fail$1("Not enough people to crew it without emptying the county");
 	if (count / county.population > CONSCRIPTION_MAX_SHARE) return fail$1("Cannot conscript more than half the population at once");
@@ -17310,11 +17372,12 @@ function manRamRaw(match, countyId, count) {
 	const at = freeTownAdjacentTile(match, countyId, county.interior);
 	if (!at) return fail$1("Every tile next to the town is occupied — move an army or caravan out of the way first");
 	const id = freeArmyId(match, owner);
-	const troops = { rams: count };
+	const troops = { [kind]: count };
 	const army = {
 		id,
 		owner,
 		troops,
+		morale: MORALE_DEFAULT,
 		location: {
 			kind: "field",
 			county: countyId,
@@ -17336,9 +17399,8 @@ function manRamRaw(match, countyId, count) {
 			counties: {
 				...match.counties,
 				[countyId]: {
-					...county,
+					...withEnginesReady(county, kind, enginesReadyOf(county, kind) - 1),
 					population: county.population - count,
-					ramsAvailable: (county.ramsAvailable ?? 0) - 1,
 					conscriptedThisSeason: (county.conscriptedThisSeason ?? 0) + count,
 					happiness: Math.max(0, county.happiness - conscriptionHappinessLoss(count / county.population * 100))
 				}
@@ -18042,6 +18104,62 @@ var MIN_TOWN_LEVY = 3;
 var townLevy = (population) => population <= 0 ? 0 : Math.max(MIN_TOWN_LEVY, Math.round(population * TOWN_LEVY_SHARE));
 var CUT_OFF_UNREST = 5;
 var nameOfCounty = (ix, id) => ix?.countyById?.get(id)?.name ?? id;
+/**
+* Siege towers and catapults fire each season at an enemy castle (or an
+* unwalled town) within range of where they stand: knock down walls, kill
+* garrison, spend morale. One volley per army per season.
+*/
+function fireSiegeEngines(match, ix) {
+	let current = match;
+	const events = [];
+	for (const army of Object.values(match.armies)) {
+		if (army.location.kind !== "field") continue;
+		const kind = ENGINE_KINDS.find((k) => k !== "rams" && (army.troops[k] ?? 0) > 0);
+		if (!kind) continue;
+		const engine = SIEGE_ENGINES[kind];
+		const countyId = army.location.county;
+		const county = current.counties[countyId];
+		if (!county?.owner || county.owner === army.owner || !county.interior || atPeace(current, army.owner, county.owner)) continue;
+		const aim = county.castleTier === "none" ? county.interior.town : county.interior.castle;
+		if (!aim || Math.abs(army.location.col - aim.col) + Math.abs(army.location.row - aim.row) > engine.range) continue;
+		const me = current.armies[army.id];
+		if (!me || moraleOf(me) < MORALE_ENGINE_SHOT) continue;
+		const crew = me.troops[kind];
+		const before = currentCastleDurability(county);
+		const after = Math.max(0, Math.round(before - crew * engine.walls));
+		if (castleDurabilityMax(county.castleTier) > 0 && after !== before) current = updateCounty(current, countyId, (c) => ({ ...c, castleDurability: after }));
+		const garrison = garrisonOf(current, countyId).filter((a) => a.owner === county.owner && troopCount(a.troops) > 0);
+		let killed = 0;
+		if (garrison.length && engine.garrison > 0) {
+			const want = Math.round(crew * engine.garrison);
+			const g0 = headcount(current, garrison.map((a) => a.id));
+			let left = want;
+			const armies = { ...current.armies };
+			for (const g of garrison) {
+				if (left <= 0) break;
+				const troops = { ...g.troops };
+				for (const k of kindsOf(troops)) {
+					const take = Math.min(troops[k], left);
+					troops[k] -= take;
+					left -= take;
+					if (troops[k] <= 0) delete troops[k];
+					if (left <= 0) break;
+				}
+				if (troopCount(troops) <= 0) delete armies[g.id];
+				else armies[g.id] = { ...g, troops };
+			}
+			current = { ...current, armies };
+			killed = g0 - headcount(current, garrison.map((a) => a.id));
+		}
+		current = { ...current, armies: { ...current.armies, [army.id]: { ...current.armies[army.id], morale: moraleOf(me) - MORALE_ENGINE_SHOT } } };
+		current = adjustRelation(current, army.owner, county.owner, -RELATION_COST_HARASSMENT);
+		const bits = [];
+		if (before !== after) bits.push(`walls ${before} → ${after}`);
+		if (killed > 0) bits.push(`${killed} of the garrison fell`);
+		if (bits.length) events.push({ county: countyId, kind: "battle", attacker: army.owner, detail: `${engine.plural} bombarded ${nameOfCounty(ix, countyId)}: ${bits.join(", ")}` });
+	}
+	return { match: current, events };
+}
 function resolveConquest(match, ix) {
 	const events = [];
 	let current = match;
@@ -18057,6 +18175,9 @@ function resolveConquest(match, ix) {
 	* rather than waiting a turn to "catch up."
 	*/
 	current = erodeRamDurability(current);
+	const bombard = fireSiegeEngines(current, ix);
+	current = bombard.match;
+	events.push(...bombard.events);
 	const harassment = resolveArcherHarassment(current, ix);
 	current = harassment.match;
 	events.push(...harassment.events);
@@ -18132,6 +18253,26 @@ function resolveConquest(match, ix) {
 				attacker: lead.owner,
 				detail: `${nameOfCounty(ix, countyId)} held by its own people`
 			});
+			continue;
+		}
+		/**
+		* ROTK11 (plan, Oct 25): a castle falls when its walls OR its garrison
+		* reach zero. Walls down with your troops at the gate: the garrison
+		* surrenders and the county is yours.
+		*/
+		if (castleDurabilityMax(county.castleTier) > 0 && currentCastleDurability(county) <= 0) {
+			const garrisoned = defenders.filter((a) => a.location.kind === "garrison");
+			const surrendered = garrisoned.reduce((n, a) => n + troopCount(a.troops), 0);
+			const armies = { ...current.armies };
+			for (const a of garrisoned) delete armies[a.id];
+			current = setOwner({ ...current, armies }, countyId, lead.owner);
+			takenThisSeason.add(countyId);
+			current = updateCounty(current, countyId, (c) => ({ ...c, lastBattleReport: {
+				turn: current.turn.number, season: seasonOfTurn(current.turn.number), kind: "wallsFell",
+				attacker: lead.owner, defender: county.owner, breached: true, defenceMultiplier: 1, archerBonus: 1,
+				outcome: "attackerWins", rounds: [], attackerLosses: 0, defenderLosses: surrendered, wallsSpared: 0, groundTaken: true
+			} }));
+			events.push({ county: countyId, kind: "battle", attacker: lead.owner, detail: `${nameOfCounty(ix, countyId)}'s walls are down — ${surrendered > 0 ? `the garrison of ${surrendered} surrendered` : "the castle is taken"}` });
 			continue;
 		}
 		const defenderTroops = mergeTroops(defenders);
@@ -18939,21 +19080,24 @@ function advanceSeason(match, map) {
 		*/
 		let ramBuilding = county.ramBuilding;
 		let ramsAvailable = county.ramsAvailable ?? 0;
+		let enginesReady = county.enginesReady ?? {};
 		if (ramBuilding) {
+			const engine = SIEGE_ENGINES[ramBuilding.kind ?? "rams"];
 			if ((county.ramWorkers ?? 0) <= 0) events.push({
 				county: id,
 				kind: "castleStalled",
-				detail: "Ram construction is stalled — assign workers to begin"
+				detail: `${engine.name} construction is stalled — assign workers to begin`
 			});
 			else {
 				const workDone = ramBuilding.workDone + county.ramWorkers;
-				if (workDone >= RAM_BUILDERS_NEEDED) {
+				if (workDone >= engine.builders) {
 					ramBuilding = null;
-					ramsAvailable += 1;
+					if (engine.kind === "rams") ramsAvailable += 1;
+					else enginesReady = { ...enginesReady, [engine.kind]: (enginesReady[engine.kind] ?? 0) + 1 };
 					events.push({
 						county: id,
 						kind: "castleBuilt",
-						detail: "A ram is finished and ready to be crewed"
+						detail: `A ${engine.name.toLowerCase()} is finished and ready to be crewed`
 					});
 				} else ramBuilding = {
 					...ramBuilding,
@@ -19193,6 +19337,7 @@ function advanceSeason(match, map) {
 			building,
 			ramBuilding,
 			ramsAvailable,
+			enginesReady,
 			castleRepair,
 			castleDurability,
 			food: {
@@ -19888,7 +20033,7 @@ function takeMilitaryTurn(match, ix, playerId) {
 	for (const army of Object.values(current.armies)) {
 		if (army.owner !== playerId || army.location.kind !== "field") continue;
 		if (current.counties[army.location.county]?.owner !== playerId) continue;
-		if ((army.troops.rams ?? 0) > 0) continue;
+		if (isEngineArmy(army)) continue;
 		const folded = garrisonArmy(current, army.id);
 		if (folded.ok) current = folded.match;
 	}
@@ -20065,7 +20210,7 @@ function takeMilitaryTurn(match, ix, playerId) {
 	const surplusStacks = (c) => {
 		let keep = guardOf.get(c) ?? 0;
 		const out = [];
-		for (const a of standingArmies(current, playerId, c).filter((x) => !(x.troops.rams > 0)).sort((x, y) => troopCount(y.troops) - troopCount(x.troops) || x.id.localeCompare(y.id))) {
+		for (const a of standingArmies(current, playerId, c).filter((x) => !isEngineArmy(x)).sort((x, y) => troopCount(y.troops) - troopCount(x.troops) || x.id.localeCompare(y.id))) {
 			const n = troopCount(a.troops);
 			const stay = Math.min(n, keep);
 			keep -= stay;
@@ -23314,7 +23459,7 @@ function getAdvisorAlerts(match) {
 	}
 	for (const [id, c] of owned) {
 		if (c.castleRepair && (c.castleRepairWorkers ?? 0) <= 0) out.push({ icon: "\u{1F3F0}", text: `Wall repairs have stalled in ${nameOf(id)} \u2014 no builders assigned`, short: `${nameOf(id)}: repairs stalled`, countyId: id });
-		if (c.ramBuilding && (c.ramWorkers ?? 0) <= 0) out.push({ icon: "\u{1FAB5}", text: `The ram in ${nameOf(id)} has stalled \u2014 no builders assigned`, short: `${nameOf(id)}: ram stalled`, countyId: id });
+		if (c.ramBuilding && (c.ramWorkers ?? 0) <= 0) out.push({ icon: "\u{1FAB5}", text: `The ${SIEGE_ENGINES[c.ramBuilding.kind ?? "rams"].name.toLowerCase()} in ${nameOf(id)} has stalled \u2014 no builders assigned`, short: `${nameOf(id)}: ${SIEGE_ENGINES[c.ramBuilding.kind ?? "rams"].name.toLowerCase()} stalled`, countyId: id });
 	}
 	for (const [id, c] of owned) {
 		const idle = unemployedWorkersOf(c);
@@ -24899,8 +25044,8 @@ function planPlots(county, ctx) {
 	out.push({
 		key: "ram", slot: "ram",
 		label: county.ramBuilding
-			? `Ram (${Math.max(0, Math.ceil((RAM_BUILDERS_NEEDED - county.ramBuilding.workDone) / Math.max(1, county.ramWorkers ?? 0)))})`
-			: "Ram",
+			? `${SIEGE_ENGINES[county.ramBuilding.kind ?? "rams"].name} (${Math.max(0, Math.ceil((SIEGE_ENGINES[county.ramBuilding.kind ?? "rams"].builders - county.ramBuilding.workDone) / Math.max(1, county.ramWorkers ?? 0)))})`
+			: "Siege engine",
 		// Same stand-in reasoning as the castle plot above — no dedicated
 		// carpenter sprite exists yet, and this is a much smaller, shorter-
 		// lived project than a castle tier, so it doesn't get its own
@@ -25190,9 +25335,9 @@ function LaborScreen({ match, countyId, countyName, onChange, onClose, initialSl
 		}
 		if (plot.slot === "ram") {
 			if (!county.ramBuilding) return null;
-			const remaining = Math.max(0, RAM_BUILDERS_NEEDED - county.ramBuilding.workDone);
+			const remaining = Math.max(0, SIEGE_ENGINES[county.ramBuilding.kind ?? "rams"].builders - county.ramBuilding.workDone);
 			const projected = plot.current > 0 ? Math.ceil(remaining / plot.current) : Infinity;
-			return { icon: null, text: plot.current > 0 ? `${projected} season${projected === 1 ? "" : "s"} left` : "stalled — no workers", title: "Seasons until this ram finishes at this staffing" };
+			return { icon: null, text: plot.current > 0 ? `${projected} season${projected === 1 ? "" : "s"} left` : "stalled — no workers", title: "Seasons until this siege engine finishes at this staffing" };
 		}
 		if (plot.slot === "castleRepair") {
 			if (!county.castleRepair) return null;
@@ -26648,15 +26793,15 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLa
 		if (result.ok) onChange(result.match);
 		else noticeAsync(result.reason ?? "Could not begin construction");
 	};
-	const beginRamBuild = () => {
+	const beginRamBuild = (kind = "rams") => {
 		if (!onChange || !you) return;
-		const result = startRamBuild(match, countyId, you.id);
+		const result = startRamBuild(match, countyId, you.id, kind);
 		if (result.ok) onChange(result.match);
 		else noticeAsync(result.reason ?? "Could not begin building a ram");
 	};
-	const crewRam = () => {
+	const crewRam = (kind = "rams") => {
 		if (!onChange) return;
-		const result = manRam(match, countyId, ramCrew);
+		const result = manRam(match, countyId, ramCrew, kind);
 		if (result.ok) onChange(result.match);
 		else noticeAsync(result.reason ?? "Could not crew this ram");
 	};
@@ -26800,32 +26945,39 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLa
 		h("div", { className: "ov-health-section-label", key: "raml" }, "\u{1F529} Siege Engines"),
 		h("div", { className: "ov-ration-zone", key: "ramz" }, county.ramBuilding ? [
 			h("div", { className: "ov-ration-row", key: "name" }, [
-				h("span", { className: "ov-ration-row-label", key: "l" }, "Ram under construction"),
-				h("span", { className: "ov-ration-row-val neutral", key: "v" }, `${county.ramBuilding.workDone} / ${RAM_BUILDERS_NEEDED}`),
+				h("span", { className: "ov-ration-row-label", key: "l" }, `${SIEGE_ENGINES[county.ramBuilding.kind ?? "rams"].name} under construction`),
+				h("span", { className: "ov-ration-row-val neutral", key: "v" }, `${county.ramBuilding.workDone} / ${SIEGE_ENGINES[county.ramBuilding.kind ?? "rams"].builders}`),
 			]),
 			h("div", { className: "ov-ration-row", key: "eta" }, [
 				h("span", { className: "ov-ration-row-icon", key: "i" }, (county.ramWorkers ?? 0) > 0 ? "\u{1F477}" : "\u26A0\uFE0F"),
 				h("span", { className: "ov-ration-row-label", key: "l" }, (county.ramWorkers ?? 0) > 0 ? `${county.ramWorkers} builders assigned` : "No builders assigned \u2014 stalled"),
 			]),
 			buildersBtn("ram"),
-		] : [
-			h("div", { className: "ov-ration-row", key: "blurb" }, [
-				h("span", { className: "ov-ration-row-val neutral", key: "v" }, "Breaks a besieged castle's defence early — its whole job is knocking the door down, not fighting the garrison." ),
-			]),
-			h("div", { className: "ov-ration-row", key: "cost" }, [
-				h("span", { className: "ov-ration-row-label", key: "l" }, "Cost"),
-				h("span", { className: "ov-ration-row-val neutral", key: "v" }, fmtCost(RAM_BUILD_COST) + `, ${RAM_BUILDERS_NEEDED} builders` ),
-			]),
-			owned && onChange ? h("button", {
-				key: "begin",
-				className: "ov-title-btn primary",
-				style: { alignSelf: "center", marginTop: 8 },
-				onClick: beginRamBuild
-			}, "Build a Ram") : null,
-		]),
-		(county.ramsAvailable ?? 0) > 0 ? h("div", { className: "ov-ration-zone", key: "ramcrew" }, [
+		] : ENGINE_KINDS.map((kind) => {
+			const engine = SIEGE_ENGINES[kind];
+			const affordable = you ? canAfford(match.treasuries[you.id] ?? {}, engine.cost) : false;
+			return h("div", { className: "ov-engine-card", key: kind }, [
+				h("div", { className: "ov-ration-row", key: "n" }, [
+					h("span", { className: "ov-ration-row-label", key: "l" }, h("b", null, engine.name)),
+					h("span", { className: "ov-ration-row-val neutral", key: "v" }, engine.range ? `fires from ${engine.range} tiles` : "at the wall"),
+				]),
+				h("div", { className: "ov-engine-blurb", key: "b" }, engine.blurb),
+				h("div", { className: "ov-ration-row", key: "cost" }, [
+					h("span", { className: "ov-ration-row-label", key: "l" }, "Cost"),
+					h("span", { className: "ov-ration-row-val neutral", key: "v" }, fmtCost(engine.cost) + `, ${engine.builders} builders`),
+				]),
+				owned && onChange ? h("button", {
+					key: "begin",
+					className: "ov-title-btn primary",
+					style: { alignSelf: "center", marginTop: 6, opacity: affordable ? 1 : .5 },
+					disabled: !affordable,
+					onClick: () => beginRamBuild(kind)
+				}, affordable ? `Build a ${engine.name}` : "Cannot Afford") : null,
+			]);
+		})),
+		...ENGINE_KINDS.filter((kind) => enginesReadyOf(county, kind) > 0).map((kind) => h("div", { className: "ov-ration-zone", key: "crew-" + kind }, [
 			h("div", { className: "ov-ration-row", key: "name" }, [
-				h("span", { className: "ov-ration-row-label", key: "l" }, `${county.ramsAvailable} ram${county.ramsAvailable === 1 ? "" : "s"} finished \u2014 waiting for a crew`),
+				h("span", { className: "ov-ration-row-label", key: "l" }, `${enginesReadyOf(county, kind)} ${enginesReadyOf(county, kind) === 1 ? SIEGE_ENGINES[kind].name.toLowerCase() : SIEGE_ENGINES[kind].plural.toLowerCase()} finished \u2014 waiting for a crew`),
 			]),
 			h("div", { className: "ov-labor-stepper", key: "stepper" }, [
 				h("button", {
@@ -26845,9 +26997,9 @@ function CastleScreen({ match, countyId, countyName, onChange, onClose, onOpenLa
 				key: "crew",
 				className: "ov-title-btn primary",
 				style: { alignSelf: "center", marginTop: 8 },
-				onClick: crewRam
-			}, "Crew this Ram") : null,
-		]) : null,
+				onClick: () => crewRam(kind)
+			}, `Crew this ${SIEGE_ENGINES[kind].name}`) : null,
+		])),
 	]);
 }
 /**
