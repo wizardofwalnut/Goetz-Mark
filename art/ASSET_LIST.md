@@ -5,7 +5,7 @@ Running list of everything the game has and everything it still needs (Chris, Oc
 the game settles; music is Chris's next job. Updated whenever an asset lands or a
 new need turns up. The page version is the "Aldermarch Asset List" artifact.
 
-Counts checked against the game's art manifest on Oct 30 (135 entries).
+Counts checked against the game on Oct 30: 160 art files stored; the game never uses 27 of them (old 64-pixel versions, crests, wax stamp), and a few more are only fallbacks (old 64-pixel tiles, the miner/woodcutter/smith figures). Style check (Oct 30): the "Aldermarch Style Check" page.
 
 ## Still needed
 
@@ -23,9 +23,15 @@ Counts checked against the game's art manifest on Oct 30 (135 entries).
 | Realm and Crown (covers of Hearth 2, no tempo in prompts) | Tier 3–4 map music (m2) | Suno | not started |
 | Six stings: war declared, enemy army arrives, castle finished, harvest in, county gained, county lost | big moments (m3) | Suno Sounds, One Shot, A minor | not started |
 | Sound effects: taps, harvest, battle horn, siege hits | a11 | to choose | not started |
+| ~20 painted report icons (births, deaths, taxes, ration, health, ale, events, crowding, food eaten, balance, calves, counties, castle, troops, gold, happiness, population, Best Noble tabs) | replace emoji in reports, season summary and Best Noble (style check, Oct 30) | ChatGPT, same navy style as the 15 | not started |
+| Laborer figures: miner, woodcutter, smith, builder at full size | labor screen (today they reuse the farmer and herder) | ChatGPT | canon versions exist only at 64 px |
+| Knights portrait redo (chibi figure on a grass diamond, slate background like the other six) | troop portraits (style check: clashes) | ChatGPT | optional |
+| Mercenaries portrait with the shared background | troop portraits (style check: slightly off) | ChatGPT | optional |
 | Store screenshots (3+ at 1080×1920) | Play Store (a14, parked) | Claude captures from the game | after icons |
 
 ### Maybe later (not decided)
+
+- From the style check: warmer stone for the quarry, rocks and mountains; less saturated water; slightly darker, more textured roads; full-size timber and barrel props.
 
 - A map soldier per troop type (pikemen, knights, archers…), now that every army is one type. Today every army uses the same soldier and banner bearers.
 - Winter / season art (d7: tint or snow, parked).

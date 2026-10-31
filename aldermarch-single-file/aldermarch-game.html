@@ -15823,7 +15823,7 @@ var armyFigureCount = (troops) => troops <= 300 ? 1 : troops <= 600 ? 2 : 3;
 var unitArt = (kind, faction) => resolveAsset(faction ? [`unit.${kind}.${faction}`, `unit.${kind}`] : [`unit.${kind}`]);
 var resourceArt = (resource) => resolveAsset([`resource.${resource}`]);
 /** Lettered tile where a troop kind has no painted portrait yet (rams and the siege engines: see the Asset List). */
-var unitStandIn = (kind) => ({ rams: "RAM", siegeTowers: "TOWER", catapults: "CATAPULT" })[kind] ?? (UNITS[kind]?.name ?? kind).slice(0, 4).toUpperCase();
+var unitStandIn = (kind, small = false) => (small ? { rams: "RAM", siegeTowers: "TWR", catapults: "CAT" } : { rams: "RAM", siegeTowers: "TOWER", catapults: "CATAPULT" })[kind] ?? (UNITS[kind]?.name ?? kind).slice(0, small ? 3 : 4).toUpperCase();
 /** Stand-in glyph where a resource has no painted icon yet (ale: fix list b14 until the ChatGPT icon, m6, lands). */
 var RESOURCE_GLYPH = { ale: "\u{1F37A}" };
 var overheadGroundArt = (kind) => resolveAsset([`overhead.tile.${kind}`]);
@@ -24462,7 +24462,7 @@ function ArmyPanel({ match, army, onDeselect }) {
 						height: 28,
 						style: { borderRadius: 4 },
 						alt: kind
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "ov-unit-standin", style: { width: 28, height: 28, fontSize: 9 }, children: unitStandIn(kind) }),
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "ov-unit-standin", style: { width: 28, height: 28, fontSize: 9 }, children: unitStandIn(kind, true) }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 						style: { minWidth: 90 },
 						children: [UNITS[kind]?.name ?? kind, ": ", army.troops[kind]]
@@ -26605,7 +26605,7 @@ function BattleReportScreen({ match, countyId, countyName, onClose }) {
 		tone = "even";
 	}
 	const tile = (owner, k, before, after) => h("div", { className: "ov-battle-unit", key: k }, [
-		unitArt(k, player(owner)?.factionId).url ? h("img", { key: "i", src: unitArt(k, player(owner)?.factionId).url, alt: "" }) : h("span", { key: "i", className: "ov-unit-standin", style: { width: 44, height: 44, fontSize: 12 } }, unitStandIn(k)),
+		unitArt(k, player(owner)?.factionId).url ? h("img", { key: "i", src: unitArt(k, player(owner)?.factionId).url, alt: "" }) : h("span", { key: "i", className: "ov-unit-standin", style: { width: 44, height: 44, fontSize: 12 } }, unitStandIn(k, true)),
 		h("div", { className: "ov-battle-n", key: "n" }, after),
 		h("div", { className: "ov-battle-name", key: "nm" }, UNITS[k]?.name ?? k),
 		h("div", { className: `ov-battle-lost${before - after > 0 ? "" : " none"}`, key: "l" }, before - after > 0 ? `−${before - after}` : "no losses"),

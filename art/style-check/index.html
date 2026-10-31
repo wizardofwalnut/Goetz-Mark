@@ -1,0 +1,129 @@
+<title>Aldermarch Style Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: verdict first, then the two styles side by side, then every screen rated, then what to fix and who fixes it. Same family as the Fix List and Asset List. */
+:root {
+  --bg: #f3efe6; --panel: #fbf8f1; --ink: #23201b; --muted: #6b6457; --line: #ddd4c2;
+  --gold: #9a6f12; --fits: #4f7a3a; --off: #9a6f12; --clash: #a3352a; --shot: #1a1611;
+  --display: "Alegreya SC", "Iowan Old Style", Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12100d; --panel: #1c1813; --ink: #ece3cf; --muted: #a39a86; --line: #352d22;
+  --gold: #e3bf4a; --fits: #8fc06f; --off: #e3bf4a; --clash: #e0705f; --shot: #000; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12100d; --panel: #1c1813; --ink: #ece3cf; --muted: #a39a86; --line: #352d22;
+  --gold: #e3bf4a; --fits: #8fc06f; --off: #e3bf4a; --clash: #e0705f; --shot: #000; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 64px; }
+h1 { font: 700 30px/1.1 var(--display); margin: 0 0 6px; color: var(--gold); text-wrap: balance; }
+h2 { font: 700 22px/1.2 var(--display); margin: 34px 0 8px; text-wrap: balance; }
+h3 { font: 700 13px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+p { margin: 0 0 10px; max-width: 68ch; }
+.verdict { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+.verdict p:last-child { margin: 0; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.two > div { min-width: 0; }
+.pair { display: flex; gap: 8px; }
+.pair img, .shot img { width: 100%; height: auto; border-radius: 8px; background: var(--shot); display: block; }
+.pair figure { margin: 0; flex: 1; min-width: 0; }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.shot { margin: 0; min-width: 0; }
+.shot b { display: block; font-size: 14.5px; margin-top: 6px; }
+.tag { font: 700 11px var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 1px 7px; border-radius: 4px; border: 1px solid currentColor; display: inline-block; margin: 4px 0 2px; }
+.tag.fits { color: var(--fits); } .tag.off { color: var(--off); } .tag.clash { color: var(--clash); }
+.shot span.why { display: block; font-size: 13px; color: var(--muted); line-height: 1.35; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+.tw { overflow-x: auto; }
+th, td { text-align: left; padding: 9px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+th { font: 700 12px var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+td.n { font-variant-numeric: tabular-nums; color: var(--muted); }
+.sheet img { width: 100%; height: auto; border-radius: 8px; display: block; }
+.sheet { margin: 0 0 14px; }
+.prompt { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 14.5px; white-space: pre-wrap; }
+footer { margin-top: 34px; color: var(--muted); font-size: 13px; }
+</style>
+<div class="wrap">
+  <h1>Aldermarch Style Check</h1>
+  <p>Does the whole game look like it came from one hand? Checked Oct 30 on 33 screens captured at your S10e's size and all 160 art files measured one by one (colour, brightness, saturation, sharpness, size, background), judged against the Art Bible's target look.</p>
+
+  <div class="verdict">
+    <p><b>Verdict: two styles, not one.</b> The painted world is coherent: the map, the labor screen, the field pop-up, the resource icons and the troop pictures all share the same warm, chunky 3D-diorama look. The game's own interface around it is a second, flatter "phone app" style: emoji for icons, a cold bright blue for numbers and + buttons, and three different fonts.</p>
+    <p>Most of the gap is fixable in code (mine) plus one more round of painted icons (ChatGPT). Very little of the painted art needs redoing.</p>
+  </div>
+
+  <h2>The two styles</h2>
+  <div class="two">
+    <div>
+      <h3>Painted world: one style</h3>
+      <div class="pair">
+        <figure><img src="img/map.jpg" alt="The map: painted isometric county with fields, town, castle and roads"><figcaption>Map</figcaption></figure>
+        <figure><img src="img/field.jpg" alt="Field pop-up showing painted field tiles inside a dark panel"><figcaption>Field pop-up</figcaption></figure>
+      </div>
+      <p style="margin-top:8px">Same light, camera angle and chunky slabs everywhere. The field pop-up shows how panels can look: painted art inside the dark frame, no emoji.</p>
+    </div>
+    <div>
+      <h3>Interface: a second style</h3>
+      <div class="pair">
+        <figure><img src="img/happiness.jpg" alt="Happiness report with emoji icons and bright blue number boxes"><figcaption>Happiness report</figcaption></figure>
+        <figure><img src="img/castle.jpg" alt="Castle panel with yellow text boxes and blue numbers, no castle picture"><figcaption>Castle panel</figcaption></figure>
+      </div>
+      <p style="margin-top:8px">Emoji icons (😊 💰 🌾 ❤️ 🍺 ⚠️), bright blue boxed numbers, loud yellow text boxes, and no painted art at all, even where it exists (the castle panel has no castle picture).</p>
+    </div>
+  </div>
+
+  <h2>Every screen, rated</h2>
+  <div class="grid">
+    <figure class="shot"><img src="img/map.jpg" alt=""><b>Map</b><span class="tag fits">Fits</span><span class="why">Coherent. Small nits: roads pale and flat, rocks and quarry a cool blue-grey against warm stone.</span></figure>
+    <figure class="shot"><img src="img/labor.jpg" alt=""><b>Labor screen</b><span class="tag fits">Fits</span><span class="why">Painted backdrop, matching figures. Miners, woodcutters and smiths all use the farmer and herder figures.</span></figure>
+    <figure class="shot"><img src="img/field.jpg" alt=""><b>Field pop-up</b><span class="tag fits">Fits</span><span class="why">The best-matched panel: painted tiles, warm text, no emoji.</span></figure>
+    <figure class="shot"><img src="img/battle.jpg" alt=""><b>Battle report</b><span class="tag fits">Fits</span><span class="why">Painted portraits, warm palette. The Knights portrait is darker and a different style from the rest.</span></figure>
+    <figure class="shot"><img src="img/merchant.jpg" alt=""><b>Merchant</b><span class="tag off">Slightly off</span><span class="why">Painted icons and warm palette; ale is still an emoji; mixes serif names with sans buttons.</span></figure>
+    <figure class="shot"><img src="img/levy.jpg" alt=""><b>Raise an army</b><span class="tag off">Slightly off</span><span class="why">Lists troops by name only, though their portraits exist. Weapon icons are tiny.</span></figure>
+    <figure class="shot"><img src="img/kingdom.jpg" alt=""><b>Kingdom resources</b><span class="tag off">Slightly off</span><span class="why">Painted icons, but numbers in a third font and small blue figures.</span></figure>
+    <figure class="shot"><img src="img/engine.jpg" alt=""><b>Siege engines</b><span class="tag off">Slightly off</span><span class="why">Lettered stand-in tile; on the map an engine walks as a soldier with a banner.</span></figure>
+    <figure class="shot"><img src="img/castle.jpg" alt=""><b>Castle panel</b><span class="tag clash">Clashes</span><span class="why">No castle picture; loud yellow boxed text; big bright-blue numbers.</span></figure>
+    <figure class="shot"><img src="img/happiness.jpg" alt=""><b>Reports (population, happiness, health, grain, cattle, ration)</b><span class="tag clash">Clashes</span><span class="why">Every row icon is an emoji; values in bright blue boxes.</span></figure>
+    <figure class="shot"><img src="img/standings.jpg" alt=""><b>Season summary</b><span class="tag clash">Clashes</span><span class="why">Emoji rows and blue boxes, as in the reports.</span></figure>
+    <figure class="shot"><img src="img/noble.jpg" alt=""><b>Best Noble</b><span class="tag clash">Clashes</span><span class="why">Flat cartoon sky and grey bricks; emoji tabs. Backdrop already on the list (m8).</span></figure>
+    <figure class="shot"><img src="img/title.jpg" alt=""><b>Title and new game</b><span class="tag clash">Clashes</span><span class="why">Plain black with an emoji castle. The title painting (m7) fixes it.</span></figure>
+    <figure class="shot"><img src="img/minimap.jpg" alt=""><b>Minimap</b><span class="tag clash">Clashes</span><span class="why">Four flat colour squares on the painted map (u7).</span></figure>
+  </div>
+  <p style="margin-top:12px;font-size:14.5px;color:var(--muted)">Also checked: Save and Load, Event History, Settings, Diplomacy, Caravan, attack prompt. They're plain but quiet (slightly off): the same fonts and emoji headers as the reports.</p>
+
+  <h2>Across the whole interface</h2>
+  <div class="tw"><table>
+    <tr><th>Issue</th><th>Where</th><th>Fix</th><th>Who</th></tr>
+    <tr><td><b>Emoji as icons</b></td><td>Bottom chips, report rows, panel titles, Best Noble tabs, menu, title, ale</td><td>Painted icons. The 15 already planned cover the buttons; the report rows need about 20 more.</td><td>ChatGPT, then me</td></tr>
+    <tr><td><b>Cold bright blue</b></td><td>+ buttons, number boxes, tax and ration frames, corner buttons, minimap</td><td>Swap to the warm palette: gold for values, green for gains, red for losses</td><td>Me (needs your OK)</td></tr>
+    <tr><td><b>Three fonts</b></td><td>A serif for titles, Arial for text, and a typewriter font (monospace) for the top-bar numbers. None of them is built into the game, so your phone substitutes its own; the S10e shows something different from these screenshots.</td><td>Bundle one serif for titles and numbers and one sans for text, so every phone shows the same</td><td>Me (needs your OK)</td></tr>
+    <tr><td><b>Painted art left unused</b></td><td>Castle panel, levy list</td><td>Show the castle picture for each tier; show each troop's portrait in the levy list</td><td>Me (needs your OK)</td></tr>
+    <tr><td><b>Two chip styles side by side</b></td><td>Bottom bar: navy resource tiles beside beige stat chips</td><td>Make the stat chips match the navy tiles</td><td>Me, with the new icons</td></tr>
+  </table></div>
+
+  <h2>The art itself</h2>
+  <p>All 160 art files measured. The map art and icons hang together; the notes below are the outliers.</p>
+  <figure class="sheet"><img src="img/assets_map_buildings.jpg" alt="Contact sheet of town, castles, industry buildings and walls"><figcaption>Buildings: one consistent set.</figcaption></figure>
+  <figure class="sheet"><img src="img/assets_panel_art.jpg" alt="Contact sheet of troop portraits, resource icons and banners"><figcaption>Troop portraits, resource icons and banners.</figcaption></figure>
+  <div class="tw"><table>
+    <tr><th>Piece</th><th>What's off</th><th>Rating</th></tr>
+    <tr><td>Knights portrait</td><td>Realistic rider on a square base against near-black navy; the other six are small chibi figures on a grass diamond against slate blue. Measured brightness 0.15 vs 0.25–0.30 for the rest.</td><td><span class="tag clash">Clashes</span></td></tr>
+    <tr><td>Mercenaries portrait</td><td>A cut-out with no background, unlike every other portrait.</td><td><span class="tag off">Slightly off</span></td></tr>
+    <tr><td>Troop portraits vs map soldiers</td><td>Portraits are cute, big-headed figures; the map soldiers and laborers have realistic proportions.</td><td><span class="tag off">Slightly off</span></td></tr>
+    <tr><td>Quarry, rocks, mountains</td><td>Cool blue-grey stone (hue ~230–267°) next to the warm stone of castles and walls.</td><td><span class="tag off">Slightly off</span></td></tr>
+    <tr><td>Roads</td><td>The brightest thing on the map and nearly flat.</td><td><span class="tag off">Slightly off</span></td></tr>
+    <tr><td>Water</td><td>Swimming-pool cyan, more saturated than anything else (map edge only).</td><td><span class="tag off">Slightly off</span></td></tr>
+    <tr><td>Small props (timber, barrels)</td><td>48-pixel files, much lower resolution than the rest.</td><td><span class="tag off">Slightly off</span></td></tr>
+    <tr><td>Resource and weapon icons</td><td>Same navy background (every one measures within a few shades of #020A1F), same lighting.</td><td><span class="tag fits">Fits</span></td></tr>
+    <tr><td>Castles, town, industry, fields, movers</td><td>Same camera, light and finish.</td><td><span class="tag fits">Fits</span></td></tr>
+  </table></div>
+  <p style="margin-top:10px;font-size:14.5px;color:var(--muted)">27 of the 160 files are stored but never shown by the game (old 64-pixel versions, crests, UI kit), so they don't affect the look.</p>
+
+  <h2>Second opinion from ChatGPT</h2>
+  <p>To check my read, give ChatGPT the screen montage and the two contact sheets (sent in the chat) with this prompt:</p>
+  <div class="prompt">These are screens and art from my mobile strategy game, Aldermarch. The target look is warm, hand-painted 3D diorama art with soft light from the top left. Without being polite, tell me which screens and pieces do NOT look like they come from the same artist and art direction as the rest. For each one: what exactly breaks the style (colour, lighting, proportions, rendering, typography, icons), and how serious it is (slightly off / clashes). Then list the 5 changes that would make the whole game look most unified.</div>
+
+  <footer>Screens captured from the real game at 360×760 (S10e). Measurements and fixes are tracked in the Asset List and the Fix List.</footer>
+</div>
