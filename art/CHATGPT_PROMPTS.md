@@ -216,3 +216,17 @@ Attach as style references: `art/_reference/target-look-hollowmere.jpg`,
 > transparent, no gradient, no shadow on the background); no ground slab under
 > it; no people; no flags or banners; nothing touching the edges. One separate
 > PNG named `mine.png`.
+
+## Iron mine — image for 3D conversion (Oct 31, Blender test)
+
+For Tripo (image-to-3D), not for the game directly. Attach
+`art/_reference/target-look-hollowmere.jpg` for style.
+
+> One object only: a medieval iron mine dug into a small grey rocky hill, in the
+> style of the attached reference (clean stylized 3D, warm colours). A
+> timber-framed tunnel mouth in the rock face, a short mine-cart track with one
+> cart of dark iron ore, a small spoil heap beside the entrance, a lantern on a
+> post, a few grass tufts and one small tree on top of the rocks. Seen from the
+> front and slightly above (three-quarter view), the whole object visible and
+> centred, nothing cut off. Plain pure white background, no ground, no shadow,
+> no people, no text.
